@@ -79,7 +79,7 @@ class DemoDelegateKey {
     String? name,
     String? email,
     String? phone,
-    Map<String, dynamic> contactPrefs = const {},
+    Map<String, List<Map<String, dynamic>>> contactPrefs = const {},
     VisibilityLevel visibility = VisibilityLevel.standard,
   }) async {
     final iJson = await publicKey.json;
@@ -89,7 +89,7 @@ class DemoDelegateKey {
       iJson: iJson,
       name: name,
       emails: email != null ? [{'address': email, 'preferred': true}] : [],
-      phone: phone,
+      phones: phone != null ? [{'number': phone, 'preferred': false}] : [],
       contactPrefs: contactPrefs,
     );
     final contactWriter = HabloStatementWriter<ContactStatement>(habloDb, kHabloContactCollection);

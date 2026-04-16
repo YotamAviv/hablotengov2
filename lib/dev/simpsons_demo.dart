@@ -57,8 +57,8 @@ Future<void> simpsonsDemo({
       name: 'Lisa Simpson',
       email: 'lisa@springfield.edu',
       contactPrefs: {
-        'signal': {'handle': '+15555550101', 'preferred': true},
-        'instagram': {'handle': 'lisasimpson', 'preferred': false},
+        'signal': [{'handle': '+15555550101', 'preferred': true}],
+        'instagram': [{'handle': 'lisasimpson', 'preferred': false}],
       },
       visibility: VisibilityLevel.standard);
 
@@ -67,7 +67,7 @@ Future<void> simpsonsDemo({
       email: 'homer@springfield-nuclear.com',
       phone: '+15555550102',
       contactPrefs: {
-        'whatsapp': {'handle': '+15555550102', 'preferred': true},
+        'whatsapp': [{'handle': '+15555550102', 'preferred': true}],
       },
       visibility: VisibilityLevel.permissive);
 
@@ -75,16 +75,16 @@ Future<void> simpsonsDemo({
       name: 'Marge Simpson',
       email: 'marge@springfield.net',
       contactPrefs: {
-        'telegram': {'handle': 'margesimpson', 'preferred': true},
-        'instagram': {'handle': 'margesimpson', 'preferred': false},
+        'telegram': [{'handle': 'margesimpson', 'preferred': true}],
+        'instagram': [{'handle': 'margesimpson', 'preferred': false}],
       },
       visibility: VisibilityLevel.standard);
 
   await bartD.submitCard(habloDb, oneofusDb,
       name: 'Bart Simpson',
       contactPrefs: {
-        'instagram': {'handle': 'bartmaniac', 'preferred': true},
-        'twitter_x': {'handle': 'bartman', 'preferred': false},
+        'instagram': [{'handle': 'bartmaniac', 'preferred': true}],
+        'twitter_x': [{'handle': 'bartman', 'preferred': false}],
       },
       visibility: VisibilityLevel.permissive);
 
@@ -92,7 +92,7 @@ Future<void> simpsonsDemo({
       name: 'Milhouse Van Houten',
       email: 'milhouse@springfield.edu',
       contactPrefs: {
-        'signal': {'handle': '+15555550105', 'preferred': true},
+        'signal': [{'handle': '+15555550105', 'preferred': true}],
       },
       visibility: VisibilityLevel.strict);
 

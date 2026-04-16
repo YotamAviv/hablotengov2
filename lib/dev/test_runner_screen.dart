@@ -95,7 +95,7 @@ Future<List<TestResult>> runAllTests() async {
         name: 'Lisa Simpson',
         email: 'lisa@springfield.edu',
         contactPrefs: {
-          'signal': {'handle': '+15555550101', 'preferred': true},
+          'signal': [{'handle': '+15555550101', 'preferred': true}],
         },
         visibility: VisibilityLevel.standard);
 
@@ -104,7 +104,7 @@ Future<List<TestResult>> runAllTests() async {
         email: 'homer@springfield-nuclear.com',
         phone: '+15555550102',
         contactPrefs: {
-          'whatsapp': {'handle': '+15555550102', 'preferred': true},
+          'whatsapp': [{'handle': '+15555550102', 'preferred': true}],
         },
         visibility: VisibilityLevel.permissive);
 
@@ -116,7 +116,7 @@ Future<List<TestResult>> runAllTests() async {
     await bartD.submitCard(habloDb, oneofusDb,
         name: 'Bart Simpson',
         contactPrefs: {
-          'instagram': {'handle': 'bartmaniac', 'preferred': true},
+          'instagram': [{'handle': 'bartmaniac', 'preferred': true}],
         },
         visibility: VisibilityLevel.permissive);
 

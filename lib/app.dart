@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hablotengo/screens/contacts_screen.dart';
 import 'package:hablotengo/screens/sign_in_screen.dart';
 import 'package:hablotengo/sign_in_state.dart';
+import 'package:hablotengo/ui/ht_theme.dart';
 
 class HablotengoApp extends StatelessWidget {
   const HablotengoApp({super.key});
@@ -10,11 +11,9 @@ class HablotengoApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'HabloTengo',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal),
-        useMaterial3: true,
-      ),
+      theme: buildTheme(),
       home: const _RootNavigator(),
+      debugShowCheckedModeBanner: false,
     );
   }
 }
@@ -43,9 +42,7 @@ class _RootNavigatorState extends State<_RootNavigator> {
 
   @override
   Widget build(BuildContext context) {
-    if (signInState.hasPov) {
-      return const ContactsScreen();
-    }
+    if (signInState.hasPov) return const ContactsScreen();
     return const SignInScreen();
   }
 }

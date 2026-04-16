@@ -43,3 +43,15 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Emulator PIDs and local artifacts
+.hablotengo_emulator.pid
+.oneofus_emulator.pid
+tmp.json
+*.pid
+
+# Local Firebase state
+.firebase/
+
+# Package build artifacts
+packages/**/build/
