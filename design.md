@@ -1,5 +1,7 @@
 # HabloTengo — Design
 
+TEMP: Just writing a file
+
 ## What Is It
 
 HabloTengo is a privacy-first contact directory built on top of an open identity network.
@@ -355,23 +357,31 @@ open the native app if installed.
 
 ## Open Questions
 
-**Efficient reverse-trust algorithm**
+**Efficient reverse-trust algorithm** *(implemented)*
 
-The goal: for each B in A's trust graph, determine whether A appears in B's trust graph
-at B's required visibility level. The challenge is doing this without O(N) separate BFS
-traversals, each requiring its own round trips to Firestore.
+For each B in A's trust graph, determine whether A appears in B's trust graph at B's
+required visibility level. Implemented as parallel `TrustPipeline.build(B)` calls using
+`Future.wait`, with the path requirement matched to B's visibilityLevel
+(permissive/standard/strict). Firestore caching means statements already fetched for A's
+forward BFS are served locally for the reverse BFS calls, keeping network cost low.
 
-Proposed approach — parallel multi-source BFS with batched fetches:
-- Start BFS from A (forward trust graph).
-- At each layer, also begin BFS from all newly discovered keys — computing their trust
-  graphs in parallel.
-- Batch the fetches: when requesting A's layer 2, also request layer 1 for all nodes
-  found in A's layer 1. This keeps round trips to O(max_depth) rather than O(N × max_depth).
+Limitation: for strict visibility at distance 4+, the strict path requirement (3 paths)
+may over-accept slightly since the standard graph only searched for 2 paths. This is
+accepted as a minor edge case.
 
-Since A (the signed-in user) is likely to appear at shallow depth in most B's trust
-graphs, the reverse BFS for each B can terminate early once A is found (or determined
-absent within the required depth for B's visibility level).
 
+## Contact Search
+
+Users can filter their contacts list by typing in a search bar. The filter matches against any name the person is known by:
+
+- **Self-given name**: the name field on their contact card.
+- **Network monikers**: names that anyone in the PoV's trust graph gave them via their trust statements (the `moniker` field on a `trust` statement).
+
+The filter is case-insensitive and uses substring matching. If no names match the query, the list shows "No matching contacts." The search bar has an X button to clear the query.
+
+Contacts with no matching names are hidden. Contacts with no card at all still appear if a moniker in the trust graph matches.
+
+---
 
 ## Speculative / Future Ideas
 

@@ -1,0 +1,36 @@
+name: hablotengo
+description: "Privacy-first contact directory built on the open identity network."
+publish_to: 'none'
+
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.11.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+  oneofus_common:
+    path: ../nerdster14/packages/oneofus_common
+  firebase_core: ^4.0.0
+  cloud_firestore: ^6.0.0
+  cloud_functions: ^6.0.0
+  fake_cloud_firestore: ^4.0.0
+  cryptography: ^2.7.0
+  jwk: ^0.2.3
+  flutter_secure_storage: ^9.2.2
+  collection: ^1.18.0
+  convert: ^3.1.1
+  http: ^1.2.2
+  crypto: ^3.0.3
+  intl: ^0.20.1
+  url_launcher: ^6.2.6
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
