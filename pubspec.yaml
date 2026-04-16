@@ -1,7 +1,7 @@
 name: hablotengo
 description: "Privacy-first contact directory built on the open identity network."
 homepage: https://hablotengo.com
-repository: https://github.com/YotamAviv/hablotengo
+repository: https://github.com/YotamAviv/hablotengov2
 publish_to: 'none'
 
 version: 0.1.0+1
