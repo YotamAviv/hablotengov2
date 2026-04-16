@@ -41,4 +41,4 @@ MIT — see [LICENSE](LICENSE)
 
 ## Author
 
-[Yotam Aviv](https://github.com/yotam-aviv)
+[Yotam Aviv](https://github.com/YotamAviv)
