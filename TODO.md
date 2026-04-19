@@ -14,27 +14,28 @@ Contact statements contain real people's private contact info. The current Fires
 require auth for writes but do not enforce the trust graph on reads. Three options, in order
 of strength:
 
-### Option A: Cloud Functions read proxy (recommended)
+### Cloud Functions read proxy (recommended)
 - Firestore rules: deny all direct client reads
 - All contact reads go through a Cloud Function
-- The function verifies the requester has a valid trust path to the target (BFS check)
+- The function verifies the requester has a valid trust path to the target
+- Client presents a trust path proof; server verifies signatures and path validity
 - Actually enforces the trust model server-side
-- Significant work
+- See [docs/trust_gated_contact_reads.md](docs/trust_gated_contact_reads.md) for design
 
-### Option B: Require Firebase Auth for reads (stopgap)
+### Require Firebase Auth for reads (stopgap)
 - Change `allow read: if true` → `allow read: if request.auth != null`
 - Stops unauthenticated scraping but does NOT enforce the trust graph
 - Any authenticated user can still read any contact statement
-- Easy to implement, buys time while building Option A
+- Easy to implement, buys time while building the read proxy
 
-### Option C: Client-side encryption
+### Client-side encryption
 - Encrypt contact fields with a key shared only with trusted contacts
 - Firestore stores ciphertext; only key-holders can decrypt
 - Key distribution is the hard unsolved problem here
 - Probably not the right fit for this architecture
 
-**Current rules** implement Option B (writes require auth; reads are public).
-Upgrade to Option A before launch.
+**Current rules** implement the stopgap (writes require auth; reads are public).
+Upgrade to the Cloud Functions read proxy before launch.
 
 ## CI/CD Secrets — Keyless Auth (OIDC)
 

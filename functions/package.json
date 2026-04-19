@@ -1,0 +1,19 @@
+{
+  "name": "hablotengo-functions",
+  "description": "Cloud Functions for hablotengo",
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "serve": "firebase emulators:start --only functions",
+    "deploy": "firebase deploy --only functions",
+    "logs": "firebase functions:log"
+  },
+  "engines": {
+    "node": "22"
+  },
+  "main": "index.js",
+  "dependencies": {
+    "firebase-admin": "^12.1.0",
+    "firebase-functions": "^7.2.2"
+  },
+  "private": true
+}
