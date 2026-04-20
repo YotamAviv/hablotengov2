@@ -4,3 +4,6 @@ cd "$(dirname "$0")/.."
 
 echo "=== Cloud Function tests ==="
 (cd functions && npm test)
+
+echo "=== Chrome widget test ==="
+python3 bin/chrome_widget_runner.py -t lib/dev/cloud_source_web_test.dart
