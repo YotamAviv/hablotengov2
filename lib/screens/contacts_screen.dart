@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:hablotengo/fire_choice.dart';
 import 'package:hablotengo/logic/contact_repo.dart';
+import 'package:hablotengo/logic/hablo_cloud_functions.dart';
 import 'package:hablotengo/main.dart';
 import 'package:hablotengo/models/hablo_model.dart';
 import 'package:hablotengo/screens/contact_detail_screen.dart';
@@ -7,7 +9,11 @@ import 'package:hablotengo/screens/my_card_screen.dart';
 import 'package:hablotengo/sign_in_state.dart';
 import 'package:hablotengo/ui/ht_logo.dart';
 import 'package:hablotengo/ui/ht_theme.dart';
+import 'package:oneofus_common/cloud_functions_source.dart';
+import 'package:oneofus_common/direct_firestore_source.dart';
 import 'package:oneofus_common/keys.dart';
+import 'package:oneofus_common/oou_verifier.dart';
+import 'package:oneofus_common/trust_statement.dart';
 
 class ContactsScreen extends StatefulWidget {
   const ContactsScreen({super.key});
@@ -40,15 +46,25 @@ class _ContactsScreenState extends State<ContactsScreen> {
   Future<void> _load() async {
     setState(() { _loading = true; _error = null; });
     try {
+      final trustSource = fireChoice == FireChoice.fake
+          ? DirectFirestoreSource<TrustStatement>(oneofusFirestore)
+          : CloudFunctionsSource<TrustStatement>(
+              baseUrl: oneofusTrustUrl,
+              verifier: OouVerifier(),
+            );
       final repo = ContactRepo(
-          oneofusFirestore: oneofusFirestore, habloFirestore: habloFirestore);
+          trustSource: trustSource,
+          habloFirestore: habloFirestore,
+          cloudFunctions: HabloCloudFunctions(habloFunctions));
       final result = await repo.loadContacts(IdentityKey(signInState.pov));
       setState(() {
         _graph = result.graph;
         _contacts = result.contacts;
         _loading = false;
       });
-    } catch (e) {
+    } catch (e, st) {
+      // ignore: avoid_print
+      print('ContactsScreen._load ERROR: ${e.runtimeType}: $e\nSTACK:\n$st');
       setState(() { _error = e.toString(); _loading = false; });
     }
   }

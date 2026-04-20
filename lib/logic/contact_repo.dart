@@ -1,15 +1,20 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:hablotengo/constants.dart';
 import 'package:hablotengo/logic/delegates.dart';
+import 'package:hablotengo/logic/hablo_cloud_functions.dart';
 import 'package:hablotengo/logic/hablo_statement_source.dart';
+import 'package:hablotengo/logic/proof_builder.dart';
 import 'package:hablotengo/logic/trust_pipeline.dart';
 import 'package:hablotengo/models/contact_statement.dart';
 import 'package:hablotengo/models/hablo_model.dart';
 import 'package:hablotengo/models/override_statement.dart';
 import 'package:hablotengo/models/privacy_statement.dart';
-import 'package:oneofus_common/direct_firestore_source.dart';
+import 'package:hablotengo/sign_in_state.dart';
+import 'package:oneofus_common/jsonish.dart';
 import 'package:oneofus_common/keys.dart';
 import 'package:oneofus_common/merger.dart';
+import 'package:oneofus_common/statement.dart';
+import 'package:oneofus_common/statement_source.dart';
 import 'package:oneofus_common/trust_statement.dart';
 
 class ContactEntry {
@@ -68,14 +73,19 @@ class ContactEntry {
 }
 
 class ContactRepo {
-  final FirebaseFirestore oneofusFirestore;
+  final StatementSource<TrustStatement> trustSource;
   final FirebaseFirestore habloFirestore;
+  // null = fall back to direct Firestore reads (tests / no-auth mode)
+  final HabloCloudFunctions? cloudFunctions;
 
-  ContactRepo({required this.oneofusFirestore, required this.habloFirestore});
+  ContactRepo({
+    required this.trustSource,
+    required this.habloFirestore,
+    this.cloudFunctions,
+  });
 
   Future<({TrustGraph graph, DelegateResolver delegates, List<ContactEntry> contacts})>
       loadContacts(IdentityKey pov) async {
-    final trustSource = DirectFirestoreSource<TrustStatement>(oneofusFirestore);
     final pipeline = TrustPipeline(trustSource);
     final graph = await pipeline.build(pov);
 
@@ -99,12 +109,9 @@ class ContactRepo {
         .expand((list) => list).map((k) => k.value).toSet();
     final fetchMap = {for (final t in allDelegateTokens) t: null};
 
-    final contactSource =
-        HabloStatementSource<ContactStatement>(habloFirestore, kHabloContactCollection);
+    // Privacy is publicly readable; contact data requires a Cloud Function call.
     final privacySource =
         HabloStatementSource<PrivacyStatement>(habloFirestore, kHabloPrivacyCollection);
-
-    final contactResults = fetchMap.isNotEmpty ? await contactSource.fetch(fetchMap) : {};
     final privacyResults = fetchMap.isNotEmpty ? await privacySource.fetch(fetchMap) : {};
 
     // Collect network monikers: for each canonical, find all monikers in graph edges pointing to it
@@ -129,28 +136,20 @@ class ContactRepo {
       final distance = graph.distances[canonical] ?? graph.distances[identity] ?? 999;
       final dkeys = canonicalDelegates[canonical] ?? [];
 
-      ContactStatement? latestContact;
-      if (dkeys.isNotEmpty) {
-        final streams = dkeys.map<Iterable<ContactStatement>>(
-            (dk) => contactResults[dk.value] ?? <ContactStatement>[]);
-        final merged = Merger.merge(streams);
-        if (merged.isNotEmpty) latestContact = merged.first as ContactStatement;
-      }
-
       VisibilityLevel visibilityLevel = VisibilityLevel.standard;
       if (dkeys.isNotEmpty) {
         final privacyStreams = dkeys.map<Iterable<PrivacyStatement>>(
             (dk) => privacyResults[dk.value] ?? <PrivacyStatement>[]);
         final mergedPrivacy = Merger.merge(privacyStreams);
         if (mergedPrivacy.isNotEmpty) {
-          visibilityLevel = (mergedPrivacy.first as PrivacyStatement).visibilityLevel;
+          visibilityLevel = mergedPrivacy.first.visibilityLevel;
         }
       }
 
       entries.add(ContactEntry(
         identity: canonical,
         distance: distance,
-        contact: latestContact,
+        contact: null, // filled in below via Cloud Function
         visibilityLevel: visibilityLevel,
         networkMonikers: networkMonikers[canonical] ?? {},
         canSeeYou: null,
@@ -158,9 +157,75 @@ class ContactRepo {
       ));
     }
 
+    // Fetch contact data: via Cloud Function when available, else direct Firestore
+    // (direct reads are used in tests; in production Firestore rules deny client reads).
+    Map<IdentityKey, ContactStatement?> contactMap = {};
+    if (cloudFunctions != null) {
+      final myDelegateToken = signInState.delegate;
+      if (myDelegateToken != null) {
+        final myDelegateStatement = findDelegateStatement(graph, povCanonical, myDelegateToken);
+        if (myDelegateStatement != null) {
+          final auth = await signInState.buildDelegateAuth(myDelegateStatement);
+          if (auth != null) {
+            final futures = <Future<MapEntry<IdentityKey, ContactStatement?>>>[];
+            for (final entry in entries) {
+              if (entry.isYou) continue;
+              final dkeys = canonicalDelegates[entry.identity] ?? [];
+              if (dkeys.isEmpty) continue;
+              final targetDelegateKey = dkeys.first;
+              final targetDelegateStatement =
+                  findDelegateStatement(graph, entry.identity, targetDelegateKey.value);
+              if (targetDelegateStatement == null) continue;
+              final paths = buildProofPaths(graph, entry.identity);
+              if (paths == null) continue;
+              futures.add(
+                cloudFunctions!
+                    .getContactInfo(
+                      auth: auth,
+                      targetDelegateToken: targetDelegateKey.value,
+                      targetDelegateStatement: targetDelegateStatement,
+                      paths: paths,
+                    )
+                    .then((c) => MapEntry(entry.identity, c))
+                    .catchError((_) => MapEntry(entry.identity, null)),
+              );
+            }
+            final results = await Future.wait(futures);
+            contactMap = Map.fromEntries(results);
+          }
+        }
+      }
+    } else {
+      // Fallback: direct Firestore reads (for tests / fake-fire mode).
+      final contactSource =
+          HabloStatementSource<ContactStatement>(habloFirestore, kHabloContactCollection);
+      final contactResults = fetchMap.isNotEmpty ? await contactSource.fetch(fetchMap) : {};
+      for (final entry in entries) {
+        final dkeys = canonicalDelegates[entry.identity] ?? [];
+        if (dkeys.isEmpty) continue;
+        final streams = dkeys.map<Iterable<ContactStatement>>(
+            (dk) => contactResults[dk.value] ?? <ContactStatement>[]);
+        final merged = Merger.merge(streams);
+        contactMap[entry.identity] = merged.isNotEmpty ? merged.first : null;
+      }
+    }
+
+    final entriesWithContacts = entries.map((e) {
+      if (!contactMap.containsKey(e.identity)) return e;
+      return ContactEntry(
+        identity: e.identity,
+        distance: e.distance,
+        contact: contactMap[e.identity],
+        visibilityLevel: e.visibilityLevel,
+        networkMonikers: e.networkMonikers,
+        canSeeYou: null,
+        isYou: e.isYou,
+      );
+    }).toList();
+
     // Reverse trust: parallel multi-source BFS for each non-self contact
     final reverseFutures = <MapEntry<IdentityKey, Future<bool>>>[];
-    for (final entry in entries) {
+    for (final entry in entriesWithContacts) {
       if (entry.isYou) continue;
       reverseFutures.add(MapEntry(
         entry.identity,
@@ -173,7 +238,7 @@ class ContactRepo {
     );
     final canSeeMap = Map.fromEntries(reverseResults);
 
-    final finalEntries = entries.map((e) {
+    final finalEntries = entriesWithContacts.map((e) {
       if (e.isYou) return e;
       return e.withCanSeeYou(canSeeMap[e.identity] ?? false);
     }).toList();
@@ -186,7 +251,7 @@ class ContactRepo {
   Future<bool> _canSeeYou(
     IdentityKey b,
     IdentityKey a,
-    DirectFirestoreSource<TrustStatement> source,
+    StatementSource<TrustStatement> source,
     VisibilityLevel level,
   ) async {
     final req = switch (level) {
@@ -199,9 +264,28 @@ class ContactRepo {
   }
 
   Future<({ContactStatement? contact, PrivacyStatement? privacy})> loadMyCard(
-      List<DelegateKey> myDelegateKeys) async {
+      List<DelegateKey> myDelegateKeys, {Json? delegateStatement}) async {
     if (myDelegateKeys.isEmpty) return (contact: null, privacy: null);
 
+    if (cloudFunctions != null && delegateStatement != null) {
+      for (final dk in myDelegateKeys) {
+        final auth = await signInState.buildDelegateAuth(delegateStatement);
+        if (auth == null) continue;
+        final result = await cloudFunctions!.getMyCard(auth: auth, delegateToken: dk.value);
+        if (result.contact != null || result.privacy != null) {
+          final contact = result.contact != null
+              ? Statement.make(Jsonish(result.contact!)) as ContactStatement
+              : null;
+          final privacy = result.privacy != null
+              ? Statement.make(Jsonish(result.privacy!)) as PrivacyStatement
+              : null;
+          return (contact: contact, privacy: privacy);
+        }
+      }
+      return (contact: null, privacy: null);
+    }
+
+    // Fallback: direct Firestore reads (fake mode / tests).
     final contactSource =
         HabloStatementSource<ContactStatement>(habloFirestore, kHabloContactCollection);
     final privacySource =

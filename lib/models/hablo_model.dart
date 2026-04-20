@@ -42,9 +42,12 @@ class TrustGraph {
     Map<IdentityKey, List<TrustStatement>> edges = const {},
   })  : orderedKeys = List.unmodifiable(orderedKeys),
         paths = Map.unmodifiable(paths.map((k, v) =>
-            MapEntry(k, List.unmodifiable(v.map((p) => List.unmodifiable(p)))))),
+            MapEntry(k, List<List<IdentityKey>>.unmodifiable(
+                (v as List).map<List<IdentityKey>>((dynamic p) =>
+                    List<IdentityKey>.unmodifiable((p as List).cast<IdentityKey>())))))),
         notifications = List.unmodifiable(notifications),
-        edges = Map.unmodifiable(edges.map((k, v) => MapEntry(k, List.unmodifiable(v))));
+        edges = Map.unmodifiable(edges.map((k, v) =>
+            MapEntry(k, List<TrustStatement>.unmodifiable((v as List).cast<TrustStatement>()))));
 
   bool isTrusted(IdentityKey token) => distances.containsKey(token);
 

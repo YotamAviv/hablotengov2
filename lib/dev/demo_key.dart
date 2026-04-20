@@ -1,9 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:hablotengo/constants.dart';
+import 'package:hablotengo/logic/hablo_cloud_functions.dart';
 import 'package:hablotengo/logic/hablo_statement_writer.dart';
 import 'package:hablotengo/models/contact_statement.dart';
 import 'package:hablotengo/models/privacy_statement.dart';
-import 'package:oneofus_common/clock.dart';
 import 'package:oneofus_common/crypto/crypto.dart';
 import 'package:oneofus_common/crypto/crypto25519.dart';
 import 'package:oneofus_common/direct_firestore_writer.dart';
@@ -11,6 +12,7 @@ import 'package:oneofus_common/jsonish.dart';
 import 'package:oneofus_common/keys.dart';
 import 'package:oneofus_common/oou_signer.dart';
 import 'package:oneofus_common/trust_statement.dart';
+
 
 /// Demo identity key — creates a real key pair in memory.
 class DemoIdentityKey {
@@ -73,15 +75,18 @@ class DemoDelegateKey {
     return DemoDelegateKey._(name, kp, pk, Jsonish(json).token);
   }
 
-  Future<void> submitCard(
-    FirebaseFirestore habloDb,
-    FirebaseFirestore oneofusDb, {
+  /// Production: pass [habloFunctions] to write via Cloud Function (enforces rules).
+  /// Tests: pass [habloDb] (FakeFirebaseFirestore) to write directly, bypassing rules.
+  Future<void> submitCard({
+    FirebaseFunctions? habloFunctions,
+    FirebaseFirestore? habloDb,
     String? name,
     String? email,
     String? phone,
     Map<String, List<Map<String, dynamic>>> contactPrefs = const {},
     VisibilityLevel visibility = VisibilityLevel.standard,
   }) async {
+    assert(habloFunctions != null || habloDb != null, 'Provide habloFunctions or habloDb');
     final iJson = await publicKey.json;
     final signer = await OouSigner.make(keyPair);
 
@@ -92,11 +97,19 @@ class DemoDelegateKey {
       phones: phone != null ? [{'number': phone, 'preferred': false}] : [],
       contactPrefs: contactPrefs,
     );
-    final contactWriter = HabloStatementWriter<ContactStatement>(habloDb, kHabloContactCollection);
-    await contactWriter.push(contactJson, signer);
-
     final privacyJson = PrivacyStatement.buildJson(iJson: iJson, level: visibility);
-    final privacyWriter = HabloStatementWriter<PrivacyStatement>(habloDb, kHabloPrivacyCollection);
-    await privacyWriter.push(privacyJson, signer);
+
+    if (habloFunctions != null) {
+      final cf = HabloCloudFunctions(habloFunctions);
+      final signedContact = await Jsonish.makeSign(contactJson, signer);
+      await cf.writeStatement(statement: signedContact.json, collection: kHabloContactCollection);
+      final signedPrivacy = await Jsonish.makeSign(privacyJson, signer);
+      await cf.writeStatement(statement: signedPrivacy.json, collection: kHabloPrivacyCollection);
+    } else {
+      final contactWriter = HabloStatementWriter<ContactStatement>(habloDb!, kHabloContactCollection);
+      await contactWriter.push(contactJson, signer);
+      final privacyWriter = HabloStatementWriter<PrivacyStatement>(habloDb, kHabloPrivacyCollection);
+      await privacyWriter.push(privacyJson, signer);
+    }
   }
 }

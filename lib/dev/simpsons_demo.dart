@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:hablotengo/dev/demo_key.dart';
 import 'package:hablotengo/models/privacy_statement.dart';
 import 'package:hablotengo/sign_in_state.dart';
@@ -7,7 +8,7 @@ import 'package:oneofus_common/keys.dart';
 /// Populates the Simpsons trust network and signs in as Lisa.
 Future<void> simpsonsDemo({
   required FirebaseFirestore oneofusDb,
-  required FirebaseFirestore habloDb,
+  required FirebaseFunctions habloFunctions,
 }) async {
   // Identity keys
   final lisa = await DemoIdentityKey.create('lisa');
@@ -52,8 +53,8 @@ Future<void> simpsonsDemo({
   await milhouse.delegateTo(milhouseD, oneofusDb);
   await maggie.delegateTo(maggieD, oneofusDb);
 
-  // Contact cards (in hablotengo emulator)
-  await lisaD.submitCard(habloDb, oneofusDb,
+  // Contact cards (via writeStatement Cloud Function)
+  await lisaD.submitCard(habloFunctions: habloFunctions,
       name: 'Lisa Simpson',
       email: 'lisa@springfield.edu',
       contactPrefs: {
@@ -62,7 +63,7 @@ Future<void> simpsonsDemo({
       },
       visibility: VisibilityLevel.standard);
 
-  await homerD.submitCard(habloDb, oneofusDb,
+  await homerD.submitCard(habloFunctions: habloFunctions,
       name: 'Homer Simpson',
       email: 'homer@springfield-nuclear.com',
       phone: '+15555550102',
@@ -71,7 +72,7 @@ Future<void> simpsonsDemo({
       },
       visibility: VisibilityLevel.permissive);
 
-  await margeD.submitCard(habloDb, oneofusDb,
+  await margeD.submitCard(habloFunctions: habloFunctions,
       name: 'Marge Simpson',
       email: 'marge@springfield.net',
       contactPrefs: {
@@ -80,7 +81,7 @@ Future<void> simpsonsDemo({
       },
       visibility: VisibilityLevel.standard);
 
-  await bartD.submitCard(habloDb, oneofusDb,
+  await bartD.submitCard(habloFunctions: habloFunctions,
       name: 'Bart Simpson',
       contactPrefs: {
         'instagram': [{'handle': 'bartmaniac', 'preferred': true}],
@@ -88,7 +89,7 @@ Future<void> simpsonsDemo({
       },
       visibility: VisibilityLevel.permissive);
 
-  await milhouseD.submitCard(habloDb, oneofusDb,
+  await milhouseD.submitCard(habloFunctions: habloFunctions,
       name: 'Milhouse Van Houten',
       email: 'milhouse@springfield.edu',
       contactPrefs: {

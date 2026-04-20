@@ -1,6 +1,6 @@
 {
   "firestore": {
-    "rules": "firestore.rules",
+    "rules": "oneofus.firestore.rules",
     "indexes": "firestore.indexes.json"
   },
   "functions": [
@@ -8,7 +8,7 @@
       "source": "functions",
       "codebase": "default",
       "host": "127.0.0.1",
-      "port": "5002",
+      "port": "5004",
       "ignore": [
         "node_modules",
         ".git",
@@ -20,28 +20,28 @@
   ],
   "emulators": {
     "firestore": {
-      "port": 8081,
-      "websocketPort": 9151
+      "port": 8083,
+      "websocketPort": 9153
     },
     "functions": {
       "host": "127.0.0.1",
-      "port": "5002"
+      "port": "5004"
     },
     "hub": {
-      "port": 4401
+      "port": 4403
     },
     "ui": {
       "enabled": true,
-      "port": 4001
+      "port": 4003
     },
     "eventarc": {
-      "port": 9300
+      "port": 9303
     },
     "tasks": {
-      "port": 9500
+      "port": 9503
     },
     "logging": {
-      "port": 4501
+      "port": 4503
     }
   }
 }

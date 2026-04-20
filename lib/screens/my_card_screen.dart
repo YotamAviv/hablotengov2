@@ -12,9 +12,12 @@ import 'package:hablotengo/sign_in_state.dart';
 import 'package:hablotengo/constants.dart';
 import 'package:hablotengo/ui/lgtm_dialog.dart';
 import 'package:hablotengo/ui/ht_theme.dart';
-import 'package:oneofus_common/direct_firestore_source.dart';
+import 'package:oneofus_common/cloud_functions_source.dart';
 import 'package:oneofus_common/keys.dart';
+import 'package:oneofus_common/oou_verifier.dart';
 import 'package:oneofus_common/trust_statement.dart';
+import 'package:hablotengo/logic/hablo_cloud_functions.dart';
+import 'package:hablotengo/logic/proof_builder.dart';
 
 // ---------------------------------------------------------------------------
 // Item type definitions
@@ -130,7 +133,10 @@ class _MyCardScreenState extends State<MyCardScreen> {
     setState(() { _loading = true; _error = null; });
     try {
       final pov = IdentityKey(signInState.pov);
-      final trustSource = DirectFirestoreSource<TrustStatement>(oneofusFirestore);
+      final trustSource = CloudFunctionsSource<TrustStatement>(
+        baseUrl: oneofusTrustUrl,
+        verifier: OouVerifier(),
+      );
       final pipeline = TrustPipeline(trustSource);
       final graph = await pipeline.build(pov);
       final delegates = DelegateResolver(graph);
@@ -140,8 +146,16 @@ class _MyCardScreenState extends State<MyCardScreen> {
           .where((dk) => delegates.getDomainForDelegate(dk) == kHablotengo)
           .toList();
 
-      final repo = ContactRepo(oneofusFirestore: oneofusFirestore, habloFirestore: habloFirestore);
-      final card = await repo.loadMyCard(_myDelegateKeys);
+      final delegateStatement = _myDelegateKeys.isNotEmpty
+          ? findDelegateStatement(graph, pov, _myDelegateKeys.first.value)
+          : null;
+
+      final repo = ContactRepo(
+        trustSource: trustSource,
+        habloFirestore: habloFirestore,
+        cloudFunctions: HabloCloudFunctions(habloFunctions),
+      );
+      final card = await repo.loadMyCard(_myDelegateKeys, delegateStatement: delegateStatement);
 
       if (card.contact != null) {
         final c = card.contact!;

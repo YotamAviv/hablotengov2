@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/foundation.dart';
 import 'package:oneofus_common/crypto/crypto.dart';
 import 'package:oneofus_common/jsonish.dart';
@@ -89,4 +91,21 @@ class SignInState with ChangeNotifier {
   OouKeyPair? get delegateKeyPair => _delegateKeyPair;
   Map<String, dynamic> get endpoint => _endpoint;
   SignInMethod? get signInMethod => _signInMethod;
+
+  /// Builds the delegate auth proof bundle for the getContactInfo Cloud Function.
+  /// [delegateStatement] is the signed trust statement proving identity→delegate.
+  Future<Json?> buildDelegateAuth(Json delegateStatement) async {
+    if (_delegateKeyPair == null || _delegatePublicKeyJson == null) return null;
+    final nonce = List<int>.generate(16, (_) => Random.secure().nextInt(256))
+        .map((b) => b.toRadixString(16).padLeft(2, '0'))
+        .join();
+    final challenge = '${DateTime.now().toUtc().toIso8601String()} $nonce';
+    final sig = await _delegateKeyPair!.sign(challenge);
+    return {
+      'challenge': challenge,
+      'challengeSignature': sig,
+      'delegatePublicKey': _delegatePublicKeyJson,
+      'delegateStatement': delegateStatement,
+    };
+  }
 }

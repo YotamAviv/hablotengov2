@@ -22,6 +22,7 @@ import 'firebase_options.dart';
 late final FirebaseFirestore habloFirestore;
 late final FirebaseFirestore oneofusFirestore;
 late final FirebaseFunctions habloFunctions;
+late final String oneofusTrustUrl;
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -50,15 +51,19 @@ Future<void> main() async {
     oneofusFirestore = OneofusFire.firestore;
 
     if (fireChoice == FireChoice.emulator) {
-      habloFirestore.useFirestoreEmulator('localhost', 8082);
+      habloFirestore.useFirestoreEmulator('127.0.0.1', 8082);
       habloFunctions.useFunctionsEmulator('127.0.0.1', 5003);
-      oneofusFirestore.useFirestoreEmulator('localhost', 8081);
-      OneofusFire.functions.useFunctionsEmulator('127.0.0.1', 5002);
+      oneofusFirestore.useFirestoreEmulator('127.0.0.1', 8083);
+      OneofusFire.functions.useFunctionsEmulator('127.0.0.1', 5004);
+      oneofusTrustUrl = 'http://127.0.0.1:5004/one-of-us-net/us-central1/export';
+    } else {
+      oneofusTrustUrl = 'https://export.one-of-us.net';
     }
   } else {
     habloFirestore = FakeFirebaseFirestore();
     oneofusFirestore = FakeFirebaseFirestore();
     habloFunctions = FirebaseFunctions.instance;
+    oneofusTrustUrl = '';
   }
 
   KeyStorageCoordinator.instance.start();
@@ -68,7 +73,15 @@ Future<void> main() async {
     if (fireChoice == FireChoice.prod) {
       throw Exception('demo= not allowed on production');
     }
-    await simpsonsDemo(oneofusDb: oneofusFirestore, habloDb: habloFirestore);
+    try {
+      await simpsonsDemo(oneofusDb: oneofusFirestore, habloFunctions: habloFunctions);
+    } catch (e, st) {
+      // ignore: avoid_print
+      print('simpsonsDemo ERROR: ${e.runtimeType}: $e');
+      // ignore: avoid_print
+      print('STACK TRACE:\n$st');
+      rethrow;
+    }
   } else if (fireChoice != FireChoice.fake) {
     // Auto sign-in from stored keys
     try {

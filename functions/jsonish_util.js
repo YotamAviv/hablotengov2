@@ -69,4 +69,14 @@ async function getToken(input) {
   return computeSHA1(JSON.stringify(ordered, null, 2));
 }
 
-module.exports = { key2order, computeSHA1, compareKeys, order, getToken };
+function parseIrevoke(i) {
+  if (!i) return {};
+  if (typeof i === 'object') return i;
+  if (!i.startsWith('{')) {
+    return { [i]: null };
+  } else {
+    return JSON.parse(i);
+  }
+}
+
+module.exports = { key2order, computeSHA1, compareKeys, order, getToken, parseIrevoke };

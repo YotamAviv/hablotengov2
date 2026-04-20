@@ -4,6 +4,7 @@ import 'package:hablotengo/dev/demo_key.dart';
 import 'package:hablotengo/logic/contact_repo.dart';
 import 'package:hablotengo/models/contact_statement.dart';
 import 'package:hablotengo/models/privacy_statement.dart';
+import 'package:oneofus_common/direct_firestore_source.dart';
 import 'package:oneofus_common/trust_statement.dart';
 import 'package:oneofus_common/keys.dart';
 
@@ -91,7 +92,7 @@ Future<List<TestResult>> runAllTests() async {
   }));
 
   results.add(await _run('Simpsons: write contact cards', () async {
-    await lisaD.submitCard(habloDb, oneofusDb,
+    await lisaD.submitCard(habloDb: habloDb,
         name: 'Lisa Simpson',
         email: 'lisa@springfield.edu',
         contactPrefs: {
@@ -99,7 +100,7 @@ Future<List<TestResult>> runAllTests() async {
         },
         visibility: VisibilityLevel.standard);
 
-    await homerD.submitCard(habloDb, oneofusDb,
+    await homerD.submitCard(habloDb: habloDb,
         name: 'Homer Simpson',
         email: 'homer@springfield-nuclear.com',
         phone: '+15555550102',
@@ -108,26 +109,26 @@ Future<List<TestResult>> runAllTests() async {
         },
         visibility: VisibilityLevel.permissive);
 
-    await margeD.submitCard(habloDb, oneofusDb,
+    await margeD.submitCard(habloDb: habloDb,
         name: 'Marge Simpson',
         email: 'marge@springfield.net',
         visibility: VisibilityLevel.standard);
 
-    await bartD.submitCard(habloDb, oneofusDb,
+    await bartD.submitCard(habloDb: habloDb,
         name: 'Bart Simpson',
         contactPrefs: {
           'instagram': [{'handle': 'bartmaniac', 'preferred': true}],
         },
         visibility: VisibilityLevel.permissive);
 
-    await milhouseD.submitCard(habloDb, oneofusDb,
+    await milhouseD.submitCard(habloDb: habloDb,
         name: 'Milhouse Van Houten',
         email: 'milhouse@springfield.edu',
         visibility: VisibilityLevel.strict);
   }));
 
   results.add(await _run("Trust graph from Lisa's PoV includes Homer, Marge, Bart", () async {
-    final repo = ContactRepo(oneofusFirestore: oneofusDb, habloFirestore: habloDb);
+    final repo = ContactRepo(trustSource: DirectFirestoreSource<TrustStatement>(oneofusDb), habloFirestore: habloDb);
     final result = await repo.loadContacts(IdentityKey(lisa.token));
     final names = result.contacts.map((e) => e.contact?.name).whereType<String>().toSet();
     _assert(names.contains('Homer Simpson'), 'Homer not in Lisa contact list');
@@ -136,7 +137,7 @@ Future<List<TestResult>> runAllTests() async {
   }));
 
   results.add(await _run('Contact card round-trip: write then read back', () async {
-    final repo = ContactRepo(oneofusFirestore: oneofusDb, habloFirestore: habloDb);
+    final repo = ContactRepo(trustSource: DirectFirestoreSource<TrustStatement>(oneofusDb), habloFirestore: habloDb);
     final myCard = await repo.loadMyCard([DelegateKey(lisaD.token)]);
     _assert(myCard.contact != null, 'Lisa card not found after write');
     _assert(myCard.contact!.name == 'Lisa Simpson', 'Name mismatch: ${myCard.contact!.name}');
@@ -145,7 +146,7 @@ Future<List<TestResult>> runAllTests() async {
   }));
 
   results.add(await _run('Privacy statement defaults to standard', () async {
-    final repo = ContactRepo(oneofusFirestore: oneofusDb, habloFirestore: habloDb);
+    final repo = ContactRepo(trustSource: DirectFirestoreSource<TrustStatement>(oneofusDb), habloFirestore: habloDb);
     final myCard = await repo.loadMyCard(
       [DelegateKey(lisaD.token)],
     );
@@ -155,7 +156,7 @@ Future<List<TestResult>> runAllTests() async {
   }));
 
   results.add(await _run('Milhouse in trust graph via Bart (distance 2)', () async {
-    final repo = ContactRepo(oneofusFirestore: oneofusDb, habloFirestore: habloDb);
+    final repo = ContactRepo(trustSource: DirectFirestoreSource<TrustStatement>(oneofusDb), habloFirestore: habloDb);
     final result = await repo.loadContacts(IdentityKey(lisa.token));
     final milhouseEntry = result.contacts
         .where((e) => e.contact?.name == 'Milhouse Van Houten')
@@ -165,10 +166,10 @@ Future<List<TestResult>> runAllTests() async {
   }));
 
   results.add(await _run('Contact card update: newer timestamp wins', () async {
-    final repo = ContactRepo(oneofusFirestore: oneofusDb, habloFirestore: habloDb);
+    final repo = ContactRepo(trustSource: DirectFirestoreSource<TrustStatement>(oneofusDb), habloFirestore: habloDb);
 
     // Write an updated card for Lisa
-    await lisaD.submitCard(habloDb, oneofusDb,
+    await lisaD.submitCard(habloDb: habloDb,
         name: 'Lisa Simpson (updated)',
         email: 'lisa2@springfield.edu',
         visibility: VisibilityLevel.standard);
