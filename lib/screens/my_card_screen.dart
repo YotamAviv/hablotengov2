@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:hablotengo/logic/contact_repo.dart';
 import 'package:hablotengo/logic/delegates.dart';
 import 'package:hablotengo/logic/trust_pipeline.dart';
-import 'package:oneofus_common/jsonish.dart';
 import 'package:hablotengo/main.dart';
 import 'package:hablotengo/models/contact_statement.dart';
 import 'package:hablotengo/models/privacy_statement.dart';
@@ -15,6 +14,7 @@ import 'package:hablotengo/ui/ht_theme.dart';
 import 'package:oneofus_common/cloud_functions_source.dart';
 import 'package:oneofus_common/keys.dart';
 import 'package:oneofus_common/oou_verifier.dart';
+import 'package:oneofus_common/statement_writer.dart';
 import 'package:oneofus_common/trust_statement.dart';
 import 'package:hablotengo/logic/hablo_cloud_functions.dart';
 import 'package:hablotengo/logic/proof_builder.dart';
@@ -115,6 +115,8 @@ class _MyCardScreenState extends State<MyCardScreen> {
   bool _savingPrivacy = false;
   String? _error;
   List<DelegateKey> _myDelegateKeys = [];
+  String? _loadedContactToken;
+  String? _loadedPrivacyToken;
 
   @override
   void initState() {
@@ -156,6 +158,9 @@ class _MyCardScreenState extends State<MyCardScreen> {
         cloudFunctions: HabloCloudFunctions(habloFunctions),
       );
       final card = await repo.loadMyCard(_myDelegateKeys, delegateStatement: delegateStatement);
+
+      _loadedContactToken = card.contact?.token;
+      _loadedPrivacyToken = card.privacy?.token;
 
       if (card.contact != null) {
         final c = card.contact!;
@@ -266,10 +271,9 @@ class _MyCardScreenState extends State<MyCardScreen> {
         if (!ok) { setState(() { _savingContact = false; }); return; }
       }
 
-      final signed = await Jsonish.makeSign(contactJson, signer);
-      await HabloCloudFunctions(habloFunctions).writeStatement(
-          statement: signed.json, collection: kHabloContactCollection);
-      log('ContactStatement saved: ${const JsonEncoder.withIndent("  ").convert(signed.json)}',
+      final stmt = await habloContactWriter.push(contactJson, signer,
+          previous: ExpectedPrevious(_loadedContactToken));
+      log('ContactStatement saved: ${const JsonEncoder.withIndent("  ").convert(stmt.json)}',
           name: 'hablotengo');
 
       if (mounted) {
@@ -304,10 +308,9 @@ class _MyCardScreenState extends State<MyCardScreen> {
         if (!ok) { setState(() { _savingPrivacy = false; }); return; }
       }
 
-      final signed = await Jsonish.makeSign(privacyJson, signer);
-      await HabloCloudFunctions(habloFunctions).writeStatement(
-          statement: signed.json, collection: kHabloPrivacyCollection);
-      log('PrivacyStatement saved: ${const JsonEncoder.withIndent("  ").convert(signed.json)}',
+      final stmt = await habloPrivacyWriter.push(privacyJson, signer,
+          previous: ExpectedPrevious(_loadedPrivacyToken));
+      log('PrivacyStatement saved: ${const JsonEncoder.withIndent("  ").convert(stmt.json)}',
           name: 'hablotengo');
 
       if (mounted) {

@@ -18,8 +18,8 @@ const kPrivacyCollection = 'hablotengo_privacy';
 async function fetchLatest(collection, delegateToken) {
   const db = admin.firestore();
   const snap = await db
-    .collection(collection)
-    .doc(delegateToken)
+    .collection(delegateToken)
+    .doc(collection)
     .collection('statements')
     .orderBy('time', 'desc')
     .limit(1)

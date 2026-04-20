@@ -55,7 +55,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
       final repo = ContactRepo(
           trustSource: trustSource,
           habloFirestore: habloFirestore,
-          cloudFunctions: HabloCloudFunctions(habloFunctions));
+          cloudFunctions: fireChoice != FireChoice.fake ? HabloCloudFunctions(habloFunctions) : null);
       final result = await repo.loadContacts(IdentityKey(signInState.pov));
       setState(() {
         _graph = result.graph;

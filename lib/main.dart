@@ -4,17 +4,22 @@ import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:hablotengo/app.dart';
+import 'package:hablotengo/constants.dart';
 import 'package:hablotengo/dev/simpsons_demo.dart';
 import 'package:hablotengo/fire_choice.dart';
 import 'package:hablotengo/hablotengo_fire.dart';
 import 'package:hablotengo/key_storage_coordinator.dart';
 import 'package:hablotengo/key_store.dart';
+import 'package:oneofus_common/cloud_functions_writer.dart';
 import 'package:hablotengo/models/contact_statement.dart';
 import 'package:hablotengo/models/override_statement.dart';
 import 'package:hablotengo/models/privacy_statement.dart';
 import 'package:hablotengo/dev/test_runner_screen.dart';
 import 'package:hablotengo/sign_in_state.dart';
+import 'package:oneofus_common/direct_firestore_writer.dart';
 import 'package:oneofus_common/keys.dart' show FedKey;
+import 'package:oneofus_common/statement.dart';
+import 'package:oneofus_common/statement_writer.dart';
 import 'package:oneofus_common/trust_statement.dart';
 
 import 'firebase_options.dart';
@@ -23,6 +28,8 @@ late final FirebaseFirestore habloFirestore;
 late final FirebaseFirestore oneofusFirestore;
 late final FirebaseFunctions habloFunctions;
 late final String oneofusTrustUrl;
+late final StatementWriter<Statement> habloContactWriter;
+late final StatementWriter<Statement> habloPrivacyWriter;
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -49,6 +56,8 @@ Future<void> main() async {
     habloFirestore = FirebaseFirestore.instance;
     habloFunctions = FirebaseFunctions.instance;
     oneofusFirestore = OneofusFire.firestore;
+    habloContactWriter = CloudFunctionsWriter(habloFunctions, kHabloContactCollection);
+    habloPrivacyWriter = CloudFunctionsWriter(habloFunctions, kHabloPrivacyCollection);
 
     if (fireChoice == FireChoice.emulator) {
       habloFirestore.useFirestoreEmulator('127.0.0.1', 8082);
@@ -62,8 +71,9 @@ Future<void> main() async {
   } else {
     habloFirestore = FakeFirebaseFirestore();
     oneofusFirestore = FakeFirebaseFirestore();
-    habloFunctions = FirebaseFunctions.instance;
     oneofusTrustUrl = '';
+    habloContactWriter = DirectFirestoreWriter(habloFirestore, streamId: kHabloContactCollection);
+    habloPrivacyWriter = DirectFirestoreWriter(habloFirestore, streamId: kHabloPrivacyCollection);
   }
 
   KeyStorageCoordinator.instance.start();
@@ -74,7 +84,7 @@ Future<void> main() async {
       throw Exception('demo= not allowed on production');
     }
     try {
-      await simpsonsDemo(oneofusDb: oneofusFirestore, habloFunctions: habloFunctions);
+      await simpsonsDemo(oneofusDb: oneofusFirestore, habloContactWriter: habloContactWriter, habloPrivacyWriter: habloPrivacyWriter);
     } catch (e, st) {
       // ignore: avoid_print
       print('simpsonsDemo ERROR: ${e.runtimeType}: $e');

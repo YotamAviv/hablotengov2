@@ -6,8 +6,7 @@ import 'package:oneofus_common/source_error.dart';
 import 'package:oneofus_common/statement.dart';
 import 'package:oneofus_common/statement_source.dart';
 
-/// Reads hablotengo statements from `{collectionName}/{delegateKeyToken}/statements/{id}`.
-/// This mirrors DirectFirestoreSource but uses a named top-level collection.
+/// Reads hablotengo statements from `{delegateKeyToken}/{collectionName}/statements/{id}`.
 class HabloStatementSource<T extends Statement> implements StatementSource<T> {
   final FirebaseFirestore _fire;
   final String collectionName;
@@ -33,8 +32,8 @@ class HabloStatementSource<T extends Statement> implements StatementSource<T> {
       final String token = entry.key;
       try {
         final ref = _fire
-            .collection(collectionName)
-            .doc(token)
+            .collection(token)
+            .doc(collectionName)
             .collection('statements');
 
         final snapshot = await ref.orderBy('time', descending: true).get();

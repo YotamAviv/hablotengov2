@@ -68,8 +68,8 @@ async function handleGetContactInfo(data, context) {
   // ── 4. Fetch target's current privacy level from Firestore ─────────────
   const db = admin.firestore();
   const privacySnap = await db
-    .collection(kPrivacyCollection)
-    .doc(targetDelegateToken)
+    .collection(targetDelegateToken)
+    .doc(kPrivacyCollection)
     .collection('statements')
     .orderBy('time', 'desc')
     .limit(1)
@@ -85,8 +85,8 @@ async function handleGetContactInfo(data, context) {
 
   // ── 6. Fetch and return contact data ───────────────────────────────────
   const contactSnap = await db
-    .collection(kContactCollection)
-    .doc(targetDelegateToken)
+    .collection(targetDelegateToken)
+    .doc(kContactCollection)
     .collection('statements')
     .orderBy('time', 'desc')
     .limit(1)

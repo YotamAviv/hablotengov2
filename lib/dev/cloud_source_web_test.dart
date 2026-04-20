@@ -12,13 +12,15 @@ import 'package:hablotengo/logic/contact_repo.dart';
 import 'package:hablotengo/logic/delegates.dart';
 import 'package:hablotengo/logic/hablo_cloud_functions.dart';
 import 'package:hablotengo/logic/proof_builder.dart';
-import 'package:hablotengo/logic/trust_pipeline.dart';
 import 'package:hablotengo/models/contact_statement.dart';
 import 'package:hablotengo/models/override_statement.dart';
 import 'package:hablotengo/models/privacy_statement.dart';
 import 'package:oneofus_common/cloud_functions_source.dart';
+import 'package:oneofus_common/cloud_functions_writer.dart';
+import 'package:oneofus_common/statement_writer.dart';
 import 'package:oneofus_common/keys.dart';
 import 'package:oneofus_common/oou_verifier.dart';
+import 'package:oneofus_common/statement.dart';
 import 'package:oneofus_common/trust_statement.dart';
 
 void main() async {
@@ -49,7 +51,9 @@ void main() async {
 
   runApp(WidgetRunner(scenario: () async {
     debugPrint('--- seeding simpsons demo ---');
-    await simpsonsDemo(oneofusDb: oneofusFirestore, habloFunctions: habloFunctions);
+    final contactWriter = CloudFunctionsWriter<Statement>(habloFunctions, kHabloContactCollection);
+    final privacyWriter = CloudFunctionsWriter<Statement>(habloFunctions, kHabloPrivacyCollection);
+    await simpsonsDemo(oneofusDb: oneofusFirestore, habloContactWriter: contactWriter, habloPrivacyWriter: privacyWriter);
     debugPrint('--- simpsons demo seeded ---');
 
     final trustSource = CloudFunctionsSource<TrustStatement>(
@@ -88,7 +92,6 @@ void main() async {
     assert(card.contact!.name == 'Lisa Simpson', 'Expected name "Lisa Simpson", got "${card.contact!.name}"');
 
     // Test save round-trip: write an updated card via CF, then load it back
-    final cf = HabloCloudFunctions(habloFunctions);
     final signer = signInState.signer!;
     final delegateJson = signInState.delegatePublicKeyJson!;
     final updatedContactJson = ContactStatement.buildJson(
@@ -96,8 +99,8 @@ void main() async {
       name: 'Lisa Simpson Updated',
       emails: [{'address': 'lisa2@springfield.edu', 'preferred': true}],
     );
-    final signed = await Jsonish.makeSign(updatedContactJson, signer);
-    await cf.writeStatement(statement: signed.json, collection: kHabloContactCollection);
+    await contactWriter.push(updatedContactJson, signer,
+        previous: ExpectedPrevious(card.contact!.token));
     debugPrint('writeStatement done');
 
     final card2 = await repo.loadMyCard(myDelegateKeys, delegateStatement: delegateStatement);

@@ -1,10 +1,13 @@
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:hablotengo/constants.dart';
 import 'package:hablotengo/dev/demo_key.dart';
 import 'package:hablotengo/logic/contact_repo.dart';
 import 'package:hablotengo/models/contact_statement.dart';
 import 'package:hablotengo/models/privacy_statement.dart';
 import 'package:oneofus_common/direct_firestore_source.dart';
+import 'package:oneofus_common/direct_firestore_writer.dart';
+import 'package:oneofus_common/statement.dart';
 import 'package:oneofus_common/trust_statement.dart';
 import 'package:oneofus_common/keys.dart';
 
@@ -92,7 +95,10 @@ Future<List<TestResult>> runAllTests() async {
   }));
 
   results.add(await _run('Simpsons: write contact cards', () async {
-    await lisaD.submitCard(habloDb: habloDb,
+    final contactWriter = DirectFirestoreWriter<Statement>(habloDb, streamId: kHabloContactCollection);
+    final privacyWriter = DirectFirestoreWriter<Statement>(habloDb, streamId: kHabloPrivacyCollection);
+
+    await lisaD.submitCard(contactWriter: contactWriter, privacyWriter: privacyWriter,
         name: 'Lisa Simpson',
         email: 'lisa@springfield.edu',
         contactPrefs: {
@@ -100,7 +106,7 @@ Future<List<TestResult>> runAllTests() async {
         },
         visibility: VisibilityLevel.standard);
 
-    await homerD.submitCard(habloDb: habloDb,
+    await homerD.submitCard(contactWriter: contactWriter, privacyWriter: privacyWriter,
         name: 'Homer Simpson',
         email: 'homer@springfield-nuclear.com',
         phone: '+15555550102',
@@ -109,19 +115,19 @@ Future<List<TestResult>> runAllTests() async {
         },
         visibility: VisibilityLevel.permissive);
 
-    await margeD.submitCard(habloDb: habloDb,
+    await margeD.submitCard(contactWriter: contactWriter, privacyWriter: privacyWriter,
         name: 'Marge Simpson',
         email: 'marge@springfield.net',
         visibility: VisibilityLevel.standard);
 
-    await bartD.submitCard(habloDb: habloDb,
+    await bartD.submitCard(contactWriter: contactWriter, privacyWriter: privacyWriter,
         name: 'Bart Simpson',
         contactPrefs: {
           'instagram': [{'handle': 'bartmaniac', 'preferred': true}],
         },
         visibility: VisibilityLevel.permissive);
 
-    await milhouseD.submitCard(habloDb: habloDb,
+    await milhouseD.submitCard(contactWriter: contactWriter, privacyWriter: privacyWriter,
         name: 'Milhouse Van Houten',
         email: 'milhouse@springfield.edu',
         visibility: VisibilityLevel.strict);
@@ -169,7 +175,9 @@ Future<List<TestResult>> runAllTests() async {
     final repo = ContactRepo(trustSource: DirectFirestoreSource<TrustStatement>(oneofusDb), habloFirestore: habloDb);
 
     // Write an updated card for Lisa
-    await lisaD.submitCard(habloDb: habloDb,
+    final contactWriter = DirectFirestoreWriter<Statement>(habloDb, streamId: kHabloContactCollection);
+    final privacyWriter = DirectFirestoreWriter<Statement>(habloDb, streamId: kHabloPrivacyCollection);
+    await lisaD.submitCard(contactWriter: contactWriter, privacyWriter: privacyWriter,
         name: 'Lisa Simpson (updated)',
         email: 'lisa2@springfield.edu',
         visibility: VisibilityLevel.standard);
