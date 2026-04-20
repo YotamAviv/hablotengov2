@@ -81,7 +81,7 @@ async function handleGetContactInfo(data, context) {
 
   // ── 5. Check proof meets policy ────────────────────────────────────────
   const policyResult = checkProofMeetsPolicy(verifiedPaths, visibilityLevel);
-  if (!policyResult.ok) throw new Error(policyResult.reason);
+  if (!policyResult.ok) return { contact: null };
 
   // ── 6. Fetch and return contact data ───────────────────────────────────
   const contactSnap = await db

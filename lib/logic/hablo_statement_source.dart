@@ -47,6 +47,8 @@ class HabloStatementSource<T extends Statement> implements StatementSource<T> {
             try {
               jsonish = await Jsonish.makeVerify(json, verifier);
             } catch (e) {
+              // ignore: avoid_print
+              print('HabloStatementSource invalid signature [$token]: $e');
               _errors.add(SourceError('Invalid Signature: $e', token: token, originalError: e));
               continue;
             }
@@ -56,11 +58,15 @@ class HabloStatementSource<T extends Statement> implements StatementSource<T> {
           try {
             chain.add(Statement.make(jsonish) as T);
           } catch (e) {
+            // ignore: avoid_print
+            print('HabloStatementSource parse error [$token]: $e');
             _errors.add(SourceError('Parse error: $e', token: token, originalError: e));
           }
         }
         results[token] = chain;
       } catch (e) {
+        // ignore: avoid_print
+        print('HabloStatementSource fetch error [$token]: $e');
         _errors.add(SourceError('Fetch error: $e', token: token, originalError: e));
         results[token] = [];
       }

@@ -187,7 +187,8 @@ class ContactRepo {
                       paths: paths,
                     )
                     .then((c) => MapEntry(entry.identity, c))
-                    .catchError((_) => MapEntry(entry.identity, null)),
+                    // ignore: avoid_print
+                    .catchError((e) { print('getContactInfo ERROR for ${entry.identity.value}: $e'); return MapEntry(entry.identity, null); }),
               );
             }
             final results = await Future.wait(futures);
@@ -286,6 +287,8 @@ class ContactRepo {
     }
 
     // Fallback: direct Firestore reads (fake mode / tests).
+    // ignore: avoid_print
+    print('loadMyCard: using Firestore fallback (cloudFunctions=$cloudFunctions, delegateStatement=${delegateStatement != null})');
     final contactSource =
         HabloStatementSource<ContactStatement>(habloFirestore, kHabloContactCollection);
     final privacySource =

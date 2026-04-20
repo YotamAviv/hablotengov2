@@ -66,7 +66,9 @@ class _PasteSignInWidgetState extends State<_PasteSignInWidget> {
         result[kHablotengo] = credentials[kHablotengo];
       }
       if (context.mounted) Navigator.of(context).pop(result);
-    } catch (e) {
+    } catch (e, st) {
+      // ignore: avoid_print
+      print('PasteSignIn ERROR: $e\n$st');
       setState(() => _error = e.toString());
     }
   }

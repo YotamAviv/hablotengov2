@@ -7,8 +7,12 @@ import 'package:hablotengo/sign_in_state.dart';
 import 'package:hablotengo/dev/widget_runner.dart';
 import 'package:hablotengo/firebase_options.dart';
 import 'package:hablotengo/hablotengo_fire.dart';
+import 'package:hablotengo/constants.dart';
 import 'package:hablotengo/logic/contact_repo.dart';
+import 'package:hablotengo/logic/delegates.dart';
 import 'package:hablotengo/logic/hablo_cloud_functions.dart';
+import 'package:hablotengo/logic/proof_builder.dart';
+import 'package:hablotengo/logic/trust_pipeline.dart';
 import 'package:hablotengo/models/contact_statement.dart';
 import 'package:hablotengo/models/override_statement.dart';
 import 'package:hablotengo/models/privacy_statement.dart';
@@ -58,9 +62,48 @@ void main() async {
       cloudFunctions: HabloCloudFunctions(habloFunctions),
     );
 
-    final result = await repo.loadContacts(IdentityKey(signInState.pov));
+    final pov = IdentityKey(signInState.pov);
+
+    final result = await repo.loadContacts(pov);
     debugPrint('loadContacts returned ${result.contacts.length} entries');
     assert(result.contacts.length >= 4, 'Expected at least 4 contacts, got ${result.contacts.length}');
+
+    // Test loadMyCard
+    final delegates = DelegateResolver(result.graph);
+    delegates.resolveForIdentity(pov);
+    final myDelegateKeys = delegates
+        .getDelegatesForIdentity(pov)
+        .where((dk) => delegates.getDomainForDelegate(dk) == kHablotengo)
+        .toList();
+    debugPrint('myDelegateKeys: ${myDelegateKeys.length}');
+    assert(myDelegateKeys.isNotEmpty, 'Expected at least one hablotengo delegate key for pov');
+
+    final delegateStatement = findDelegateStatement(result.graph, pov, myDelegateKeys.first.value);
+    debugPrint('delegateStatement: ${delegateStatement != null ? "found" : "null"}');
+    assert(delegateStatement != null, 'Expected delegate statement in graph');
+
+    final card = await repo.loadMyCard(myDelegateKeys, delegateStatement: delegateStatement);
+    debugPrint('loadMyCard contact: ${card.contact?.name}');
+    assert(card.contact != null, 'Expected contact to be non-null');
+    assert(card.contact!.name == 'Lisa Simpson', 'Expected name "Lisa Simpson", got "${card.contact!.name}"');
+
+    // Test save round-trip: write an updated card via CF, then load it back
+    final cf = HabloCloudFunctions(habloFunctions);
+    final signer = signInState.signer!;
+    final delegateJson = signInState.delegatePublicKeyJson!;
+    final updatedContactJson = ContactStatement.buildJson(
+      iJson: delegateJson,
+      name: 'Lisa Simpson Updated',
+      emails: [{'address': 'lisa2@springfield.edu', 'preferred': true}],
+    );
+    final signed = await Jsonish.makeSign(updatedContactJson, signer);
+    await cf.writeStatement(statement: signed.json, collection: kHabloContactCollection);
+    debugPrint('writeStatement done');
+
+    final card2 = await repo.loadMyCard(myDelegateKeys, delegateStatement: delegateStatement);
+    debugPrint('loadMyCard after save: ${card2.contact?.name}');
+    assert(card2.contact?.name == 'Lisa Simpson Updated',
+        'Expected "Lisa Simpson Updated", got "${card2.contact?.name}"');
 
     debugPrint('PASS');
   }));

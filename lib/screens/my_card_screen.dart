@@ -3,8 +3,8 @@ import 'dart:developer' show log;
 import 'package:flutter/material.dart';
 import 'package:hablotengo/logic/contact_repo.dart';
 import 'package:hablotengo/logic/delegates.dart';
-import 'package:hablotengo/logic/hablo_statement_writer.dart';
 import 'package:hablotengo/logic/trust_pipeline.dart';
+import 'package:oneofus_common/jsonish.dart';
 import 'package:hablotengo/main.dart';
 import 'package:hablotengo/models/contact_statement.dart';
 import 'package:hablotengo/models/privacy_statement.dart';
@@ -189,7 +189,9 @@ class _MyCardScreenState extends State<MyCardScreen> {
       if (card.privacy != null) _visibility = card.privacy!.visibilityLevel;
 
       setState(() { _loading = false; });
-    } catch (e) {
+    } catch (e, st) {
+      // ignore: avoid_print
+      print('MyCardScreen._loadCard ERROR: $e\n$st');
       setState(() { _error = e.toString(); _loading = false; });
     }
   }
@@ -264,16 +266,19 @@ class _MyCardScreenState extends State<MyCardScreen> {
         if (!ok) { setState(() { _savingContact = false; }); return; }
       }
 
-      final writer = HabloStatementWriter<ContactStatement>(habloFirestore, kHabloContactCollection);
-      await writer.push(contactJson, signer);
-      log('ContactStatement saved: ${const JsonEncoder.withIndent("  ").convert(contactJson)}',
+      final signed = await Jsonish.makeSign(contactJson, signer);
+      await HabloCloudFunctions(habloFunctions).writeStatement(
+          statement: signed.json, collection: kHabloContactCollection);
+      log('ContactStatement saved: ${const JsonEncoder.withIndent("  ").convert(signed.json)}',
           name: 'hablotengo');
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Contact info saved!')));
         Navigator.of(context).pop(true);
       }
-    } catch (e) {
+    } catch (e, st) {
+      // ignore: avoid_print
+      print('MyCardScreen._saveContact ERROR: $e\n$st');
       setState(() { _error = e.toString(); _savingContact = false; });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -299,16 +304,19 @@ class _MyCardScreenState extends State<MyCardScreen> {
         if (!ok) { setState(() { _savingPrivacy = false; }); return; }
       }
 
-      final writer = HabloStatementWriter<PrivacyStatement>(habloFirestore, kHabloPrivacyCollection);
-      await writer.push(privacyJson, signer);
-      log('PrivacyStatement saved: ${const JsonEncoder.withIndent("  ").convert(privacyJson)}',
+      final signed = await Jsonish.makeSign(privacyJson, signer);
+      await HabloCloudFunctions(habloFunctions).writeStatement(
+          statement: signed.json, collection: kHabloPrivacyCollection);
+      log('PrivacyStatement saved: ${const JsonEncoder.withIndent("  ").convert(signed.json)}',
           name: 'hablotengo');
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Visibility saved!')));
         Navigator.of(context).pop(true);
       }
-    } catch (e) {
+    } catch (e, st) {
+      // ignore: avoid_print
+      print('MyCardScreen._savePrivacy ERROR: $e\n$st');
       setState(() { _error = e.toString(); _savingPrivacy = false; });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
