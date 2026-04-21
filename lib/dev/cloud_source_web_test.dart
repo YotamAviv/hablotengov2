@@ -13,7 +13,6 @@ import 'package:hablotengo/logic/delegates.dart';
 import 'package:hablotengo/logic/hablo_cloud_functions.dart';
 import 'package:hablotengo/logic/proof_builder.dart';
 import 'package:hablotengo/models/contact_statement.dart';
-import 'package:hablotengo/models/override_statement.dart';
 import 'package:hablotengo/models/privacy_statement.dart';
 import 'package:oneofus_common/cloud_functions_source.dart';
 import 'package:oneofus_common/cloud_functions_writer.dart';
@@ -29,7 +28,6 @@ void main() async {
   TrustStatement.init();
   ContactStatement.init();
   PrivacyStatement.init();
-  OverrideStatement.init();
 
   try {
     await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);

@@ -5,6 +5,10 @@ import 'package:oneofus_common/statement.dart';
 
 enum VisibilityLevel { permissive, standard, strict }
 
+/// Signed statement by a delegate key declaring the owner's contact visibility level.
+/// Written to `{delegateToken}/hablotengo_privacy/statements/{token}`.
+/// The `getContactInfo` CF reads the latest to decide if the requester's trust proof
+/// is sufficient. Latest statement wins (ordered by time desc).
 class PrivacyStatement extends Statement {
   static final Map<String, PrivacyStatement> _cache = {};
 

@@ -64,10 +64,7 @@ class HabloStatementSource<T extends Statement> implements StatementSource<T> {
         }
         results[token] = chain;
       } catch (e) {
-        // ignore: avoid_print
-        print('HabloStatementSource fetch error [$token]: $e');
-        _errors.add(SourceError('Fetch error: $e', token: token, originalError: e));
-        results[token] = [];
+        rethrow;
       }
     }));
 

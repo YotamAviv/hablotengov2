@@ -12,7 +12,6 @@ import 'package:hablotengo/key_storage_coordinator.dart';
 import 'package:hablotengo/key_store.dart';
 import 'package:oneofus_common/cloud_functions_writer.dart';
 import 'package:hablotengo/models/contact_statement.dart';
-import 'package:hablotengo/models/override_statement.dart';
 import 'package:hablotengo/models/privacy_statement.dart';
 import 'package:hablotengo/dev/test_runner_screen.dart';
 import 'package:hablotengo/sign_in_state.dart';
@@ -37,7 +36,6 @@ Future<void> main() async {
   TrustStatement.init();
   ContactStatement.init();
   PrivacyStatement.init();
-  OverrideStatement.init();
 
   final params = Uri.base.queryParameters;
   final fireParam = params['fire'];

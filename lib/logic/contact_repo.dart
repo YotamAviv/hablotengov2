@@ -7,7 +7,6 @@ import 'package:hablotengo/logic/proof_builder.dart';
 import 'package:hablotengo/logic/trust_pipeline.dart';
 import 'package:hablotengo/models/contact_statement.dart';
 import 'package:hablotengo/models/hablo_model.dart';
-import 'package:hablotengo/models/override_statement.dart';
 import 'package:hablotengo/models/privacy_statement.dart';
 import 'package:hablotengo/sign_in_state.dart';
 import 'package:oneofus_common/jsonish.dart';
@@ -309,14 +308,4 @@ class ContactRepo {
     );
   }
 
-  Future<List<OverrideStatement>> loadOverrides(List<DelegateKey> myDelegateKeys) async {
-    if (myDelegateKeys.isEmpty) return [];
-    final overrideSource =
-        HabloStatementSource<OverrideStatement>(habloFirestore, kHabloOverrideCollection);
-    final fetchMap = {for (final k in myDelegateKeys) k.value: null};
-    final results = await overrideSource.fetch(fetchMap);
-    return myDelegateKeys
-        .expand((k) => results[k.value] ?? <OverrideStatement>[])
-        .toList();
-  }
 }

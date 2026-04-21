@@ -5,7 +5,6 @@ import 'package:hablotengo/dev/demo_key.dart';
 import 'package:hablotengo/dev/widget_runner.dart';
 import 'package:hablotengo/logic/contact_repo.dart';
 import 'package:hablotengo/models/contact_statement.dart';
-import 'package:hablotengo/models/override_statement.dart';
 import 'package:hablotengo/models/privacy_statement.dart';
 import 'package:oneofus_common/direct_firestore_source.dart';
 import 'package:oneofus_common/direct_firestore_writer.dart';
@@ -19,7 +18,6 @@ void main() async {
   TrustStatement.init();
   ContactStatement.init();
   PrivacyStatement.init();
-  OverrideStatement.init();
 
   runApp(WidgetRunner(scenario: () async {
     final oneofusDb = FakeFirebaseFirestore();
