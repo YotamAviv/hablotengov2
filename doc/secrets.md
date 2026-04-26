@@ -1,3 +1,13 @@
+The key differences between the Nerdster "fully naked and open" model and Hablo's private information, restricted access model is that
+- The Nerdster fully supports anyone living in their own fantasy land - they can believe in bogus people, claim other folks' delegate or identity keys, etc... It only affects their view and those that vouch for them.
+  - Everything is naked and published; any one or any thing use it however they want.
+- Hablo has private information that it needs to protect. It allows those users to show it to those they trust in a restricted way and therefore can't willy-nilly entertain anyone's fantasy that they are someone else.
+
+## Must have
+
+Visible from Nerdster to promote paradigm
+
+Secure - as secure as the paradigm can support
 
 ## Reality:
 anyone (bad actors included) can
@@ -26,101 +36,76 @@ Someone somehow abuses your delegate key and changes your settings.
 I don't see an immediate risk.
 
 
-## Propsed model:
+## Propsed model high level
 
-FLAW: someone uses their legitimate, validated identity account but claims someone else's delegate key.
-
-Having wrapped my head about this, it seems like the key differences between the Nerdster "fully naked and open" model and Hablo's private information, restricted access model is that
-- The Nerdster fully supports anyone living in their own fantasy land - they can believe in bogus people, claim other folks' delegate or identity keys, etc... It only affects their view and those that vouch for them.
-  - Everything is naked and published; use it however you want.
-- Hablo has private information that it needs to protect. It allows those users to show it to those they trust in a restricted way and therefore can't willy-nilly entertain anyone's fantasy that they are someone else.
-
-Clean, practical implementation differences:
 - ground a user's account to his identity key.
 - sign in not just with an identity key you claim is yours, but prove that you actually have it (sign a nonce).
-- when you rotate your key, prove that the network trusted by your old key supports that rotation (TBD, ideally client provides a proof). Sufficient proof will re-ground your account to your new identity key.
-- not all signed statements are published.
-- everything else is the same. Hablo stores your information in statements signed by your delegate keys.
+- when you rotate your key, prove that the network trusted by your old key supports that rotation. Sufficient proof will re-ground the replaced identity key's account to the new identity key.
+- There are no signed, published, statements.
+- Store information keyed by account like typical services do (not like the Nerdster with signed statements by your delegate keys)
 
 ### Key rotation
-The Hablo client tries to access information as the new key.
-The Hablo server rejects it (there is no grounded account for this new key but one is found for a claimed, replaced key) asking for proof justifying rotation from gounded key.
-Hablo Client provides proof (3 paths from old key to new key).
-Hablo Server verifies proof (makes sure those statements are signed and current*) and re-grounds.
-Client can now sign in as usual.
+Steady state: 
+- Hablo server maps all user's keys (canonical and equivalents) to canonical and has an account there.
+- There is no account (contact info data and settings) for equivalent keys. (If the mapping of key X to Y exists, then we have an account at Y and do not at X).
 
-* "Current" — worth specifying what that means - it means the vouching statements haven't been superseded or revoked (checked against revokeAt).
+Hablo client can know on its own what all equivalent keys are. It can't know which have accounts, and so 
+Hablo client always signs in with canonical key and mentions all equivalent keys.
 
+If not steady state:
+- If no canonical account: server offers to create one
+- If any equivalents aren't mapped to canonical: server offers to accept proof (3 paths from old key to new key) to map them to canonical, user approves some sort of UI.
 
+Hablo Server verifies proofs (makes sure statements are signed and current (not superseded or revoked)) and re-grounds.
+When re-grounding, the server squashes to account with most recent account data.
 
 ### Storage:
-- 2 streams of signed delegate key statements
-  - private with contact info
-  - public with settings info, possibly a free form text message
-- mapping of identity key to root account (TBD.. root account can probably be the current, canonical identity key) for grounding.
+- private info (contact info) store keyed by account canoncical key token.
+- mapping of identity key to canonical account key.
 
 ### Signs in:
 Require proof of owning an identity (signature challenge)
-Compute your equivalent keys from your PoV.
+Client sign-in includes equivalent keys.
 
-1) If none of your canonical and equivalent keys match a grounded account key:
-Create a new account and ground it.
+See key rotation above.
 
-2) If exactly your canonical key matches a grounded account key and none of your equivalent keys match
-Staight forward case, you have an account, good to go.
-
-3) If exactly one of your equivalent keys matches a single grounded account key
-You probably rotated your key.
-- Compute the network from the grounded key's PoV
-- if it trusts your new key sufficiently, then alert you and update the grounding key.
-- if not, don't allow using that grounded identity account. 
-- Alert you - you new key needs more vouches from the old key's network
-You're locked out until you do. (We can't send you a 6 digit code.)
-
-4) If more than one of your equivalent or canonical keys match grounded account keys:
-Hmmm... You probably made a mess, or maybe you're doing something bad.
-Can check if those grounded account keys trust your new key. If they all do, then offer a consolidation to 1 account.
-
-### Update settings
-NOTE: Setting are public, not private info.
-
-Be signed in with 
-- a verified identity public key
-- a private/public delegate key pair associated with your account
-We save your settings (sign and publish using your delegate key pair), no issues.
+### Account information
+- time: (update date)
+- settings: permissive, standard, strict
+- contact info: ...
 
 ## Usage
 
-### Normal case
-You sign in with your key, the server doesn't have to do anything other than confirm it's you to let you use your account
+### Normal case (steady state)
+You sign in with your key and mention equivalents. Hablo server checks that it all matches and lets you use your account.
 
 ### Replaced key
-You sign in with your new key which has stated that it replaces the key Hablo knows about; we have
-to do some searching confirmation after which we'll
+You sign in with your new key and mention equivalents.
+Hablo server responds that 
+1) you don't have an account, would you like to create one
+2) you are claiming a replaced key, you must prove that that key's network believe it's been replaced by your new key.
 - reground to the new key
 - reject and ask you to be futher verified
+This ends with 
+- account info from the old key stored under new key
+- old key mapped to new key
 
 ### Compromised key
 You'll need to replace your key and have it accepted by your network. Until then, the bad actor
 who stole your key will have access to your account.
 
 ### Update your privacy settings
-Once you're signed in, do it as usual - as is typically done on the Nerdster.
+Once you're signed in, do it as usual.
 
 ### Notes
-Neither you nor anyone in your network should "block" your compromised key.
-Your compromised key should remain part of your identity chain; it should be revoked instead.
+Neither you nor anyone in your network should "block" a compromised key.
+Compromised keys should remain part of an identity chain; they should be revoked, not blocked.
 ONE-OF-US.NET currently only allows fully revoking a replaced key and allows conveniently restating stuff you stated
 with your old key using your new key up until it was compromised.
 (The old ONE-OF-US.NET allowed revoking at a time, and the Nerdster dealt with that, but I'm moving to only
 facilitating fully revoking. Seems fine.)
 
-## Questions
-Why even use statements for contact info we never intend to publish.
-We should have anduse delegate keys for:
-- showing that we use this service - see it under Keys in the Nerdster
-- letting folks know your privacy settings - questionable value.
-
+The only reason we even have a delegate key is to show that we use this service - see it under Keys in the Nerdster.
 
 ---
 
