@@ -5,9 +5,8 @@ The key differences between the Nerdster "fully naked and open" model and Hablo'
 
 ## Must have
 
-Visible from Nerdster to promote paradigm
-
-Secure - as secure as the paradigm can support
+- Secure - as secure as the paradigm can support
+- Visible from Nerdster to promote paradigm
 
 ## Reality:
 anyone (bad actors included) can
@@ -111,76 +110,12 @@ The only reason we even have a delegate key is to show that we use this service 
 
 AI reaction:
 
-The four sign-in cases cover the space well. Computing equivalent keys from the signer's own PoV
-is the right anchor. Case 3 correctly identifies that locked-out is the honest outcome when
-vouches aren't there yet — "we can't send you a 6 digit code" is an important acknowledgment that
-there's no backdoor recovery.
+The current version is substantially cleaner and resolves all of what was open before.
 
-Still open:
+Three decisions that close the attacks together:
+1. No signed/published statements — removes the Firestore surface that delegate key claims could exploit.
+2. Storage keyed by canonical identity key token — A claiming V's delegate key X is irrelevant; Hablo never looks up data by delegate key.
+3. Identity-key grounding with 3-path proof for rotation — raises the bar for fraudulent re-grounding to requiring 3 of the old key's actual contacts to have vouched for the new key.
 
-Fear #3 — "someone in your network claims your key fraudulently." If the attacker is already a
-contact of V, they may pass the Case 3 path-count check and successfully re-ground to their own
-key. The "Hmm..." is warranted; this case isn't closed by the model as written.
-
-Response: It is what it is.
-
-Delegate key conflict detection — the model handles identity key matching carefully across the
-four cases, but doesn't specify what happens when a new account (Case 1) claims a delegate key
-that's already associated with an existing account. Storage includes root account identity keys
-but not a delegate key → account mapping. Without that, A can create a fresh account, claim V's
-delegate key X, and read data under X.
-AI: Good one!
-Sounds like we might need for to map the delegate keys to accounts. Messy.
-
-Response:
-We might not save info using signed delegate key statements.
-Instead, I'm leaning towards saving them associated with the account in our private store, never signed or published, not portable.
-
-Question: in Case 3, "compute the network from the grounded key's PoV" — does Hablo pull the
-grounded key's trust statements fresh from ONE-OF-US.NET at sign-in time?
-
-Response: Yes, correct.
-
----
-
-AI reaction 3:
-
-"Settings are public" answers my delegate key question. The split is now:
-- Privacy settings: public, signed and published with the delegate key. Existing StatementWriter
-  machinery remains relevant here.
-- Contact info: private, stored server-side, not signed or published. StatementWriter,
-  CloudFunctionsWriter, the previous-chain mechanism — irrelevant for this.
-
-One tension: the Storage section still says "signed delegate key statements with contact info,"
-which conflicts with the direction in Questions/Response toward private server-side storage for
-contact info. The Storage section may just not have been updated yet.
-
-Also still open from Questions: "letting folks know your privacy settings — questionable value."
-If that gets resolved as "not worth it," then signed/published statements disappear entirely and
-the delegate key's only public role is showing service participation in the Nerdster.
-
-AI reaction 2:
-
-The private store direction ("never signed or published, not portable") is the biggest shift here.
-It resolves the delegate key conflict detection problem entirely — if contact data is stored as
-private server-side data indexed by account, there are no delegate key → data mappings in
-Firestore for an attacker to claim and exploit. The attack disappears with the architecture that
-enabled it.
-
-It also makes getContactInfo much simpler: verify the requester's identity, check they're in the
-target's trust network (via ONE-OF-US.NET), return the target's private data from the account
-store. No proof paths, no delegate statement chains, no conflict detection.
-
-This obsoletes a lot of recent implementation work: the signed statement chain model for contact
-and privacy data, CloudFunctionsWriter, StatementWriter, the previous-chain mechanism — none of
-that applies to private server-side data.
-
-Remaining question: the "Update settings" section requires both a verified identity key AND a
-delegate key pair associated with the account. If data is private and unsigned, what role does
-the delegate key play there — is it a session credential (lighter-weight auth for ongoing
-operations after the identity challenge), or is it still used to sign something?
-
-Also: the Notes section (don't block a compromised key, revoke it instead) — correct and
-important. Blocking severs the key from the identity chain, which would break replace-chain
-validation. Revoking preserves the history up to the compromise point.
+One minor thing still vague: "contact info: ..." in Account Information. The shape of that data (name, email, phone, etc.) is unspecified, but that's detail for later.
 
