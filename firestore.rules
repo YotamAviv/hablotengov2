@@ -1,8 +1,15 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Session handshake: CF writes via admin SDK; web app reads via client SDK.
+    match /sessions/{doc}/{session}/{document} {
+      allow read: if true;
+    }
+
+    // Statements are open read, open create. Integrity guaranteed by signatures.
+    // No update or delete — statements are immutable once written.
     match /{delegateToken}/{collection}/statements/{statementId} {
-      allow read, write: if false;
+      allow read, create: if true;
     }
   }
 }

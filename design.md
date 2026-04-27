@@ -1,6 +1,6 @@
 # HabloTengo — Design
 
-TEMP: Just writing a file
+*** VERY STALE AND FALSE. TODO: DELETE ***
 
 ## What Is It
 

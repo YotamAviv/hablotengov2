@@ -9,7 +9,6 @@ import 'package:hablotengo/models/contact_statement.dart';
 import 'package:hablotengo/models/privacy_statement.dart';
 import 'package:hablotengo/sign_in_state.dart';
 import 'package:hablotengo/constants.dart';
-import 'package:hablotengo/ui/lgtm_dialog.dart';
 import 'package:hablotengo/ui/ht_theme.dart';
 import 'package:oneofus_common/cloud_functions_source.dart';
 import 'package:oneofus_common/keys.dart';
@@ -148,6 +147,13 @@ class _MyCardScreenState extends State<MyCardScreen> {
           .where((dk) => delegates.getDomainForDelegate(dk) == kHablotengo)
           .toList();
 
+      // If the trust graph has no import data (emulator with no seed), fall back
+      // to the delegate we know from sign-in state. delegateStatement stays null,
+      // so loadMyCard uses direct Firestore reads rather than the auth-gated CF.
+      if (_myDelegateKeys.isEmpty && signInState.delegate != null) {
+        _myDelegateKeys = [DelegateKey(signInState.delegate!)];
+      }
+
       final delegateStatement = _myDelegateKeys.isNotEmpty
           ? findDelegateStatement(graph, pov, _myDelegateKeys.first.value)
           : null;
@@ -266,11 +272,6 @@ class _MyCardScreenState extends State<MyCardScreen> {
       final delegateJson = signInState.delegatePublicKeyJson!;
       final contactJson = _buildContactJson(delegateJson);
 
-      if (mounted) {
-        final ok = await LgtmDialog.check(contactJson, context, title: 'About to sign contact card');
-        if (!ok) { setState(() { _savingContact = false; }); return; }
-      }
-
       final stmt = await habloContactWriter.push(contactJson, signer,
           previous: ExpectedPrevious(_loadedContactToken));
       log('ContactStatement saved: ${const JsonEncoder.withIndent("  ").convert(stmt.json)}',
@@ -302,11 +303,6 @@ class _MyCardScreenState extends State<MyCardScreen> {
       final signer = signInState.signer!;
       final delegateJson = signInState.delegatePublicKeyJson!;
       final privacyJson = PrivacyStatement.buildJson(iJson: delegateJson, level: _visibility);
-
-      if (mounted) {
-        final ok = await LgtmDialog.check(privacyJson, context, title: 'About to sign visibility setting');
-        if (!ok) { setState(() { _savingPrivacy = false; }); return; }
-      }
 
       final stmt = await habloPrivacyWriter.push(privacyJson, signer,
           previous: ExpectedPrevious(_loadedPrivacyToken));

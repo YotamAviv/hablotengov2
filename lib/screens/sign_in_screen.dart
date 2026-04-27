@@ -1,8 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:hablotengo/main.dart' show habloFirestore;
 import 'package:hablotengo/paste_sign_in.dart';
+import 'package:hablotengo/sign_in_session.dart';
 import 'package:hablotengo/sign_in_state.dart';
 import 'package:hablotengo/ui/ht_logo.dart';
 import 'package:hablotengo/ui/ht_theme.dart';
+import 'package:nerdster_common/ui/sign_in_dialog.dart';
+
+SignInConfig _buildHabloSignInConfig() => SignInConfig(
+      sessionFactory: createHabloSignInSession,
+      firestore: habloFirestore,
+      onData: habloOnSessionData,
+      stateNotifier: signInState,
+      hasIdentity: () => signInState.hasIdentity,
+      hasDelegate: () => signInState.delegate != null,
+      identityJson: () => signInState.hasIdentity ? signInState.identityJson : null,
+      delegatePublicKeyJson: () => signInState.delegatePublicKeyJson,
+      onSignOut: signInState.signOut,
+      onForgetIdentity: signInState.signOut,
+      onPasteSignIn: pasteSignIn,
+    );
 
 class SignInScreen extends StatelessWidget {
   const SignInScreen({super.key});
@@ -45,7 +62,7 @@ class SignInScreen extends StatelessWidget {
           Text(
             'Privacy-first · Identity-verified · Open network',
             style: TextStyle(
-              color: Colors.white.withOpacity(0.7),
+              color: Colors.white.withValues(alpha: 0.7),
               fontSize: 13,
               letterSpacing: 0.2,
             ),
@@ -73,43 +90,16 @@ class SignInScreen extends StatelessWidget {
           ),
           const SizedBox(height: 32),
           FilledButton.icon(
-            icon: const Icon(Icons.paste_rounded),
-            label: const Text('Paste Credentials'),
-            onPressed: () => pasteSignIn(context),
-          ),
-          const SizedBox(height: 12),
-          OutlinedButton.icon(
-            icon: const Icon(Icons.qr_code_scanner_rounded),
-            label: const Text('Scan QR Code'),
-            onPressed: null,
-            style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+            icon: const Icon(Icons.login),
+            label: const Text('Sign In'),
+            onPressed: () => showDialog(
+              context: context,
+              barrierDismissible: false,
+              builder: (_) => Dialog(
+                backgroundColor: Colors.transparent,
+                child: SignInDialog(config: _buildHabloSignInConfig()),
+              ),
             ),
-          ),
-          const SizedBox(height: 32),
-          ListenableBuilder(
-            listenable: signInState,
-            builder: (context, _) {
-              if (!signInState.hasPov) return const SizedBox.shrink();
-              return Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.orange.shade50,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.orange.shade200),
-                ),
-                child: Column(children: [
-                  const Text('Signed in (read-only — no delegate key)',
-                      style: TextStyle(color: Colors.deepOrange, fontWeight: FontWeight.w500)),
-                  const SizedBox(height: 8),
-                  TextButton(
-                    onPressed: signInState.signOut,
-                    child: const Text('Sign Out'),
-                  ),
-                ]),
-              );
-            },
           ),
         ],
       ),

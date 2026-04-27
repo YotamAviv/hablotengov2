@@ -4,6 +4,9 @@ import 'package:oneofus_common/jsonish.dart';
 import 'package:oneofus_common/statement.dart';
 import 'package:oneofus_common/statement_writer.dart';
 
+// TODO: Nerdster and OneOfUs should migrate to this CF-gated write pattern instead of
+// relying on Firebase Auth or open Firestore rules. The CF verifies the signed statement
+// before accepting the write, making auth independent of Firebase's identity system.
 class CloudFunctionsWriter<T extends Statement> implements StatementWriter<T> {
   final FirebaseFunctions _functions;
   final String streamId;

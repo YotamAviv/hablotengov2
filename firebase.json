@@ -51,6 +51,15 @@
     "functions": {
       "port": 5003
     },
+    "eventarc": {
+      "port": 9301
+    },
+    "tasks": {
+      "port": 9501
+    },
+    "logging": {
+      "port": 4502
+    },
     "hub": {
       "port": 4402
     },

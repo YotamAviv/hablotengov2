@@ -9,23 +9,18 @@ import 'package:oneofus_common/statement.dart';
 import 'package:oneofus_common/statement_source.dart';
 import 'package:oneofus_common/trust_statement.dart';
 
-/// Reads the checked-in functions/test/trust_fixture.json and trust_characters.json,
-/// runs the Dart TrustPipeline from each character's PoV, and writes
-/// functions/test/trust_golden.json. No emulator needed — reads local files only.
+/// Runs the Dart TrustPipeline against the fixture and asserts the output
+/// matches the checked-in functions/test/trust_golden.json.
 ///
-/// To regenerate from scratch (full chain):
-///   1. Start the ONE-OF-US.NET emulator with Simpsons Demo data imported.
-///   2. node functions/test/generate_trust_fixtures.js
-///      (reads web/common/data/demoData.js keys, fetches trust statements from
-///       the export function, writes trust_fixture.json + trust_characters.json)
-///   3. flutter test test/logic/trust_golden_generator_test.dart
-///      (runs Dart TrustPipeline, writes trust_golden.json)
+/// If this fails, either the Dart pipeline changed or the golden is stale.
+/// To regenerate: flutter test test/logic/trust_golden_generator_test.dart
 void main() {
-  test('Generate trust golden file', () async {
+  test('Dart TrustPipeline output matches checked-in golden', () async {
     TrustStatement.init();
 
     final fixture = jsonDecode(File('functions/test/trust_fixture.json').readAsStringSync()) as Map<String, dynamic>;
     final characters = jsonDecode(File('functions/test/trust_characters.json').readAsStringSync()) as Map<String, dynamic>;
+    final checkedIn = jsonDecode(File('functions/test/trust_golden.json').readAsStringSync()) as Map<String, dynamic>;
 
     final Map<IdentityKey, List<TrustStatement>> byIssuer = {};
     for (final entry in fixture.entries) {
@@ -38,22 +33,16 @@ void main() {
 
     final source = _FixtureSource(byIssuer);
 
-    final Map<String, dynamic> golden = {};
     for (final entry in characters.entries) {
       final name = entry.key;
       final token = entry.value as String;
       final pipeline = TrustPipeline(source, pathRequirement: TrustPipeline.defaultPathRequirement);
       final graph = await pipeline.build(IdentityKey(token));
-      golden[name] = {
-        'token': token,
-        'orderedKeys': graph.orderedKeys.map((k) => k.value).toList(),
-      };
+      final actual = graph.orderedKeys.map((k) => k.value).toList();
+
+      final expected = (checkedIn[name]!['orderedKeys'] as List).cast<String>();
+      expect(actual, equals(expected), reason: "Mismatch for '$name'");
     }
-
-    const encoder = JsonEncoder.withIndent('  ');
-    await File('functions/test/trust_golden.json').writeAsString(encoder.convert(golden));
-
-    print('Wrote trust_golden.json (${golden.length} characters).');
   }, timeout: const Timeout(Duration(minutes: 2)));
 }
 

@@ -12,8 +12,8 @@
 ```
 hablotengo/          — this Flutter project
   bin/
-    start_emulators.sh   — start both Firebase emulators
-    stop_emulators.sh    — stop both emulators
+    start_emulator.sh   — start hablotengo Firebase emulator
+    stop_emulator.sh    — stop both emulators
     serve_web.sh         — build + serve locally
   firebase.json          — hablotengo emulator config (Firestore 8082, Functions 5003, UI 4402)
   oneofus.firebase.json  — oneofus emulator config (Firestore 8081, Functions 5002, UI 4001)
@@ -27,19 +27,24 @@ hablotengo/          — this Flutter project
 
 ## Quick start (emulator + demo data)
 
-```bash
-cd hablotengo
+Each project manages its own emulator. HabloTengo needs two running:
 
-# 1. Start both Firebase emulators (hablotengo + oneofus)
-./bin/start_emulators.sh
+```bash
+# 1. Start the oneofus emulator (from oneofusv22/)
+cd oneofusv22
+./bin/start_emulator.sh
+
+# 2. Start the hablotengo emulator (from hablotengo/)
+cd hablotengo
+./bin/start_emulator.sh
 
 # Wait ~5 seconds for emulators to come up, then:
 
-# 2. Build and serve the web app
+# 3. Build and serve the web app
 ./bin/serve_web.sh
 # Serves at http://localhost:8770
 
-# 3. Open the app with emulator + Simpsons demo data pre-loaded
+# 4. Open the app with emulator + Simpsons demo data pre-loaded
 # http://localhost:8770/?fire=emulator&demo=simpsons
 ```
 
@@ -74,6 +79,36 @@ Tests cover:
 - Milhouse reachable via Bart (distance ≤ 3)
 - Card update: newer timestamp wins
 
+## Testing QR sign-in
+
+QR sign-in requires a real phone running the ONE-OF-US.NET identity app (oneofusv22) connected
+to the same machine as the emulators. The phone uses `http://10.0.2.2:5003/...` to reach the
+Hablo Cloud Function from an Android emulator, or the machine's LAN IP from a physical device.
+
+```bash
+# 1. Start emulators (from hablotengo/)
+./bin/start_emulator.sh
+
+# 2. Serve the web app
+./bin/serve_web.sh
+
+# 3. Open the app with emulator mode
+# http://localhost:8770/?fire=emulator
+```
+
+Then in the web app:
+- Click **Scan QR Code** on the sign-in screen — a QR dialog appears.
+- Open the ONE-OF-US.NET phone app and scan the QR (or use the scanner in the app).
+- The phone POSTs to `http://10.0.2.2:5003/demo-hablotengo/us-central1/signIn`.
+- The web app listens on Firestore `sessions/doc/<session>` and picks up the response.
+- The sign-in screen should update to show the signed-in identity.
+
+**Troubleshooting:**
+- Hablo Firestore emulator UI: http://localhost:4402 — check `sessions/doc/<session>` to confirm the phone posted.
+- Cloud Function logs: `tail -f hablotengo_emulators.log`
+- The sign-in CF verifies a session signature (Ed25519). If it rejects, check that the phone app
+  is sending `sessionTime` and `sessionSignature` fields (added in oneofusv22/lib/core/sign_in_service.dart).
+
 ## Development workflow
 
 ```bash
@@ -87,7 +122,7 @@ flutter run -d chrome --web-port=8770
 flutter analyze
 
 # Stop emulators:
-./bin/stop_emulators.sh
+./bin/stop_emulator.sh
 ```
 
 ## Emulator UIs

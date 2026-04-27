@@ -1,3 +1,14 @@
+/**
+ * Hablotengo Cloud Functions
+ *
+ * Deploy:
+ *   firebase --project=demo-hablotengo deploy --only functions
+ *
+ * Code duplication: statement_fetcher.js and jsonish_util.js are copied across
+ * nerdster14/, oneofusv22/, and hablotengo/functions/. Changes must be applied
+ * to all three manually until a shared library is introduced.
+ */
+
 const { onCall, onRequest } = require('firebase-functions/v2/https');
 const admin = require('firebase-admin');
 
@@ -20,6 +31,12 @@ exports.getContactInfo = onCall(async (request) => {
   } catch (e) {
     throw new Error(e.message);
   }
+});
+
+const { handleSignIn } = require('./sign_in');
+
+exports.signIn = onRequest({ cors: true }, async (req, res) => {
+  await handleSignIn(req, res);
 });
 
 const { handleGetMyCard } = require('./get_my_card');

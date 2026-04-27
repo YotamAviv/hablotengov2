@@ -60,9 +60,9 @@ Future<void> main() async {
     if (fireChoice == FireChoice.emulator) {
       habloFirestore.useFirestoreEmulator('127.0.0.1', 8082);
       habloFunctions.useFunctionsEmulator('127.0.0.1', 5003);
-      oneofusFirestore.useFirestoreEmulator('127.0.0.1', 8083);
-      OneofusFire.functions.useFunctionsEmulator('127.0.0.1', 5004);
-      oneofusTrustUrl = 'http://127.0.0.1:5004/one-of-us-net/us-central1/export';
+      oneofusFirestore.useFirestoreEmulator('127.0.0.1', 8081);
+      OneofusFire.functions.useFunctionsEmulator('127.0.0.1', 5002);
+      oneofusTrustUrl = 'http://127.0.0.1:5002/one-of-us-net/us-central1/export';
     } else {
       oneofusTrustUrl = 'https://export.one-of-us.net';
     }
