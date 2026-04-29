@@ -6,10 +6,11 @@ service cloud.firestore {
       allow read: if true;
     }
 
-    // Statements are open read, open create. Integrity guaranteed by signatures.
-    // No update or delete — statements are immutable once written.
-    match /{delegateToken}/{collection}/statements/{statementId} {
-      allow read, create: if true;
+    // Contact records: one document per identity token.
+    // Reads are served by cloud functions (admin SDK); no direct client reads.
+    match /contacts/{identityToken} {
+      allow write: if true;
+      allow read: if false;
     }
   }
 }

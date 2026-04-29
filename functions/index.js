@@ -9,44 +9,15 @@
  * to all three manually until a shared library is introduced.
  */
 
-const { onCall, onRequest } = require('firebase-functions/v2/https');
+const { onRequest } = require('firebase-functions/v2/https');
 const admin = require('firebase-admin');
 
 admin.initializeApp();
-
-const { handleWriteStatement } = require('./write_statement');
-const { handleGetContactInfo } = require('./get_contact_info');
-
-exports.writeStatement = onCall(async (request) => {
-  try {
-    return await handleWriteStatement(request.data);
-  } catch (e) {
-    throw new Error(e.message);
-  }
-});
-
-exports.getContactInfo = onCall(async (request) => {
-  try {
-    return await handleGetContactInfo(request.data);
-  } catch (e) {
-    throw new Error(e.message);
-  }
-});
 
 const { handleSignIn } = require('./sign_in');
 
 exports.signIn = onRequest({ cors: true }, async (req, res) => {
   await handleSignIn(req, res);
-});
-
-const { handleGetMyCard } = require('./get_my_card');
-
-exports.getMyCard = onCall(async (request) => {
-  try {
-    return await handleGetMyCard(request.data);
-  } catch (e) {
-    throw new Error(e.message);
-  }
 });
 
 const { fetchStatements } = require('./statement_fetcher');

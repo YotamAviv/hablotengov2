@@ -221,7 +221,7 @@ Hablo communicates the following to the identity app via QR code, `keymeid://`, 
 }
 ```
 
-**Identity app:**
+**Identity app (ONE-OF-US.NET):**
 1. Validates that `nonceUrl` is HTTPS and its origin matches `domain`. Aborts if not.
 2. Fetches the nonce from `nonceUrl`.
 3. Signs `<domain>|<time>|<nonce>` with the identity key.
@@ -231,12 +231,11 @@ Hablo communicates the following to the identity app via QR code, `keymeid://`, 
      - delegate key pair (optional)
    - the signature
 
-**Server:**
+**Hableo Server (Firestore cloud functions):**
 1. Looks up the nonce by `sessionId` (single-use; invalidated after first use).
 2. Verifies the signature over `<domain>|<time>|<nonce>` with the identity public key.
 3. Checks `time` is fresh (e.g. within 60 seconds).
-4. Runs BFS from the identity key to find equivalent keys and access rights.
-5. Writes the result to Firestore at the session path; the browser tab listening picks it
+4. Writes the result to Firestore at the session path; the browser tab listening picks it
    up and decrypts the delegate key pair client-side.
 
 **Why the nonce URL closes the MITM gap:** a MITM who substitutes a different `domain`
@@ -247,6 +246,26 @@ server. The identity app's origin check ties the nonce to the domain.
 signed, published statements in HabloTengo (unlike the Nerdster). A delegate-key-signed
 status is possible one day but not planned.
 
+
+## Using Firestore to read / write securely
+
+The Hablo client has some kind of session object - our own nonce and other stuff signed by the user's private identity key.
+This proves to the server that we're acting on behalf of a signed in user.
+This is communicated to the server with each call.
+
+### Writes
+
+We can only write to our own account.
+The account is the identity key token. It's in the session object.
+
+### Reads
+
+We are only permitted to read from accounts who's settings allow us to read.
+The plan is does call for 
+- account settings for <default>. This can be used for reading the entire account initially.
+- permissions per data item; that can be deferred initially.
+
+The server (cloud functions) needs to run the trust algorithm (Greedy BFS like the Nerdster) from the account's PoV to permit the read by the signed in user.
 
 ## Data Model
 

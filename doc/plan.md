@@ -1,4 +1,20 @@
+# Plan
 
+This doc is newer than design.md.
+It is more accurate in terms of what we'll actually build and has less discussion about options.
+
+## Starting
+
+- sign in flow, almost identical to Nerdster but with verified identity token provable to server.
+- create (save to Firestore) demo contact data leveragiong existing SimpsonsDemo connecctions from Nerdster's run available in Firestore, just add the contact info - similar to what was deleted in lib/dev/simpsons_demo.
+- sign in as Simpson's characters test data using Android emulator importing Simpsons chars' private identity key pairs.
+  - Android emulator and Dart webapp running on my development machine both connected to Firebase emulators.
+  - keymeid:// works on this machine using scripts, see documentation in Nerdster dir (magic.md "The Bridge Script").
+- Do not focus on presenting the data on screen yet, just show it as JSON directly from Firestore.
+- get server interactions working
+  - cloud functions can authenticate session token (phone identity app signed nonce'ish thing with identity private key)
+  - cloud functions allow editing sign in user's data
+  - cloud functions allow serving contact data if access rules allow (server runs Greedy BFS form contact's PoV, computes how trusted signed in user is, serves portions of contact data that are allowed to be seen as Json.)
 
 ## contact info data model
 
