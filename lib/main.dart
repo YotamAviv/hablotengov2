@@ -2,6 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 
+import 'package:oneofus_common/trust_statement.dart';
+
 import 'app.dart';
 import 'constants.dart';
 import 'firebase_options.dart'; // gitignored; regenerate with: flutterfire configure
@@ -9,6 +11,7 @@ import 'key_store.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  TrustStatement.init();
 
   // TODO: restore URL-based switching when deploying to prod.
   const bool emulator = true;
