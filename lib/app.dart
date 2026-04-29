@@ -4,6 +4,7 @@ import 'package:nerdster_common/sign_in_session.dart';
 import 'package:nerdster_common/ui/sign_in_dialog.dart';
 
 import 'constants.dart';
+import 'contacts_screen.dart';
 import 'key_store.dart';
 import 'sign_in_state.dart';
 
@@ -51,6 +52,7 @@ class _HabloHomeState extends State<_HabloHome> {
         }
         return _SignedInScreen(
           onSignOut: signInState.signOut,
+          emulator: widget.emulator,
         );
       },
     );
@@ -106,8 +108,9 @@ class _HabloHomeState extends State<_HabloHome> {
 
 class _SignedInScreen extends StatelessWidget {
   final VoidCallback onSignOut;
+  final bool emulator;
 
-  const _SignedInScreen({required this.onSignOut});
+  const _SignedInScreen({required this.onSignOut, required this.emulator});
 
   @override
   Widget build(BuildContext context) {
@@ -118,9 +121,7 @@ class _SignedInScreen extends StatelessWidget {
           TextButton(onPressed: onSignOut, child: const Text('Sign out')),
         ],
       ),
-      body: Center(
-        child: SelectableText('Signed in as ${signInState.identityToken}'),
-      ),
+      body: ContactsScreen(emulator: emulator),
     );
   }
 }

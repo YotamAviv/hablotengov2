@@ -20,6 +20,12 @@ exports.signIn = onRequest({ cors: true }, async (req, res) => {
   await handleSignIn(req, res);
 });
 
+const { handleGetContacts } = require('./get_contacts');
+
+exports.getContacts = onRequest({ cors: true }, async (req, res) => {
+  await handleGetContacts(req, res);
+});
+
 const { fetchStatements } = require('./statement_fetcher');
 const { parseIrevoke } = require('./jsonish_util');
 

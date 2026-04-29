@@ -151,9 +151,22 @@ Let's not work too hard to accommodate the perfect solution here.
 
 ### What people and contact info you can see.
 
-We run the trust algorithm from your PoV to create identity equivalence groups (EG).
-Each EG is supposed to represent a person.
-For each person, we aggregate (by lastest time) the data you're allowed to see and show it to you.
+**Client-side BFS (who is in my network?):**
+The Hablo client runs the trust algorithm from your PoV — the same way the Nerdster client does,
+calling the OneOfUs export endpoint directly and using nerdster_common's TrustPipeline. The result
+is the set of trusted identity tokens. These are the people in your contacts list.
+
+**Server-side BFS (can I see X's data?):**
+When the client requests contact data for token X, the server runs the trust algorithm from X's PoV
+to check whether your token is trusted at the required level. If not, X's card is grayed out.
+
+The BFS creates identity equivalence groups (EG); each EG represents one person. A person has one
+active, canonical identity key and may have old equivalent keys (e.g. from a lost phone). The
+contacts list shows one entry per EG — not one per key.
+
+To read a person's contact data, the client fetches from each of their equivalent keys and takes
+the latest. For each fetch, the server checks: does *that specific key* (not the person's other
+equivalents) trust *your specific signed-in key* (not your claimed equivalents)?
 
 ### Delete
 
@@ -261,7 +274,7 @@ The account is the identity key token. It's in the session object.
 ### Reads
 
 We are only permitted to read from accounts who's settings allow us to read.
-The plan is does call for 
+The plan does call for 
 - account settings for <default>. This can be used for reading the entire account initially.
 - permissions per data item; that can be deferred initially.
 

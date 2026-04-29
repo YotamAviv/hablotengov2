@@ -7,3 +7,7 @@ const String kHabloEmulatorProject = 'demo-hablotengo';
 String habloSignInUrl(bool emulator) => emulator
     ? 'http://127.0.0.1:$kHabloFunctionsEmulatorPort/$kHabloEmulatorProject/us-central1/signIn'
     : 'https://us-central1-hablotengo.cloudfunctions.net/signIn';
+
+String habloGetContactsUrl(bool emulator) => emulator
+    ? 'http://127.0.0.1:$kHabloFunctionsEmulatorPort/$kHabloEmulatorProject/us-central1/getContacts'
+    : 'https://us-central1-hablotengo.cloudfunctions.net/getContacts';
