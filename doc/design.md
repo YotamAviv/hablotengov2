@@ -251,7 +251,7 @@ If they get more of the network to block you, then eventually.. maybe.. that "eq
 The settlement:
 - We stay disabled if it's not settled (someone claims it's theirs and wants it disabled; someone else claims it's theirs and wants it enabled.)
 - We enable only if it's your active account (you have the private key)
-- Regarless, we who you who disabled it (which active account)
+- Regarless, we show you who disabled it (which active account)
 - We disable equivalent accounts eagerly.
 
 Why we can't let you enable (undo disable) disabled, equivalent accounts:
