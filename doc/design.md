@@ -32,14 +32,6 @@ Hablo holds private data — contact info that should only be visible to people 
 - Demo with Simpsons on web page. We don't want to expose their private keys, so their
   public key tokens will be hard-coded in the server as "demo users".
 
-## Security Reality
-
-Anyone (bad actors included) can:
-- create an identity key
-- claim anyone's identity key as their own (publish and sign a replace statement)
-- claim anyone's delegate key as their own (publish and sign a delegate statement)
-- create bogus identity that vouches for their own bogus identity
-
 ## Hopes and desires:
 No one can hijack your account or see your private info without having you and your own network fail at their jobs.
 
@@ -58,6 +50,14 @@ Someone in your network claims your key fraudulently and interrupts your service
 
 Someone somehow abuses your delegate key and changes your settings.
 I don't see an immediate risk.
+
+## Security Reality
+
+Anyone (bad actors included) can:
+- create an identity key
+- claim anyone's identity key as their own (publish and sign a replace statement)
+- claim anyone's delegate key as their own (publish and sign a delegate statement)
+- create bogus identity that vouches for their own bogus identity
 
 ### Practical reality:
 
@@ -89,6 +89,8 @@ Frank visits hablotengo.com and clicks "Sign In." Hablo asks his identity app (O
 to prove ownership of his identity key and optionally create a delegate key for HabloTengo.
 Hablo verifies the proof. Frank's identity key token is his account token.
 
+Frank can see peole's contact info, store his own, manage his settings.
+
 The delegate key is optional. Without one, Frank can still use Hablo; others just won't see
 that he's using it from the Nerdster. Actually using the delegate key for anything beyond
 visibility is not in the current plan.
@@ -113,6 +115,97 @@ DEFERRED: **UC10 — Respect Nerdster follow context**
 HabloTengo reads Nerdster follow statements from a "contact" context and uses them as
 visibility overrides.
 
+## Data Access
+
+### Your own data (presumably)
+
+Contact info is stored per identity key. When you sign in, you are signed in as that identity. 
+Anything you save will be saved under your identity key's token, which is your account token.
+
+The server runs a trust algoritm (the Nerdster's "Greedy BFS") to find all of your equivalent keys.
+
+To use an equivalent key, that key's trust settings must allow your signed-in key to see it (same as if that key represented a different person).
+If from that key's PoV, you're not permitted to see its data, then you can't. That account is effectively not yours.
+
+Hablo tries to eagerly disable equivalent accounts (see discussion below in DELETE)
+Your equivalent accounts fall into these categories:
+- disabled by you or by one of your equivalent keys
+no problem. ignore.
+- disabled by someone else
+possible problem. show you the account and who disabled it.
+You can dimiss this - possibly by disabling it as well.
+- disabled by you or one of your equivalent accounts and someone else
+no problem. ignore.
+- not disabled
+requires attention
+
+Hablo next:
+- compares the timestamps of the not disabled accounts
+- offers you to pick the data you want to store in your active account
+- encourages you to disable equivalent accounts
+
+NOTES:
+People might struggle with this whole thing, and we shouldn't cater to them.
+If someone used 2 accounts and then realized that one should claim the other, it might be the case that the replaced account has newer data.
+Let's not work too hard to accommodate the perfect solution here.
+
+### What people and contact info you can see.
+
+We run the trust algorithm from your PoV to create identity equivalence groups (EG).
+Each EG is supposed to represent a person.
+For each person, we aggregate (by lastest time) the data you're allowed to see and show it to you.
+
+### Delete
+
+You can delete your active account.
+You can disable equivalent accounts (disable only because you might be lying)
+
+The problem:
+You're a bad actor.
+Someone trusts you enough to let you view their info.
+You claim their key and delete their account.
+From your PoV, it's your equivalent key.
+From that key's PoV, you're trusted.
+
+Possible solution / remedy:
+
+You can't delete equivalent accounts, you only can disable them.
+If/when someone else signs in and sees you disabled their account:
+- If it's their active account (they have the private key), then:
+  - they can enable the account (cancel the disable).
+  - they can see that you disabled their account.
+  - they should probably identity (ONE-OF-US.NET) block you (bad actor, confused, not acting in good faith).
+- If it's not their active key, only one of their equivalent keys, then we can't know who's right.
+From their PoV, your replace is rejected and it's their equivalent.
+From your PoV, same but the other way around.
+If they block you, it doesn't necessarily fix things: from your PoV the algorithm will reject their block and still see that key as your equivalent.
+If they get more of the network to block you, then eventually.. maybe.. that "equivalent" won't trust you any more.
+
+The settlement:
+- We stay disabled if it's not settled (someone claims it's theirs and wants it disabled; someone else claims it's theirs and wants it enabled.)
+- We enable only if it's your active account (you have the private key)
+- Regarless, we show you who disabled it (which active account)
+- We disable equivalent accounts eagerly.
+
+Why we can't let you enable (undo disable) disabled, equivalent accounts:
+Because it might have someone's private information - whoever disabled it might be in the right.
+We can't just let you claim it to see it, even if it trusts you.
+
+Why it doesn't matter much:
+- It's not the end of the world. You probably know your own contact info.
+
+## Key Rotation and Compromised Keys
+
+**Key rotation (the normal path)**  
+You replace your old key with a new one via ONE-OF-US.NET. 
+You sign in to Hablo with your new key.
+The server's BFS finds your old key as an equivalent. 
+Your old key's account data is treated as yours as long as trust runs both ways. This typically means the network vouched for by your old key now vouches for your new key.
+
+**Compromised key**  
+Same as key rotation, except the bad actor has your key and can sign in as you until your
+network accepts the new key. You cannot make a compromised key's data more private
+retroactively — you published it and lost the key.
 
 ## Sign-In Protocol
 
@@ -183,107 +276,6 @@ Account record (per identity key):
 - contact info: (above)
 
 
-## Data Access
-
-### Your own data (presumably)
-
-Contact info is stored per identity key. When you sign in, you are signed in as that identity. Anything you save will be saved under your identity key's token, which is your account token.
-
-The server next runs a trust algoritm (the Nerdster's "Greedy BFS") to find all of your equivalent keys.
-
-To use an equivalent key, that key's trust settings must allow your signed-in key to see it (same as if that key is a different person's).
-If from that key's PoV, you're not permitted to see it's data, then you can't. That account is effectively not yours.
-
-Hablo tries to eagerly disable old, equivalent accounts (discussion below in DELETE)
-Your equivalent accounts fall into these categories:
-- disabled by you or by one of your equivalent keys
-no problem. ignore.
-- disabled by someone else
-possible problem. show you the account and who disabled it.
-You can dimiss this - possibly by disabling it as well.
-- disabled by you or one of your equivalent accounts and someone else
-no problem. ignore.
-- not disabled
-requires attention
-
-Hablo next:
-- compares the timestamps of the not disabled accounts
-- offers you to pick the data you want to store in your active account
-- encourages you to disable equivalent accounts
-
-NOTES:
-People might struggle with this whole thing, and we shouldn't cater to them.
-If someone used 2 accounts and then realized that one should claim the other, it might be the case that the replaced account has newer data.
-Let's not work too hard to accommodate the perfect solution here.
-
-### What people and contact info you can see.
-
-We run the trust algorithm from your PoV to create identity equivalence groups (EG).
-Each EG is supposed to be a person.
-For each person, we aggregate (by lastest time) the data you're allowed to see and show it to you.
-
-### Delete
-
-You can delete your active account.
-You can disable equivalent accounts (disable only because you might be lying)
-
-The problem:
-You're a bad actor.
-Someone trusts you enough to let you view their info.
-You claim their key and delete their account.
-From your PoV, it's your equivalent key.
-From that key's PoV, you're trusted.
-
-Possible solution / remedy:
-
-You can't delete equivalent accounts, you only can disable them.
-If/when someone else signs in and sees you disabled their account:
-- If it's their active account (they have the private key), then:
-  - they can enable the account (cancel the disable).
-  - they can see that you disabled their account.
-  - they should probably identity (ONE-OF-US.NET) block you (bad actor, confused, not acting in good faith).
-- If it's not their active key, only one of their equivalent keys, then we can't know who's right.
-From their PoV, your replace is rejected and it's their equivalent.
-From your PoV, same but the other way around.
-If they block you, it doesn't necessarily fix things: from your PoV the algorithm will reject their block and still see that key as your equivalent.
-If they get more of the network to block you, then eventually.. maybe.. that "equivalent" won't trust you any more.
-
-The settlement:
-- We stay disabled if it's not settled (someone claims it's theirs and wants it disabled; someone else claims it's theirs and wants it enabled.)
-- We enable only if it's your active account (you have the private key)
-- Regarless, we show you who disabled it (which active account)
-- We disable equivalent accounts eagerly.
-
-Why we can't let you enable (undo disable) disabled, equivalent accounts:
-Because it might have someone's private information - whoever disabled it might be in the right.
-We can't just let you claim it to see it, even if it trusts you.
-
-Why it doesn't matter much:
-- It's not the end of the world. You probably know your own contact info.
-
-## Key Rotation and Compromised Keys
-
-**Key rotation (the normal path)**  
-You replace your old key with a new one via ONE-OF-US.NET. You sign in to Hablo with your
-new key. The server's BFS finds your old key as an equivalent. Your old key's account data
-is visible to you as long as trust runs both ways: your new key's BFS reaches your old key,
-and your old key's BFS reaches your new key. This typically means the friends who were
-vouched for by your old key have also vouched for your new key.
-
-**Compromised key**  
-Same as key rotation, except the bad actor has your key and can sign in as you until your
-network accepts the new key. You cannot make a compromised key's data more private
-retroactively — you published it and lost the key.
-
-**Do not block a compromised key.** Block severs the identity chain. Use replace/revoke
-instead. ONE-OF-US.NET supports revoking a replaced key and restating your old statements
-with your new key up to the point of compromise.
-
-**Strict data from a lost equivalent key**  
-If a lost equivalent key had data set to "strict," and that key's BFS no longer trusts your
-current key at strict level, you cannot access that data.
-
-
 ## External Platform Deep Links
 
 When viewing a contact, each handle is a tappable link. On mobile web, these open the
@@ -312,6 +304,12 @@ Users filter their contacts list by typing in a search bar. The filter matches a
 
 Case-insensitive substring matching. Contacts with no card still appear if a moniker
 matches. The search bar has an X button to clear.
+
+## Notes
+
+**Do not block a compromised key.** Block severs the identity chain. Use replace/revoke
+instead. ONE-OF-US.NET supports revoking a replaced key and restating your old statements
+with your new key up to the point of compromise.
 
 
 ## Speculative / Future Ideas
