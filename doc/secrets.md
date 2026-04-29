@@ -68,9 +68,9 @@ The identity app:
 1. Validates that `nonceUrl` is an HTTPS URL whose origin matches `domain`. Aborts if not.
 2. Fetches the nonce from `nonceUrl`. The server generates this nonce fresh and stores it server-side tied to `sessionId`.
 3. Signs the string `<domain>|<time>|<nonce>` with the identity key.
-4. POSTs to Hablo: 
-  - PKE-encrypted
-    - identity key pair
+4. POSTs to Hablo:
+  - identity public key (plaintext — needed by server to verify the signature)
+  - PKE-encrypted (using `encryptionPk`, so only the browser client can decrypt):
     - delegate key pair (optional)
   - the signature
 
@@ -107,10 +107,19 @@ To determine what contact info of person B is visible to person A, the server ru
 ## Usage
 
 ### Normal case
-You sign in with your key. Server verifies ownership, runs BFS to find equivalents, picks the most recent data, and lets you use your account.
+You sign in with your key. Server verifies ownership, runs BFS to find equivalents.
+
+The equivalent key accounts are not different from canonical key accounts. We can't know.
+If you did rotate your key, then your equivalent key will be found by the BFS from your canonical key.
+If your friends (network) who were vouched for by your old, lost, now equivalent key have vouched for your new canonical key sufficiently, then your old equivalent key account should be visible to you.
+That's all, and it's the same as "key rotation".
+
+Hable picks the most recent data from all fo your accounts (canonical and equivalents (as long as there is suffient trust from equivalent to canonical)), and lets you use your account.
 
 ### Replaced key
 Same as the normal case. Your old key shows up as an equivalent, and its data is available if trust runs both ways.
+
+If your lost, now equivalent key had set some data as "strict" and your old does equivalent key does not currently trust you at the "strict" level, then you can't use that data.
 
 ### Compromised key
 You'll need to replace your key and have it accepted by your network. Until then, the bad actor

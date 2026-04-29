@@ -76,7 +76,7 @@ contact info (i.e., whether Ivy appears in Bob's trust graph at Bob's required l
 This helps Ivy understand the relationship without having to reason about trust graphs
 manually.
 
-DEFERRED: **UC8 — Override visibility for a specific person**
+DEFERRED (not planned, not scrutinized): **UC8 — Override visibility for a specific person**
 Similar to Nerdster follow. You haven't swiped phones, but you're pretty sure this is the person you think it is.
 
 Jack wants Karl to be able to see his contact info, even though Karl doesn't meet Jack's
