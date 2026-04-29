@@ -1,117 +1,162 @@
 # HabloTengo — Design
 
-## Doc history:
-
-This (design.md) was the first doc / plan / spec attempt.
-It went pertty far and deep but it was flawed.
-I (human) then wrote secrets.md, which is the new direction.
-
-Old / new:
-- old used delegate keys; new doesn't (anyone can claim anyone's delegate)
-- old wanted proofs sent from the client, not to searh on the server; new accepts that server side search is required to find block or clear statements which could be ommited by proofs.
-
-There currently probably is old code ispired by mistakes in earlier versions of this doc.
-That should be deleted or marked.
-So: Don't believe all the code you find.
-
-## What Is It
+## What It Is
 
 HabloTengo is a privacy-first contact directory built on top of an open identity network.
-The identity network is formed by the signed statements that participants publish and that
+The identity network is formed by signed statements that participants publish and that
 anyone can fetch. ONE-OF-US.NET is currently the only app through which users participate
 in this network, but the paradigm is open.
 
-Each user maintains a contact card (email, phone, social handles, and messaging
-preferences). Who can see it depends on whether others trust you — specifically, whether
-you appear in their trust graph at a sufficient level.
+Each user maintains a contact card (email, phone, social handles, messaging preferences).
+Who can see it depends on whether others trust you — specifically, whether you appear in
+their trust graph at a sufficient level.
 
 Everyone you believe is a person appears in your contacts list. Whether you can see their
 actual contact details depends on whether they trust you back at a sufficient level
-(permissive, standard, or strict). If they don't, their card is shown but grayed out —
-you know they're in the network, but their info is not revealed.
+(permissive, standard, or strict). If they don't, their card is shown but grayed out.
 
-Domain: hablotengo.com
+Domain: hablotengo.com  
 Tech stack: Flutter (web first), Firebase (Firestore, Hosting, Cloud Functions), standalone
 Firebase project "hablotengo".
 
+## How It Differs From Nerdster
+
+The Nerdster is fully open: everything is published, anyone can claim anything, it only
+affects their own view. 
+Hablo holds private data — contact info that should only be visible to people the user trusts. So Hablo cannot entertain fantasy identities; it must verify.
+
+## Must Have
+
+- Secure — as secure as the paradigm can support
+- Visible from Nerdster to promote the paradigm
+- Demo with Simpsons on web page. We don't want to expose their private keys, so their
+  public key tokens will be hard-coded in the server as "demo users".
+
+## Security Reality
+
+Anyone (bad actors included) can:
+- create an identity key
+- claim anyone's identity key as their own (publish and sign a replace statement)
+- claim anyone's delegate key as their own (publish and sign a delegate statement)
+- create bogus identity that vouches for their own bogus identity
+
+## Hopes and desires:
+No one can hijack your account or see your private info without having you and your own network fail at their jobs.
+
+## Fears:
+
+Someone can willy-nilly sign in as you and see your info, hijack your account
+- probably can be stopped.
+
+Someone steals your phone and tries to hijack your account before you do all of these:
+- rotate your identity key
+- tell those who've formerly vouched for your now compromised identity key and have your new identity key sufficiently vouched for
+Probably can't be stopped.
+
+Someone in your network claims your key fraudulently and interrupts your service
+- Hmm.. If your network trusts that fraudulent key enough, it is what it is, your network has let you down.
+
+Someone somehow abuses your delegate key and changes your settings.
+I don't see an immediate risk.
+
+### Practical reality:
+
+No one is going to use this, and so it's strictly "proof of concept" / "reference implementation".
+It should allow a path forward to be efficient, but it doesn't have to be efficient.
 
 ## Use Cases
 
-**UC1 — Fill in a contact card**
+**UC1 — Fill in a contact card**  
 Alice opens HabloTengo, signs in, and fills in her card: preferred email, WhatsApp number,
-Instagram handle. She marks WhatsApp as preferred. She saves. Her record is now stored in
-HabloTengo's Firestore.
+Instagram handle. She marks WhatsApp as preferred. Her record is stored in Firestore.
 
-**UC2 — View a contact's info**
-Bob opens HabloTengo. He believes Alice is a person, and Alice's trust graph includes Bob
-at standard level or higher. Bob sees Alice's card, including a button that opens WhatsApp
-directly to her number.
+**UC2 — View a contact's info**  
+Bob believes Alice is a person, and Alice's trust graph includes Bob at standard level or
+higher. Bob sees Alice's card.
 
-**UC3 — Trust is one-sided**
-Carol believes Bob is a person, so Bob appears in her contacts list. But Carol is not
-reachable in Bob's trust graph at his required visibility level, so his card is grayed out
-— Carol can see he's in the network but not his contact details. Bob doesn't believe Carol
-is a person, so she doesn't appear in his list at all.
+**UC3 — Trust is one-sided**  
+Carol believes Bob is a person, so Bob appears in her list. But Carol is not in Bob's trust
+graph at his required level, so his card is grayed out. Bob doesn't believe Carol is a
+person, so she doesn't appear in his list at all.
 
-**UC4 — Trust level gates visibility**
-Dave has set his card to "strict" visibility — only identity keys he believes represent
-people at the strict level can see it. Eve believes Dave is a person, and Dave believes
-Eve is a person, but only at the permissive level. Dave's card appears grayed out to Eve
-until Dave's trust in her rises to strict.
+**UC4 — Trust level gates visibility**  
+Dave has set his card to "strict." Eve believes Dave is a person, and Dave believes Eve,
+but only at permissive level. Dave's card appears grayed out to Eve until Dave's trust
+in her rises to strict.
 
-**UC5 — Signing in**
-Frank visits hablotengo.com. He clicks "Sign In". The Hablo app asks his identity app to 
-- prove that it's him
-- optionally create a delegate key for HabloTengo (similar to Nerdster).
-HabloTengo verifies the identity key challenge.
-Frank is now authenticated.
-His idenetity key token is used as his account token.
+**UC5 — Signing in**  
+Frank visits hablotengo.com and clicks "Sign In." Hablo asks his identity app (ONE-OF-US.NET)
+to prove ownership of his identity key and optionally create a delegate key for HabloTengo.
+Hablo verifies the proof. Frank's identity key token is his account token.
 
-**UC6a — Key rotation: the owner's perspective**
-See secrets.md
+The delegate key is optional. Without one, Frank can still use Hablo; others just won't see
+that he's using it from the Nerdster. Actually using the delegate key for anything beyond
+visibility is not in the current plan.
 
-**UC7 — Visibility indicator**
-Ivy views Bob's grayed-out card. Alongside it, the app shows whether Bob can see Ivy's
-contact info (i.e., whether Ivy appears in Bob's trust graph at Bob's required level).
-This helps Ivy understand the relationship without having to reason about trust graphs
-manually.
+**UC6 — Key rotation**  
+See Key Rotation below.
 
-DEFERRED (not planned, not scrutinized): **UC8 — Override visibility for a specific person**
-Similar to Nerdster follow. You haven't swiped phones, but you're pretty sure this is the person you think it is.
+**UC7 — Visibility indicator**  
+Ivy views Bob's grayed-out card. The app shows whether Bob can also see Ivy's contact info.
+This helps Ivy understand the relationship without reasoning about trust graphs manually.
 
-Jack wants Karl to be able to see his contact info, even though Karl doesn't meet Jack's
-strictness setting (Karl is in Jack's trust graph, but not at the required level). 
+DEFERRED (not planned, not scrutinized): **UC8 — Override visibility for a specific person**  
+Jack creates an override explicitly allowing Karl to see his card details even though Karl
+doesn't meet Jack's strictness setting. Overrides can also block someone who would otherwise
+see your card.
 
-SUSPECT AND NOT YET SCRUTINIZED: Jack creates a signed override statement (signed
-by his HabloTengo delegate key) explicitly allowing Karl.
+DEFERRED: **UC9 — Cross-service: override visible on Nerdster**  
+For now, Nerdster users will see the Hablo delegate key, which is enough signal that the
+person uses Hablo.
 
-Karl now sees Jack's card
-details.
+DEFERRED: **UC10 — Respect Nerdster follow context**  
+HabloTengo reads Nerdster follow statements from a "contact" context and uses them as
+visibility overrides.
 
-Overrides can also be used to block someone who would otherwise be able to see
-your card.
-This similar to Nerdster block. It's a step short of identity layer block.
 
-The override statement is portable: it is signed and publicly fetchable, not stored
-privately in HabloTengo. This means:
-- Other services (e.g., Nerdster) can read and display it (see UC9).
-- A competing contact directory app can import Jack's override statements and honor them
-  without asking Jack to re-state his preferences.
+## Sign-In Protocol
 
-DEFERRED: **UC9 — Cross-service: override visible on Nerdster**
-For now, Nerdster users will see the Hablo delegate key which will be enough of a signal that that person uses Hablo.
+Hablo communicates the following to the identity app via QR code, `keymeid://`, or
+`https://one-of-us.net` deep link:
 
-DEFERRED: **UC10 — Respect Nerdster follow context**
-Leo follows certain people in a "contact" follow context in Nerdster (or a
-HabloTengo-specific follow context). HabloTengo can read those follow statements and use
-them as visibility overrides — people Leo follows in that context can see his card details
-even if the default trust graph wouldn't grant it.
+```json
+{
+  "domain": "hablotengo.com",
+  "time": "<ISO8601 timestamp>",
+  "nonceUrl": "https://hablotengo.com/api/sign-in/nonce/<sessionId>",
+  "encryptionPk": "<X25519 public key, base64>"
+}
+```
+
+**Identity app:**
+1. Validates that `nonceUrl` is HTTPS and its origin matches `domain`. Aborts if not.
+2. Fetches the nonce from `nonceUrl`.
+3. Signs `<domain>|<time>|<nonce>` with the identity key.
+4. POSTs to Hablo:
+   - identity public key (plaintext — server needs this to verify the signature)
+   - PKE-encrypted with `encryptionPk` (only the browser client can decrypt):
+     - delegate key pair (optional)
+   - the signature
+
+**Server:**
+1. Looks up the nonce by `sessionId` (single-use; invalidated after first use).
+2. Verifies the signature over `<domain>|<time>|<nonce>` with the identity public key.
+3. Checks `time` is fresh (e.g. within 60 seconds).
+4. Runs BFS from the identity key to find equivalent keys and access rights.
+5. Writes the result to Firestore at the session path; the browser tab listening picks it
+   up and decrypts the delegate key pair client-side.
+
+**Why the nonce URL closes the MITM gap:** a MITM who substitutes a different `domain`
+cannot produce a matching `nonceUrl` for that domain without controlling that domain's
+server. The identity app's origin check ties the nonce to the domain.
+
+**Note:** The identity app signs a challenge to prove identity ownership. There are no
+signed, published statements in HabloTengo (unlike the Nerdster). A delegate-key-signed
+status is possible one day but not planned.
 
 
 ## Data Model
 
-
-Contact contains:
 ```
 name           string
 emails         [{address, preferred}]
@@ -132,10 +177,97 @@ website        string
 other          string
 ```
 
+Account record (per identity key):
+- time: (update date)
+- settings: permissive, standard, strict
+- contact info: (above)
+
+
+## Data Access
+
+### Your own data
+
+Contact info is stored per identity key. When you sign in, you are signed in as that identity. Anything you save will be saved under your identity key's token, which is your account token.
+
+The server also runs a trust algoritm (the Nerdster's "Greedy BFS") to find all of your equivalent keys.
+
+To use an equivalent key, that key's trust settings must allow your signed-in key to see it (same as a different person).
+If from that key's PoV, you can't see it's data, then you can't. That account is effectively not yours.
+
+Hablo picks the most recent contact info and settings across all of your keys (canonical and equivalents that are accessible to you).
+
+### What people and contact info you can see.
+
+We run the trust algorithm from your PoV to create identity equivalence groups (EG).
+Each EG is supposed to be a person.
+For each person, we aggregate (by lastest time) the data you're allowed to see and show it to you.
+
+### Delete
+
+You can delete your active account.
+You can disable equivalent accounts (disable only because you might be lying)/
+
+The problem:
+You're a bad actor.
+Someone trusts you enough to let you view their info.
+You claim their key and delete their account.
+From your PoV, it's your equivalent key.
+From that key's PoV, you're trusted.
+
+Possible solution / remedy:
+
+You can't delete equivalent accounts, you only can disable them.
+If/when someone else signs in and sees you disabled their account:
+- If it's their active account (they have the private key), then:
+  - they can enable (cancel the disable).
+  - they can see that you disabled their account.
+  - they should probably identity (ONE-OF-US.NET) block you (bad actor, confused, not acting in good faith).
+- If it's not their active key, only one of their equivalent keys, then I don't know...
+From their PoV, your replace is rejected and it's their equivalent.
+From your PoV, same but the other way around.
+If they block you, it doesn't necessarily fix things: from your PoV the algorithm will reject their block and still see that key as your equivalent.
+If they get more of the network to block you, then eventually.. maybe.. that "equivalent" won't trust you any more.
+
+Possible settlement:
+- We disable if it's not settled (some claim it's theirs and want it disabled; others claim it's theirs and want it enabled.)
+- We enable if it's your active key (with private component)
+- Regarless, we should you who disabled it (which active account)
+
+Why we can't let you enable (undo disable) disabled, equivalent accounts:
+Because it might be someone's private information - whoever disabled it might be right.
+We can't just let you claim it to see it, even if it trusts you.
+
+Why it doesn't matter much:
+- It's not the end of the world. You probably know your own contact info.
+- You should copy it to your active account when you sign in (TODO: make that just happen)
+
+## Key Rotation and Compromised Keys
+
+**Key rotation (the normal path)**  
+You replace your old key with a new one via ONE-OF-US.NET. You sign in to Hablo with your
+new key. The server's BFS finds your old key as an equivalent. Your old key's account data
+is visible to you as long as trust runs both ways: your new key's BFS reaches your old key,
+and your old key's BFS reaches your new key. This typically means the friends who were
+vouched for by your old key have also vouched for your new key.
+
+**Compromised key**  
+Same as key rotation, except the bad actor has your key and can sign in as you until your
+network accepts the new key. You cannot make a compromised key's data more private
+retroactively — you published it and lost the key.
+
+**Do not block a compromised key.** Block severs the identity chain. Use replace/revoke
+instead. ONE-OF-US.NET supports revoking a replaced key and restating your old statements
+with your new key up to the point of compromise.
+
+**Strict data from a lost equivalent key**  
+If a lost equivalent key had data set to "strict," and that key's BFS no longer trusts your
+current key at strict level, you cannot access that data.
+
+
 ## External Platform Deep Links
 
-When viewing a contact, each handle is rendered as a tappable link. On mobile web, these
-open the native app if installed.
+When viewing a contact, each handle is a tappable link. On mobile web, these open the
+native app if installed.
 
 | Platform   | URL pattern                          |
 |------------|--------------------------------------|
@@ -153,30 +285,24 @@ open the native app if installed.
 
 ## Contact Search
 
-Users can filter their contacts list by typing in a search bar. The filter matches against 
+Users filter their contacts list by typing in a search bar. The filter matches against:
 - **Self-given name**: the name field on their contact card.
-- **Network monikers**: names that anyone in the PoV's trust graph gave them via their trust statements (the `moniker` field on a `trust` statement).
+- **Network monikers**: names that anyone in the PoV's trust graph gave them via trust
+  statements.
 
-The filter is case-insensitive and uses substring matching. If no names match the query, the list shows "No matching contacts." The search bar has an X button to clear the query.
+Case-insensitive substring matching. Contacts with no card still appear if a moniker
+matches. The search bar has an X button to clear.
 
-Contacts with no matching names are hidden. Contacts with no card at all still appear if a moniker in the trust graph matches.
-
----
 
 ## Speculative / Future Ideas
 
-**Signing outgoing communications**
-Since HabloTengo users already hold cryptographic keys, they could sign outgoing messages
-(emails, etc.) to prove authorship. A recipient in the network could verify the signature
-against the sender's known public key. Possible directions: signed email headers, browser
-extension for verification, future email client support. Signing during a phone call is
-harder — that's a carrier-level problem. None of this is actionable now but fits naturally
-into the paradigm.
+**Signing outgoing communications**  
+HabloTengo users already hold cryptographic keys. They could sign outgoing messages to
+prove authorship. A recipient in the network could verify against the sender's known public
+key. None of this is actionable now but fits naturally into the paradigm.
 
-**Encryption public key**
-Publish an asymmetric encryption public key (e.g., X25519) as a field in the contact card,
-separate from the signing key. Anyone who can see your card could then encrypt a secret
-that only you can decrypt. This would turn HabloTengo into a trust-gated key server —
-not just "here's how to reach me" but "here's how to reach me securely." The crypto
-infrastructure is already present; this would be an additional key pair and one extra
-field in the contact statement.
+**Encryption public key**  
+Publish an X25519 encryption public key as a field in the contact card. Anyone who can see
+your card could then encrypt a secret that only you can decrypt — turning HabloTengo into
+a trust-gated key server. The crypto infrastructure is already present; one extra key pair
+and one extra field.
