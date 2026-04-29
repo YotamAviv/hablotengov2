@@ -185,16 +185,36 @@ Account record (per identity key):
 
 ## Data Access
 
-### Your own data
+### Your own data (presumably)
 
 Contact info is stored per identity key. When you sign in, you are signed in as that identity. Anything you save will be saved under your identity key's token, which is your account token.
 
-The server also runs a trust algoritm (the Nerdster's "Greedy BFS") to find all of your equivalent keys.
+The server next runs a trust algoritm (the Nerdster's "Greedy BFS") to find all of your equivalent keys.
 
-To use an equivalent key, that key's trust settings must allow your signed-in key to see it (same as a different person).
-If from that key's PoV, you can't see it's data, then you can't. That account is effectively not yours.
+To use an equivalent key, that key's trust settings must allow your signed-in key to see it (same as if that key is a different person's).
+If from that key's PoV, you're not permitted to see it's data, then you can't. That account is effectively not yours.
 
-Hablo picks the most recent contact info and settings across all of your keys (canonical and equivalents that are accessible to you).
+Hablo tries to eagerly disable old, equivalent accounts (discussion below in DELETE)
+Your equivalent accounts fall into these categories:
+- disabled by you or by one of your equivalent keys
+no problem. ignore.
+- disabled by someone else
+possible problem. show you the account and who disabled it.
+You can dimiss this - possibly by disabling it as well.
+- disabled by you or one of your equivalent accounts and someone else
+no problem. ignore.
+- not disabled
+requires attention
+
+Hablo next:
+- compares the timestamps of the not disabled accounts
+- offers you to pick the data you want to store in your active account
+- encourages you to disable equivalent accounts
+
+NOTES:
+People might struggle with this whole thing, and we shouldn't cater to them.
+If someone used 2 accounts and then realized that one should claim the other, it might be the case that the replaced account has newer data.
+Let's not work too hard to accommodate the perfect solution here.
 
 ### What people and contact info you can see.
 
@@ -205,7 +225,7 @@ For each person, we aggregate (by lastest time) the data you're allowed to see a
 ### Delete
 
 You can delete your active account.
-You can disable equivalent accounts (disable only because you might be lying)/
+You can disable equivalent accounts (disable only because you might be lying)
 
 The problem:
 You're a bad actor.
@@ -219,27 +239,27 @@ Possible solution / remedy:
 You can't delete equivalent accounts, you only can disable them.
 If/when someone else signs in and sees you disabled their account:
 - If it's their active account (they have the private key), then:
-  - they can enable (cancel the disable).
+  - they can enable the account (cancel the disable).
   - they can see that you disabled their account.
   - they should probably identity (ONE-OF-US.NET) block you (bad actor, confused, not acting in good faith).
-- If it's not their active key, only one of their equivalent keys, then I don't know...
+- If it's not their active key, only one of their equivalent keys, then we can't know who's right.
 From their PoV, your replace is rejected and it's their equivalent.
 From your PoV, same but the other way around.
 If they block you, it doesn't necessarily fix things: from your PoV the algorithm will reject their block and still see that key as your equivalent.
 If they get more of the network to block you, then eventually.. maybe.. that "equivalent" won't trust you any more.
 
-Possible settlement:
-- We disable if it's not settled (some claim it's theirs and want it disabled; others claim it's theirs and want it enabled.)
-- We enable if it's your active key (with private component)
-- Regarless, we should you who disabled it (which active account)
+The settlement:
+- We stay disabled if it's not settled (someone claims it's theirs and wants it disabled; someone else claims it's theirs and wants it enabled.)
+- We enable only if it's your active account (you have the private key)
+- Regarless, we who you who disabled it (which active account)
+- We disable equivalent accounts eagerly.
 
 Why we can't let you enable (undo disable) disabled, equivalent accounts:
-Because it might be someone's private information - whoever disabled it might be right.
+Because it might have someone's private information - whoever disabled it might be in the right.
 We can't just let you claim it to see it, even if it trusts you.
 
 Why it doesn't matter much:
 - It's not the end of the world. You probably know your own contact info.
-- You should copy it to your active account when you sign in (TODO: make that just happen)
 
 ## Key Rotation and Compromised Keys
 
