@@ -7,6 +7,7 @@ The key differences between the Nerdster "fully naked and open" model and Hablo'
 
 - Secure - as secure as the paradigm can support
 - Visible from Nerdster to promote paradigm
+- Demo with Simpsons on web page. We don't want to expose their private keys, and so their public key tokens will be hard coded in the server as "demo users".
 
 ## Reality:
 anyone (bad actors included) can
@@ -50,6 +51,37 @@ I don't see an immediate risk.
 ### Signs in:
 Server verifies ownership (signature challenge), then runs BFS to find all equivalent keys.
 
+### Sign-in protocol
+
+Hablo (or any relying party) communicates the following to the identity app (via QR code or `keymeid://` or https://one-of-us.net deep link, same as Nerdster):
+
+```json
+{
+  "domain": "hablotengo.com",
+  "time": "<ISO8601 timestamp>",
+  "nonceUrl": "https://hablotengo.com/api/sign-in/nonce/<sessionId>",
+  "encryptionPk": "<X25519 public key, base64>"
+}
+```
+
+The identity app:
+1. Validates that `nonceUrl` is an HTTPS URL whose origin matches `domain`. Aborts if not.
+2. Fetches the nonce from `nonceUrl`. The server generates this nonce fresh and stores it server-side tied to `sessionId`.
+3. Signs the string `<domain>|<time>|<nonce>` with the identity key.
+4. POSTs to Hablo: 
+  - PKE-encrypted
+    - identity key pair
+    - delegate key pair (optional)
+  - the signature
+
+The server:
+1. Looks up the nonce by `sessionId` (single-use; invalidated after first use).
+2. Verifies the signature over `<domain>|<time>|<nonce>` with the provided identity public key.
+3. Checks `time` is fresh (e.g. within 60 seconds).
+4. Writes the result to Firestore at the session path; the browser tab listening on that path picks it up.
+
+**Why the nonce URL closes the MITM gap:** a man-in-the-middle who intercepts and substitutes a different `domain` cannot produce a matching `nonceUrl` for that domain without controlling that domain's server. The identity app's origin check on `nonceUrl` is what ties the nonce to the domain.
+
 ### Storage:
 Contact info stored in a collection keyed by identity key.
 
@@ -57,6 +89,12 @@ Contact info stored in a collection keyed by identity key.
 To access data saved under an equivalent key, trust must run both ways: your signed-in key must reach that key via BFS, and that key's own BFS must also reach your signed-in key.
 Server picks the most recent contact info and settings across all mutually-trusted equivalent keys and shows you that.
 Contact info is saved under the identity key you signed in with.
+
+### Delete
+
+You should be able to delete any account that you can prove you own
+- your current account
+- your equivalent accounts
 
 ### Serving data to other users:
 To determine what contact info of person B is visible to person A, the server runs the trust algorithm from each of B's equivalent keys' PoV. Each equivalent key's settings govern what it exposes. The server picks the most recent contact info across B's equivalent keys that B's settings allow, and shows that to A.
