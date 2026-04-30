@@ -9,13 +9,11 @@ import 'package:oneofus_common/trust_statement.dart';
 import 'constants.dart';
 import 'contact_service.dart';
 import 'labeler.dart';
-import 'models/contact_statement.dart';
 import 'sign_in_state.dart';
 
 class _ContactEntry {
   final String name;
   final String token;
-  // Old keys in this person's equivalence group: (label, token)
   final List<(String, String)> oldKeys;
   _ContactEntry(this.name, this.token, this.oldKeys);
 }
@@ -30,6 +28,7 @@ class ContactsScreen extends StatefulWidget {
 
 class _ContactsScreenState extends State<ContactsScreen> {
   List<_ContactEntry>? _contacts;
+  Map<String, ContactResult>? _results;
   String? _error;
 
   @override
@@ -69,26 +68,33 @@ class _ContactsScreenState extends State<ContactsScreen> {
             .map((k) => (labeler.getIdentityLabel(k), k.value))
             .toList();
 
-        debugPrint('ContactsScreen: $name token=${canonical.value} oldKeys=${oldKeys.length}');
-        for (final (label, tok) in oldKeys) {
-          debugPrint('  equivalent: $label token=$tok');
-        }
-
         contacts.add(_ContactEntry(name, canonical.value, oldKeys));
       }
 
       setState(() => _contacts = contacts);
+
+      // Batch-load all contact cards
+      if (contacts.isNotEmpty) {
+        final tokens = contacts.map((c) => c.token).toList();
+        final results = await getBatchContacts(tokens, widget.emulator);
+        if (mounted) setState(() => _results = results);
+      }
     } catch (e, st) {
       debugPrint('ContactsScreen: error: $e\n$st');
       setState(() => _error = e.toString());
     }
   }
 
-  Future<void> _showContactDetail(BuildContext context, _ContactEntry contact) async {
-    await showModalBottomSheet(
+  void _showContactDetail(BuildContext context, _ContactEntry contact) {
+    final result = _results?[contact.token];
+    showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder: (_) => _ContactDetailSheet(contact: contact, emulator: widget.emulator),
+      builder: (_) => _ContactDetailSheet(
+        contact: contact,
+        result: result,
+        emulator: widget.emulator,
+      ),
     );
   }
 
@@ -106,6 +112,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
 
     final items = <Widget>[];
     for (final contact in _contacts!) {
+      final result = _results?[contact.token];
       items.add(
         InkWell(
           onTap: () => _showContactDetail(context, contact),
@@ -114,7 +121,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(contact.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                _ContactNameWidget(contact: contact, result: result),
                 SelectableText(contact.token, style: const TextStyle(fontSize: 11, color: Colors.grey)),
                 for (final (label, tok) in contact.oldKeys) ...[
                   const SizedBox(height: 4),
@@ -141,42 +148,39 @@ class _ContactsScreenState extends State<ContactsScreen> {
   }
 }
 
-class _ContactDetailSheet extends StatefulWidget {
+class _ContactNameWidget extends StatelessWidget {
   final _ContactEntry contact;
-  final bool emulator;
-  const _ContactDetailSheet({required this.contact, required this.emulator});
+  final ContactResult? result;
+  const _ContactNameWidget({required this.contact, required this.result});
 
   @override
-  State<_ContactDetailSheet> createState() => _ContactDetailSheetState();
+  Widget build(BuildContext context) {
+    if (result == null) {
+      // Still loading batch results
+      return Text(contact.name, style: const TextStyle(fontWeight: FontWeight.bold));
+    }
+    return switch (result!.status) {
+      ContactStatus.found => Text(
+          result!.contact!.name,
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+      ContactStatus.denied => Text(
+          contact.name,
+          style: const TextStyle(color: Color(0xFFE91E8C), fontStyle: FontStyle.italic),
+        ),
+      ContactStatus.notFound => Text(
+          contact.name,
+          style: const TextStyle(color: Color(0xFF4CAF50), fontStyle: FontStyle.italic),
+        ),
+    };
+  }
 }
 
-class _ContactDetailSheetState extends State<_ContactDetailSheet> {
-  ContactData? _data;
-  bool _loading = true;
-  bool _forbidden = false;
-  bool _noCard = false;
-  String? _error;
-
-  @override
-  void initState() {
-    super.initState();
-    _load();
-  }
-
-  Future<void> _load() async {
-    try {
-      final data = await getContact(widget.contact.token, widget.emulator);
-      setState(() {
-        _data = data;
-        _loading = false;
-        _noCard = data == null;
-      });
-    } on ContactAccessDeniedException {
-      setState(() { _forbidden = true; _loading = false; });
-    } catch (e) {
-      setState(() { _error = e.toString(); _loading = false; });
-    }
-  }
+class _ContactDetailSheet extends StatelessWidget {
+  final _ContactEntry contact;
+  final ContactResult? result;
+  final bool emulator;
+  const _ContactDetailSheet({required this.contact, required this.result, required this.emulator});
 
   @override
   Widget build(BuildContext context) {
@@ -187,22 +191,20 @@ class _ContactDetailSheetState extends State<_ContactDetailSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(widget.contact.name, style: Theme.of(context).textTheme.titleLarge),
+            Text(contact.name, style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 12),
-            if (_loading)
+            if (result == null)
               const Center(child: CircularProgressIndicator())
-            else if (_error != null)
-              Text('Error: $_error', style: const TextStyle(color: Colors.red))
-            else if (_forbidden)
+            else if (result!.status == ContactStatus.denied)
               const Text('Access denied.', style: TextStyle(color: Colors.grey))
-            else if (_noCard)
+            else if (result!.status == ContactStatus.notFound)
               const Text('No contact info.', style: TextStyle(color: Colors.grey))
             else ...[
-              if (_data!.notes != null) ...[
-                SelectableText(_data!.notes!),
+              if (result!.contact!.notes != null) ...[
+                SelectableText(result!.contact!.notes!),
                 const SizedBox(height: 8),
               ],
-              for (final entry in _data!.entries)
+              for (final entry in result!.contact!.entries)
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 2),
                   child: Row(

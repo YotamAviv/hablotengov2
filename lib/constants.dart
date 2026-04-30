@@ -23,6 +23,10 @@ String habloGetContactUrl(bool emulator) => emulator
     ? 'http://127.0.0.1:$kHabloFunctionsEmulatorPort/$kHabloEmulatorProject/us-central1/getContact'
     : 'https://us-central1-hablotengo.cloudfunctions.net/getContact';
 
+String habloGetBatchContactsUrl(bool emulator) => emulator
+    ? 'http://127.0.0.1:$kHabloFunctionsEmulatorPort/$kHabloEmulatorProject/us-central1/getBatchContacts'
+    : 'https://us-central1-hablotengo.cloudfunctions.net/getBatchContacts';
+
 String habloGetMyContactUrl(bool emulator) => emulator
     ? 'http://127.0.0.1:$kHabloFunctionsEmulatorPort/$kHabloEmulatorProject/us-central1/getMyContact'
     : 'https://us-central1-hablotengo.cloudfunctions.net/getMyContact';

@@ -32,6 +32,12 @@ exports.getContact = onRequest({ cors: true }, async (req, res) => {
   await handleGetContact(req, res);
 });
 
+const { handleGetBatchContacts } = require('./get_batch_contacts');
+
+exports.getBatchContacts = onRequest({ cors: true }, async (req, res) => {
+  await handleGetBatchContacts(req, res);
+});
+
 const { handleGetMyContact } = require('./get_my_contact');
 
 exports.getMyContact = onRequest({ cors: true }, async (req, res) => {
