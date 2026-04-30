@@ -168,6 +168,15 @@ To read a person's contact data, the client fetches from each of their equivalen
 the latest. For each fetch, the server checks: does *that specific key* (not the person's other
 equivalents) trust *your specific signed-in key* (not your claimed equivalents)?
 
+#### Actual Implementation — equivalent keys
+
+The client sends only the canonical (current) token to the server. The server builds the
+candidates list as `[canonicalToken, ...oldKeys]` (old keys are those whose replacement chain
+resolves to the canonical). It fetches Firestore docs for each candidate in that order and
+returns the first one found. Trust is checked once using a single trust graph built from the
+canonical token's PoV — not per equivalent key. Settings (`defaultStrictness`) are loaded from
+the canonical token's Firestore doc.
+
 ### Delete
 
 You can delete your active account.
