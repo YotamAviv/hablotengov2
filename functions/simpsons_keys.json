@@ -14,6 +14,11 @@
     "kty": "OKP",
     "x": "9Hl8uurLdQQnR3pnJiYoa59m5yOojciNbWFTgHnCEiY"
   },
+  "homer2": {
+    "crv": "Ed25519",
+    "kty": "OKP",
+    "x": "6mVpHZfRZFZPCzLEw1BUV0oDwGuUhAi_iNwoHGGtVho"
+  },
   "marge": {
     "crv": "Ed25519",
     "kty": "OKP",

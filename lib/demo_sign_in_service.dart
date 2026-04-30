@@ -6,26 +6,9 @@ import 'constants.dart';
 import 'sign_in_state.dart';
 import 'dev/simpsons_public_keys.dart';
 
-const Map<String, String> kSimpsonsDisplayNames = {
-  'lisa': 'Lisa',
-  'bart': 'Bart',
-  'homer': 'Homer',
-  'marge': 'Marge',
-  'maggie': 'Maggie',
-  'milhouse': 'Milhouse',
-  'luann': 'Luann',
-  'ralph': 'Ralph',
-  'nelson': 'Nelson',
-  'lenny': 'Lenny',
-  'carl': 'Carl',
-  'burns': 'Mr. Burns',
-  'smithers': 'Smithers',
-  'krusty': 'Krusty',
-  'sideshow': 'Sideshow Bob',
-  'mel': 'Sideshow Mel',
-  'seymore': 'Seymour',
-  'amanda': 'Amanda',
-};
+List<String> get kSimpsonsKeyNames => kSimpsonsPublicKeys.keys
+    .where((k) => !k.contains('-'))
+    .toList();
 
 Future<void> demoSignIn(String keyName, bool emulator) async {
   final jwk = (kSimpsonsPublicKeys[keyName]! as Map).cast<String, dynamic>();

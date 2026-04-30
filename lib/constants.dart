@@ -42,3 +42,19 @@ String habloGetSettingsUrl(bool emulator) => emulator
 String habloSetSettingsUrl(bool emulator) => emulator
     ? 'http://127.0.0.1:$kHabloFunctionsEmulatorPort/$kHabloEmulatorProject/us-central1/setSettings'
     : 'https://us-central1-hablotengo.cloudfunctions.net/setSettings';
+
+String habloGetEquivalentStatusUrl(bool emulator) => emulator
+    ? 'http://127.0.0.1:$kHabloFunctionsEmulatorPort/$kHabloEmulatorProject/us-central1/getEquivalentStatus'
+    : 'https://us-central1-hablotengo.cloudfunctions.net/getEquivalentStatus';
+
+String habloDisableEquivalentUrl(bool emulator) => emulator
+    ? 'http://127.0.0.1:$kHabloFunctionsEmulatorPort/$kHabloEmulatorProject/us-central1/disableEquivalent'
+    : 'https://us-central1-hablotengo.cloudfunctions.net/disableEquivalent';
+
+String habloDismissEquivalentUrl(bool emulator) => emulator
+    ? 'http://127.0.0.1:$kHabloFunctionsEmulatorPort/$kHabloEmulatorProject/us-central1/dismissEquivalent'
+    : 'https://us-central1-hablotengo.cloudfunctions.net/dismissEquivalent';
+
+String habloEnableAccountUrl(bool emulator) => emulator
+    ? 'http://127.0.0.1:$kHabloFunctionsEmulatorPort/$kHabloEmulatorProject/us-central1/enableAccount'
+    : 'https://us-central1-hablotengo.cloudfunctions.net/enableAccount';

@@ -8,6 +8,8 @@ import 'package:oneofus_common/trust_statement.dart';
 
 import 'constants.dart';
 import 'contact_service.dart';
+import 'equivalent_popup.dart';
+import 'equivalent_service.dart';
 import 'labeler.dart';
 import 'my_contact_screen.dart' show ContactEntryViewRow, MyContactSheet;
 import 'settings_state.dart';
@@ -22,9 +24,9 @@ List<String> _sortKey(String name) {
 class _ContactEntry {
   final String name;
   final String token;
-  final List<(String, String)> oldKeys;
+  final List<(String, String)> myOldKeys;
   final List<String> monikers;
-  _ContactEntry(this.name, this.token, this.oldKeys, this.monikers);
+  _ContactEntry(this.name, this.token, this.myOldKeys, this.monikers);
 }
 
 class ContactsScreen extends StatefulWidget {
@@ -66,7 +68,18 @@ class _ContactsScreenState extends State<ContactsScreen> {
       final pipeline = TrustPipeline(source);
       final TrustGraph graph = await pipeline.build(IdentityKey(identityToken));
 
+      debugPrint('ContactsScreen: pov=${graph.pov.value}');
       debugPrint('ContactsScreen: trusted tokens=${graph.orderedKeys.length}');
+      debugPrint('ContactsScreen: orderedKeys=${graph.orderedKeys.map((k) => k.value.substring(0, 8)).join(', ')}');
+      final povGroup = graph.getEquivalenceGroup(graph.pov);
+      debugPrint('ContactsScreen: pov equivalenceGroup=${povGroup.map((k) => k.value.substring(0, 8)).join(', ')}');
+      debugPrint('ContactsScreen: replacements=${graph.replacements.entries.map((e) => '${e.key.value.substring(0, 8)}→${e.value.value.substring(0, 8)}').join(', ')}');
+      for (final key in graph.orderedKeys) {
+        final canonical = graph.resolveIdentity(key);
+        if (canonical != key) {
+          debugPrint('ContactsScreen: resolveIdentity ${key.value.substring(0, 8)} → ${canonical.value.substring(0, 8)}');
+        }
+      }
 
       final labeler = Labeler(graph);
 
@@ -79,16 +92,33 @@ class _ContactsScreenState extends State<ContactsScreen> {
 
         final name = labeler.getIdentityLabel(canonical);
         final group = graph.getEquivalenceGroup(canonical);
-        final oldKeys = group
+        final myOldKeys = group
             .where((k) => k != canonical)
             .map((k) => (labeler.getIdentityLabel(k), k.value))
             .toList();
 
         final monikers = labeler.getAllLabels(canonical);
-        contacts.add(_ContactEntry(name, canonical.value, oldKeys, monikers));
+        contacts.add(_ContactEntry(name, canonical.value, myOldKeys, monikers));
       }
 
       setState(() => _contacts = contacts);
+
+      // Check for undismissed, non-disabled equivalent keys on the signed-in user's identity.
+      final myOldKeys = graph.getEquivalenceGroup(graph.pov)
+          .where((k) => k != graph.pov)
+          .map((k) => k.value)
+          .toList();
+      if (myOldKeys.isNotEmpty && mounted) {
+        final status = await getEquivalentStatus(myOldKeys, widget.emulator);
+        if (mounted) {
+          WidgetsBinding.instance.addPostFrameCallback((_) async {
+            if (mounted) {
+              final anyDisabled = await showEquivalentPopupsIfNeeded(context, myOldKeys, status, widget.emulator);
+              if (mounted && anyDisabled) _load();
+            }
+          });
+        }
+      }
 
       // Batch-load all contact cards
       if (contacts.isNotEmpty) {
@@ -207,7 +237,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
                   children: [
                     _ContactNameWidget(contact: contact, result: result),
                     SelectableText(contact.token, style: const TextStyle(fontSize: 11, color: Colors.grey)),
-                    for (final (label, tok) in contact.oldKeys) ...[
+                    for (final (label, tok) in contact.myOldKeys) ...[
                       const SizedBox(height: 4),
                       Padding(
                         padding: const EdgeInsets.only(left: 12),

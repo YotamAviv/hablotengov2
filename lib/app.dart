@@ -6,6 +6,7 @@ import 'package:nerdster_common/ui/sign_in_dialog.dart';
 import 'constants.dart';
 import 'contacts_screen.dart';
 import 'demo_sign_in_service.dart';
+import 'equivalent_popup.dart';
 import 'key_store.dart';
 import 'my_contact_screen.dart';
 import 'settings_screen.dart';
@@ -76,8 +77,8 @@ class _HabloHomeState extends State<_HabloHome> {
                     const SizedBox(height: 8),
                     DropdownButton<String>(
                       value: _selectedCharacter,
-                      items: kSimpsonsDisplayNames.entries
-                          .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value)))
+                      items: kSimpsonsKeyNames
+                          .map((k) => DropdownMenuItem(value: k, child: Text(k)))
                           .toList(),
                       onChanged: (v) => setState(() => _selectedCharacter = v!),
                     ),
@@ -92,7 +93,20 @@ class _HabloHomeState extends State<_HabloHome> {
             ),
           );
         }
-        settingsState.load(widget.emulator);
+        settingsState.load(widget.emulator).then((_) {
+          if (!context.mounted) return;
+          final disabledBy = settingsState.disabledBy;
+          if (disabledBy != null) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (context.mounted) {
+                showDisabledAccountAlert(context, disabledBy, widget.emulator, () {
+                  settingsState.reset();
+                  signInState.signOut();
+                });
+              }
+            });
+          }
+        });
         return _SignedInScreen(
           onSignOut: () {
             settingsState.reset();

@@ -62,6 +62,30 @@ exports.setSettings = onRequest({ cors: true }, async (req, res) => {
   await handleSetSettings(req, res);
 });
 
+const { handleGetEquivalentStatus } = require('./get_equivalent_status');
+
+exports.getEquivalentStatus = onRequest({ cors: true }, async (req, res) => {
+  await handleGetEquivalentStatus(req, res);
+});
+
+const { handleDisableEquivalent } = require('./disable_equivalent');
+
+exports.disableEquivalent = onRequest({ cors: true }, async (req, res) => {
+  await handleDisableEquivalent(req, res);
+});
+
+const { handleDismissEquivalent } = require('./dismiss_equivalent');
+
+exports.dismissEquivalent = onRequest({ cors: true }, async (req, res) => {
+  await handleDismissEquivalent(req, res);
+});
+
+const { handleEnableAccount } = require('./enable_account');
+
+exports.enableAccount = onRequest({ cors: true }, async (req, res) => {
+  await handleEnableAccount(req, res);
+});
+
 const { fetchStatements } = require('./statement_fetcher');
 const { parseIrevoke } = require('./jsonish_util');
 

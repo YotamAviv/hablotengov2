@@ -63,11 +63,15 @@ async function handleGetBatchContacts(req, res) {
         continue;
       }
       if (graph && graph.distances.has(auth.identityToken)) {
-        const candidates = [targetToken];
+        const oldKeys = [];
         for (const [old, newt] of graph.replacements) {
-          if (newt === targetToken) candidates.push(old);
+          if (newt === targetToken) oldKeys.push(old);
         }
-        trustedTargets.push({ targetToken, candidates, graph, isSelf: false });
+        const enabledOldKeys = (await Promise.all(oldKeys.map(async (tok) => {
+          const s = await admin.firestore().collection('settings').doc(tok).get();
+          return (s.exists && s.data().disabledBy) ? null : tok;
+        }))).filter(Boolean);
+        trustedTargets.push({ targetToken, candidates: [targetToken, ...enabledOldKeys], graph, isSelf: false });
       } else {
         result[targetToken] = { status: 'denied' };
       }

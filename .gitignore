@@ -48,7 +48,7 @@ app.*.map.json
 .hablotengo_emulator.pid
 .oneofus_emulator.pid
 tmp.json
-lisa-identity.json
+*-identity.json
 *.pid
 
 # Local Firebase state

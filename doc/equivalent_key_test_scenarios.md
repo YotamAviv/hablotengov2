@@ -1,8 +1,11 @@
 # Equivalent Key Test Scenarios — Homer & Homer2
 
 Each scenario starts with a fresh state:
-- Firestore cleared
-- `./bin/createSimpsonsContactData.sh` run
+```
+./bin/stop_emulator.sh
+./bin/start_emulator.sh
+./bin/createSimpsonsContactData.sh
+```
 
 ---
 
@@ -11,8 +14,11 @@ Each scenario starts with a fresh state:
 1. Sign in as homer2
 2. Equivalent popup appears for homer
 3. Dismiss
-4. Contacts list shows: homer2 (self), homer appears as homer2's old key (not as a separate contact)
-5. Popup does not reappear on re-sign-in
+4. Homer2 is not visible (no contact card stored)
+5. Go to Settings → enable "Show empty cards" and "Show hidden cards"
+6. Homer2 is now visible as moniker "Holmes"
+7. Reload — same result
+8. Popup does not reappear on re-sign-in
 
 ---
 
