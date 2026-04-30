@@ -7,7 +7,9 @@ import 'package:oneofus_common/oou_verifier.dart';
 import 'package:oneofus_common/trust_statement.dart';
 
 import 'constants.dart';
+import 'contact_service.dart';
 import 'labeler.dart';
+import 'models/contact_statement.dart';
 import 'sign_in_state.dart';
 
 class _ContactEntry {
@@ -82,6 +84,14 @@ class _ContactsScreenState extends State<ContactsScreen> {
     }
   }
 
+  Future<void> _showContactDetail(BuildContext context, _ContactEntry contact) async {
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => _ContactDetailSheet(contact: contact, emulator: widget.emulator),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_error != null) {
@@ -97,27 +107,30 @@ class _ContactsScreenState extends State<ContactsScreen> {
     final items = <Widget>[];
     for (final contact in _contacts!) {
       items.add(
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SelectableText(contact.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-              SelectableText(contact.token, style: const TextStyle(fontSize: 11, color: Colors.grey)),
-              for (final (label, tok) in contact.oldKeys) ...[
-                const SizedBox(height: 4),
-                Padding(
-                  padding: const EdgeInsets.only(left: 12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      SelectableText(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
-                      SelectableText(tok, style: const TextStyle(fontSize: 11, color: Colors.grey)),
-                    ],
+        InkWell(
+          onTap: () => _showContactDetail(context, contact),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(contact.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                SelectableText(contact.token, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                for (final (label, tok) in contact.oldKeys) ...[
+                  const SizedBox(height: 4),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                        SelectableText(tok, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                      ],
+                    ),
                   ),
-                ),
+                ],
               ],
-            ],
+            ),
           ),
         ),
       );
@@ -125,5 +138,86 @@ class _ContactsScreenState extends State<ContactsScreen> {
     }
 
     return ListView(children: items);
+  }
+}
+
+class _ContactDetailSheet extends StatefulWidget {
+  final _ContactEntry contact;
+  final bool emulator;
+  const _ContactDetailSheet({required this.contact, required this.emulator});
+
+  @override
+  State<_ContactDetailSheet> createState() => _ContactDetailSheetState();
+}
+
+class _ContactDetailSheetState extends State<_ContactDetailSheet> {
+  ContactData? _data;
+  bool _loading = true;
+  bool _forbidden = false;
+  bool _noCard = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final data = await getContact(widget.contact.token, widget.emulator);
+      setState(() {
+        _data = data;
+        _loading = false;
+        _noCard = data == null;
+      });
+    } on ContactAccessDeniedException {
+      setState(() { _forbidden = true; _loading = false; });
+    } catch (e) {
+      setState(() { _error = e.toString(); _loading = false; });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(widget.contact.name, style: Theme.of(context).textTheme.titleLarge),
+            const SizedBox(height: 12),
+            if (_loading)
+              const Center(child: CircularProgressIndicator())
+            else if (_error != null)
+              Text('Error: $_error', style: const TextStyle(color: Colors.red))
+            else if (_forbidden)
+              const Text('Access denied.', style: TextStyle(color: Colors.grey))
+            else if (_noCard)
+              const Text('No contact info.', style: TextStyle(color: Colors.grey))
+            else ...[
+              if (_data!.notes != null) ...[
+                SelectableText(_data!.notes!),
+                const SizedBox(height: 8),
+              ],
+              for (final entry in _data!.entries)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 2),
+                  child: Row(
+                    children: [
+                      Text('${entry.tech}: ', style: const TextStyle(fontWeight: FontWeight.bold)),
+                      Expanded(child: SelectableText(entry.value)),
+                      if (entry.preferred)
+                        const Icon(Icons.star, size: 14, color: Colors.amber),
+                    ],
+                  ),
+                ),
+            ],
+          ],
+        ),
+      ),
+    );
   }
 }

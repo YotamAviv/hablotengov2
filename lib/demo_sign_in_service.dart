@@ -13,6 +13,18 @@ const Map<String, String> kSimpsonsDisplayNames = {
   'marge': 'Marge',
   'maggie': 'Maggie',
   'milhouse': 'Milhouse',
+  'luann': 'Luann',
+  'ralph': 'Ralph',
+  'nelson': 'Nelson',
+  'lenny': 'Lenny',
+  'carl': 'Carl',
+  'burns': 'Mr. Burns',
+  'smithers': 'Smithers',
+  'krusty': 'Krusty',
+  'sideshow': 'Sideshow Bob',
+  'mel': 'Sideshow Mel',
+  'seymore': 'Seymour',
+  'amanda': 'Amanda',
 };
 
 Future<void> demoSignIn(String keyName, bool emulator) async {

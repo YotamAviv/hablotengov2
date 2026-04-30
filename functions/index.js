@@ -26,6 +26,12 @@ exports.demoSignIn = onRequest({ cors: true }, async (req, res) => {
   await handleDemoSignIn(req, res);
 });
 
+const { handleGetContact } = require('./get_contact');
+
+exports.getContact = onRequest({ cors: true }, async (req, res) => {
+  await handleGetContact(req, res);
+});
+
 const { handleGetMyContact } = require('./get_my_contact');
 
 exports.getMyContact = onRequest({ cors: true }, async (req, res) => {

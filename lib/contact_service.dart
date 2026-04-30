@@ -6,6 +6,10 @@ import 'constants.dart';
 import 'models/contact_statement.dart';
 import 'sign_in_state.dart';
 
+class ContactAccessDeniedException implements Exception {
+  const ContactAccessDeniedException();
+}
+
 Map<String, dynamic> _authPayload() {
   if (signInState.isDemo) {
     return {'identity': signInState.identityJson!, 'demo': true};
@@ -28,6 +32,24 @@ Future<ContactData?> getMyContact(bool emulator) async {
   if (response.statusCode == 404) return null;
   if (response.statusCode != 200) {
     throw Exception('getMyContact failed: ${response.statusCode} ${response.body}');
+  }
+  final json = jsonDecode(response.body) as Map<String, dynamic>;
+  return ContactData.fromJson(json);
+}
+
+Future<ContactData?> getContact(String targetToken, bool emulator) async {
+  final url = Uri.parse(habloGetContactUrl(emulator));
+  debugPrint('getContact: $url targetToken=$targetToken');
+  final response = await http.post(
+    url,
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode({..._authPayload(), 'targetToken': targetToken}),
+  );
+  if (response.statusCode == 404) return null;
+  if (response.statusCode == 403) throw const ContactAccessDeniedException();
+
+  if (response.statusCode != 200) {
+    throw Exception('getContact failed: ${response.statusCode} ${response.body}');
   }
   final json = jsonDecode(response.body) as Map<String, dynamic>;
   return ContactData.fromJson(json);

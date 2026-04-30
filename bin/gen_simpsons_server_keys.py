@@ -3,7 +3,7 @@
 Only includes the characters who have Hablo contact data."""
 import json, os
 
-DEMO_CHARACTERS = ['lisa', 'bart', 'homer', 'marge', 'maggie', 'milhouse']
+DEMO_CHARACTERS = ['lisa', 'bart', 'homer', 'marge', 'maggie', 'milhouse', 'luann', 'ralph', 'nelson', 'lenny', 'carl', 'burns', 'smithers', 'krusty', 'sideshow', 'mel', 'seymore', 'amanda']
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 keys_path = os.path.join(script_dir, '..', '..', 'simpsonsPublicKeys.json')
