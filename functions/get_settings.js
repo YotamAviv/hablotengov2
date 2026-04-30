@@ -13,6 +13,7 @@ async function handleGetSettings(req, res) {
     res.status(200).json({
       showEmptyCards: data.showEmptyCards ?? false,
       showHiddenCards: data.showHiddenCards ?? false,
+      defaultStrictness: data.defaultStrictness ?? 'standard',
     });
   } catch (e) {
     console.error('[get_settings] error:', e.message);

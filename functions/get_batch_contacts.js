@@ -2,6 +2,23 @@ const admin = require('firebase-admin');
 const { verifyAuth } = require('./auth_util');
 const { MultiTargetTrustPipeline } = require('./multi_target_trust_pipeline');
 const { oneofusSource } = require('./oneofus_source');
+const { permissivePathRequirement, defaultPathRequirement, strictPathRequirement } = require('./trust_algorithm');
+
+function _meetsStrictness(level, distance, pathCount) {
+  if (level === 'permissive') return true;
+  if (level === 'standard') return pathCount >= defaultPathRequirement(distance);
+  if (level === 'strict') return pathCount >= strictPathRequirement(distance);
+  return true;
+}
+
+function _filterEntries(contact, defaultStrictness, distance, pathCount) {
+  const all = contact.entries || [];
+  const entries = all.filter(entry => {
+    const level = (entry.visibility && entry.visibility !== 'default') ? entry.visibility : defaultStrictness;
+    return _meetsStrictness(level, distance, pathCount);
+  });
+  return { contact: { ...contact, entries }, someHidden: entries.length < all.length };
+}
 
 async function handleGetBatchContacts(req, res) {
   res.setHeader('Content-Type', 'application/json');
@@ -16,16 +33,16 @@ async function handleGetBatchContacts(req, res) {
   }
 
   try {
-    const pipeline = new MultiTargetTrustPipeline(oneofusSource);
+    const pipeline = new MultiTargetTrustPipeline(oneofusSource, { pathRequirement: permissivePathRequirement });
     const graphs = await pipeline.buildAll(targetTokens);
 
     // Determine access and collect candidate Firestore tokens for trusted targets
     const result = {};
-    const trustedTargets = []; // { targetToken, candidates }
+    const trustedTargets = []; // { targetToken, candidates, graph, isSelf }
 
     for (const targetToken of targetTokens) {
       if (targetToken === auth.identityToken) {
-        trustedTargets.push({ targetToken, candidates: [targetToken] });
+        trustedTargets.push({ targetToken, candidates: [targetToken], graph: null, isSelf: true });
         continue;
       }
       const graph = graphs.get(targetToken);
@@ -34,18 +51,31 @@ async function handleGetBatchContacts(req, res) {
         for (const [old, newt] of graph.replacements) {
           if (newt === targetToken) candidates.push(old);
         }
-        trustedTargets.push({ targetToken, candidates });
+        trustedTargets.push({ targetToken, candidates, graph, isSelf: false });
       } else {
         result[targetToken] = { status: 'denied' };
       }
     }
 
     // Fetch Firestore docs in parallel for all trusted targets
-    await Promise.all(trustedTargets.map(async ({ targetToken, candidates }) => {
+    await Promise.all(trustedTargets.map(async ({ targetToken, candidates, graph, isSelf }) => {
+      let defaultStrictness = 'standard';
+      if (!isSelf) {
+        const settingsDoc = await admin.firestore().collection('settings').doc(targetToken).get();
+        if (settingsDoc.exists) defaultStrictness = settingsDoc.data().defaultStrictness ?? 'standard';
+      }
+
       for (const tok of candidates) {
         const doc = await admin.firestore().collection('contacts').doc(tok).get();
         if (doc.exists) {
-          result[targetToken] = { status: 'found', contact: doc.data() };
+          if (isSelf) {
+            result[targetToken] = { status: 'found', contact: doc.data() };
+          } else {
+            const distance = graph.distances.get(auth.identityToken);
+            const pathCount = graph.paths.get(auth.identityToken)?.length ?? 0;
+            const { contact, someHidden } = _filterEntries(doc.data(), defaultStrictness, distance, pathCount);
+            result[targetToken] = { status: 'found', contact, ...(someHidden && { someHidden: true }) };
+          }
           return;
         }
       }
@@ -60,4 +90,4 @@ async function handleGetBatchContacts(req, res) {
   }
 }
 
-module.exports = { handleGetBatchContacts };
+module.exports = { handleGetBatchContacts, _meetsStrictness, _filterEntries };

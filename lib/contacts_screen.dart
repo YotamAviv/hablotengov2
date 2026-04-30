@@ -283,6 +283,13 @@ class _ContactDetailSheet extends StatelessWidget {
                     ],
                   ),
                 ),
+              if (result!.someHidden) ...[
+                const SizedBox(height: 8),
+                const Text(
+                  'Some fields hidden due to access restrictions.',
+                  style: TextStyle(fontSize: 12, color: Colors.grey, fontStyle: FontStyle.italic),
+                ),
+              ],
             ],
           ],
         ),

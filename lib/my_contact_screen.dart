@@ -238,16 +238,31 @@ class _EntryRowState extends State<_EntryRow> {
     super.dispose();
   }
 
+  static const _visibilityOrder = ['default', 'permissive', 'standard', 'strict'];
+
   void _notify() {
     widget.onChanged(ContactEntry(
       tech: _techCtrl.text.trim(),
       value: _valueCtrl.text.trim(),
       preferred: widget.entry.preferred,
+      visibility: widget.entry.visibility,
+    ));
+  }
+
+  void _cycleVisibility() {
+    final idx = _visibilityOrder.indexOf(widget.entry.visibility);
+    final next = _visibilityOrder[(idx + 1) % _visibilityOrder.length];
+    widget.onChanged(ContactEntry(
+      tech: _techCtrl.text.trim(),
+      value: _valueCtrl.text.trim(),
+      preferred: widget.entry.preferred,
+      visibility: next,
     ));
   }
 
   @override
   Widget build(BuildContext context) {
+    final vis = widget.entry.visibility;
     return Row(
       children: [
         SizedBox(
@@ -266,11 +281,37 @@ class _EntryRowState extends State<_EntryRow> {
             onChanged: (_) => _notify(),
           ),
         ),
+        Tooltip(
+          message: 'Visibility: $vis\nTap to cycle',
+          child: TextButton(
+            onPressed: _cycleVisibility,
+            style: TextButton.styleFrom(
+              minimumSize: const Size(60, 36),
+              padding: EdgeInsets.zero,
+            ),
+            child: Text(
+              vis == 'default' ? 'dflt' : vis.substring(0, 4),
+              style: TextStyle(
+                fontSize: 11,
+                color: _visibilityColor(vis, context),
+              ),
+            ),
+          ),
+        ),
         IconButton(
           icon: const Icon(Icons.delete_outline, size: 18),
           onPressed: widget.onDelete,
         ),
       ],
     );
+  }
+
+  Color _visibilityColor(String vis, BuildContext context) {
+    switch (vis) {
+      case 'permissive': return Colors.green;
+      case 'strict': return Colors.red;
+      case 'standard': return Colors.orange;
+      default: return Theme.of(context).colorScheme.secondary;
+    }
   }
 }

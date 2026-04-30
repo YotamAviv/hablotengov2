@@ -26,6 +26,32 @@ class SettingsScreen extends StatelessWidget {
               value: settingsState.showHiddenCards,
               onChanged: (v) => settingsState.setShowHiddenCards(v ?? false, emulator),
             ),
+            const Divider(),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Default visibility', style: Theme.of(context).textTheme.titleSmall),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Who can see your contact entries by default',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  const SizedBox(height: 12),
+                  SegmentedButton<String>(
+                    segments: const [
+                      ButtonSegment(value: 'permissive', label: Text('Permissive')),
+                      ButtonSegment(value: 'standard', label: Text('Standard')),
+                      ButtonSegment(value: 'strict', label: Text('Strict')),
+                    ],
+                    selected: {settingsState.defaultStrictness},
+                    onSelectionChanged: (s) =>
+                        settingsState.setDefaultStrictness(s.first, emulator),
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),

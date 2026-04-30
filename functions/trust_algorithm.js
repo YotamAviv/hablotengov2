@@ -11,9 +11,19 @@ const kSinceAlways = '<since always>';
 const kDefaultMaxDegrees = 6;
 const kTrustVerbs = ['trust', 'block', 'replace', 'clear', 'delegate'];
 
+function permissivePathRequirement(_distance) {
+  return 1;
+}
+
 function defaultPathRequirement(distance) {
-  if (distance <= 2) return 1;
+  if (distance <= 3) return 1;
   if (distance <= 4) return 2;
+  return 3;
+}
+
+function strictPathRequirement(distance) {
+  if (distance <= 2) return 1;
+  if (distance <= 3) return 2;
   return 3;
 }
 
@@ -227,9 +237,10 @@ async function reduceTrustGraph(pov, byIssuer, { pathRequirement, maxDegrees = k
         trustedBy.get(effectiveSubject).add(issuerToken);
 
         const requiredPaths = req(dist + 1);
+        const searchLimit = Math.max(requiredPaths, strictPathRequirement(dist + 1));
         for (const i of trustedBy.get(effectiveSubject)) addToGraph(i, effectiveSubject);
 
-        const foundPaths = _findNodeDisjointPaths(pov, effectiveSubject, graphForPathfinding, requiredPaths);
+        const foundPaths = _findNodeDisjointPaths(pov, effectiveSubject, graphForPathfinding, searchLimit);
         if (foundPaths.length >= requiredPaths) {
           paths.set(effectiveSubject, foundPaths);
           if (!visited.has(effectiveSubject)) {
@@ -316,4 +327,4 @@ class TrustPipeline {
   }
 }
 
-module.exports = { reduceTrustGraph, TrustPipeline, defaultPathRequirement, kSinceAlways };
+module.exports = { reduceTrustGraph, TrustPipeline, permissivePathRequirement, defaultPathRequirement, strictPathRequirement, kSinceAlways };

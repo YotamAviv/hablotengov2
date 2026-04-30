@@ -89,3 +89,8 @@ Sort by last name
 ## Public web page, deploy script(s)
 Like https://nerdster.org, https://nerdster.org/app, this project should have an informational web page at https://hablotengo.com and the online web app availale at https://hablotengo.com/app.
 Use a similar strategy and set of scripts like the Nerdster's.
+
+## Export as vCard?
+Include 
+- public identity key
+- monikers

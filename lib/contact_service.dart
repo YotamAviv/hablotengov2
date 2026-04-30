@@ -15,7 +15,8 @@ enum ContactStatus { found, denied, notFound }
 class ContactResult {
   final ContactStatus status;
   final ContactData? contact;
-  const ContactResult({required this.status, this.contact});
+  final bool someHidden;
+  const ContactResult({required this.status, this.contact, this.someHidden = false});
 }
 
 Map<String, dynamic> _authPayload() {
@@ -85,7 +86,8 @@ Future<Map<String, ContactResult>> getBatchContacts(List<String> targetTokens, b
     final contact = status == ContactStatus.found
         ? ContactData.fromJson(v['contact'] as Map<String, dynamic>)
         : null;
-    return MapEntry(token, ContactResult(status: status, contact: contact));
+    final someHidden = v['someHidden'] == true;
+    return MapEntry(token, ContactResult(status: status, contact: contact, someHidden: someHidden));
   });
 }
 

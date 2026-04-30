@@ -10,6 +10,7 @@ final SettingsState settingsState = SettingsState();
 class SettingsState extends ChangeNotifier {
   bool showEmptyCards = false;
   bool showHiddenCards = false;
+  String defaultStrictness = 'standard'; // 'permissive', 'standard', 'strict'
 
   Future<void> load(bool emulator) async {
     try {
@@ -25,6 +26,7 @@ class SettingsState extends ChangeNotifier {
       final data = jsonDecode(response.body) as Map<String, dynamic>;
       showEmptyCards = data['showEmptyCards'] as bool? ?? false;
       showHiddenCards = data['showHiddenCards'] as bool? ?? false;
+      defaultStrictness = data['defaultStrictness'] as String? ?? 'standard';
       notifyListeners();
     } catch (e) {
       debugPrint('SettingsState.load error: $e');
@@ -34,6 +36,7 @@ class SettingsState extends ChangeNotifier {
   void reset() {
     showEmptyCards = false;
     showHiddenCards = false;
+    defaultStrictness = 'standard';
     notifyListeners();
   }
 
@@ -49,6 +52,12 @@ class SettingsState extends ChangeNotifier {
     await _save(emulator);
   }
 
+  Future<void> setDefaultStrictness(String value, bool emulator) async {
+    defaultStrictness = value;
+    notifyListeners();
+    await _save(emulator);
+  }
+
   Future<void> _save(bool emulator) async {
     try {
       final response = await http.post(
@@ -58,6 +67,7 @@ class SettingsState extends ChangeNotifier {
           ..._authPayload(),
           'showEmptyCards': showEmptyCards,
           'showHiddenCards': showHiddenCards,
+          'defaultStrictness': defaultStrictness,
         }),
       );
       if (response.statusCode != 200) {

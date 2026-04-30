@@ -7,12 +7,14 @@ async function handleSetSettings(req, res) {
   const auth = verifyAuth(req, res);
   if (!auth) return;
 
-  const { showEmptyCards, showHiddenCards } = req.body;
+  const { showEmptyCards, showHiddenCards, defaultStrictness } = req.body;
+  const validStrictness = ['permissive', 'standard', 'strict'];
 
   try {
     await admin.firestore().collection('settings').doc(auth.identityToken).set({
       showEmptyCards: showEmptyCards === true,
       showHiddenCards: showHiddenCards === true,
+      defaultStrictness: validStrictness.includes(defaultStrictness) ? defaultStrictness : 'standard',
     });
     res.status(200).json({});
   } catch (e) {
