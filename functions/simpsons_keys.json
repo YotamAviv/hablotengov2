@@ -1,0 +1,32 @@
+{
+  "lisa": {
+    "crv": "Ed25519",
+    "kty": "OKP",
+    "x": "6u1SxFUggHW-TsSkRixvyezjoSJVYt4MaVtRrppIxnU"
+  },
+  "bart": {
+    "crv": "Ed25519",
+    "kty": "OKP",
+    "x": "MxUaGrubPUvIdTVuoF7ejzAEbqtshKqd0aB5t5FDxBc"
+  },
+  "homer": {
+    "crv": "Ed25519",
+    "kty": "OKP",
+    "x": "9Hl8uurLdQQnR3pnJiYoa59m5yOojciNbWFTgHnCEiY"
+  },
+  "marge": {
+    "crv": "Ed25519",
+    "kty": "OKP",
+    "x": "s17m0FTtFn8natYCiptHlkW6mIf_A4NzUn3INDqeGO4"
+  },
+  "maggie": {
+    "crv": "Ed25519",
+    "kty": "OKP",
+    "x": "0iPsbTzKJhqYbApuVIUvMTPOGLDPV2vTtJ4Kvradad8"
+  },
+  "milhouse": {
+    "crv": "Ed25519",
+    "kty": "OKP",
+    "x": "QfLEBtejzN1SMmN68nypBt9qNY_3Wwpa3-UkvwU6Prc"
+  }
+}

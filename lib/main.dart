@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'package:oneofus_common/trust_statement.dart';
@@ -16,6 +17,8 @@ Future<void> main() async {
   // TODO: restore URL-based switching when deploying to prod.
   const bool emulator = true;
 
+  final bool demoMode = kIsWeb && Uri.base.queryParameters['demo'] == 'true';
+
   try {
     await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   } catch (e) {
@@ -29,5 +32,5 @@ Future<void> main() async {
   startKeyStorageCoordinator();
   await tryRestoreKeys();
 
-  runApp(HabloApp(firestore: firestore, emulator: emulator));
+  runApp(HabloApp(firestore: firestore, emulator: emulator, demoMode: demoMode));
 }

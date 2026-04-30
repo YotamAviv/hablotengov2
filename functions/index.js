@@ -20,6 +20,24 @@ exports.signIn = onRequest({ cors: true }, async (req, res) => {
   await handleSignIn(req, res);
 });
 
+const { handleDemoSignIn } = require('./demo_sign_in');
+
+exports.demoSignIn = onRequest({ cors: true }, async (req, res) => {
+  await handleDemoSignIn(req, res);
+});
+
+const { handleGetMyContact } = require('./get_my_contact');
+
+exports.getMyContact = onRequest({ cors: true }, async (req, res) => {
+  await handleGetMyContact(req, res);
+});
+
+const { handleSetMyContact } = require('./set_my_contact');
+
+exports.setMyContact = onRequest({ cors: true }, async (req, res) => {
+  await handleSetMyContact(req, res);
+});
+
 const { fetchStatements } = require('./statement_fetcher');
 const { parseIrevoke } = require('./jsonish_util');
 

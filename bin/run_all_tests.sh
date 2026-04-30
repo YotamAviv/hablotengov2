@@ -26,7 +26,7 @@ echo ""
 
 # 2. oneofus_common package tests
 echo "=== Running oneofus_common Package Tests ==="
-if (cd packages/oneofus_common && flutter test --no-pub); then
+if (cd packages/oneofus_common && flutter test); then
     PASSED_TESTS+=("oneofus_common tests")
 else
     FAILED_TESTS+=("oneofus_common tests")

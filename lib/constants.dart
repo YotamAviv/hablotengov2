@@ -11,7 +11,18 @@ String oneofusExportUrl(bool emulator) => emulator
     ? 'http://127.0.0.1:$kOneofusFunctionsEmulatorPort/$kOneofusEmulatorProject/us-central1/export'
     : 'https://export.one-of-us.net';
 
-// TO RUN ON PROD: change to 'https://us-central1-hablotengo.cloudfunctions.net/signIn'
 String habloSignInUrl(bool emulator) => emulator
     ? 'http://127.0.0.1:$kHabloFunctionsEmulatorPort/$kHabloEmulatorProject/us-central1/signIn'
     : 'https://us-central1-hablotengo.cloudfunctions.net/signIn';
+
+String habloDemoSignInUrl(bool emulator) => emulator
+    ? 'http://127.0.0.1:$kHabloFunctionsEmulatorPort/$kHabloEmulatorProject/us-central1/demoSignIn'
+    : 'https://us-central1-hablotengo.cloudfunctions.net/demoSignIn';
+
+String habloGetMyContactUrl(bool emulator) => emulator
+    ? 'http://127.0.0.1:$kHabloFunctionsEmulatorPort/$kHabloEmulatorProject/us-central1/getMyContact'
+    : 'https://us-central1-hablotengo.cloudfunctions.net/getMyContact';
+
+String habloSetMyContactUrl(bool emulator) => emulator
+    ? 'http://127.0.0.1:$kHabloFunctionsEmulatorPort/$kHabloEmulatorProject/us-central1/setMyContact'
+    : 'https://us-central1-hablotengo.cloudfunctions.net/setMyContact';

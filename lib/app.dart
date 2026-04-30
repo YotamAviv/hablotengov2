@@ -5,21 +5,24 @@ import 'package:nerdster_common/ui/sign_in_dialog.dart';
 
 import 'constants.dart';
 import 'contacts_screen.dart';
+import 'demo_sign_in_service.dart';
 import 'key_store.dart';
+import 'my_contact_screen.dart';
 import 'sign_in_state.dart';
 
 class HabloApp extends StatelessWidget {
   final FirebaseFirestore firestore;
   final bool emulator;
+  final bool demoMode;
 
-  const HabloApp({super.key, required this.firestore, required this.emulator});
+  const HabloApp({super.key, required this.firestore, required this.emulator, this.demoMode = false});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'HabloTengo',
       theme: ThemeData(colorSchemeSeed: Colors.teal),
-      home: _HabloHome(firestore: firestore, emulator: emulator),
+      home: _HabloHome(firestore: firestore, emulator: emulator, demoMode: demoMode),
     );
   }
 }
@@ -27,14 +30,29 @@ class HabloApp extends StatelessWidget {
 class _HabloHome extends StatefulWidget {
   final FirebaseFirestore firestore;
   final bool emulator;
+  final bool demoMode;
 
-  const _HabloHome({required this.firestore, required this.emulator});
+  const _HabloHome({required this.firestore, required this.emulator, required this.demoMode});
 
   @override
   State<_HabloHome> createState() => _HabloHomeState();
 }
 
 class _HabloHomeState extends State<_HabloHome> {
+  String _selectedCharacter = 'lisa';
+  bool _demoSigningIn = false;
+
+  Future<void> _doDemoSignIn() async {
+    setState(() => _demoSigningIn = true);
+    try {
+      await demoSignIn(_selectedCharacter, widget.emulator);
+    } catch (e, st) {
+      debugPrint('_doDemoSignIn error: $e\n$st');
+    } finally {
+      if (mounted) setState(() => _demoSigningIn = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
@@ -43,9 +61,31 @@ class _HabloHomeState extends State<_HabloHome> {
         if (!signInState.hasIdentity) {
           return Scaffold(
             body: Center(
-              child: ElevatedButton(
-                onPressed: () => _showSignIn(context),
-                child: const Text('Sign In'),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ElevatedButton(
+                    onPressed: () => _showSignIn(context),
+                    child: const Text('Sign In'),
+                  ),
+                  if (widget.demoMode) ...[
+                    const SizedBox(height: 24),
+                    const Text('Demo sign-in:'),
+                    const SizedBox(height: 8),
+                    DropdownButton<String>(
+                      value: _selectedCharacter,
+                      items: kSimpsonsDisplayNames.entries
+                          .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value)))
+                          .toList(),
+                      onChanged: (v) => setState(() => _selectedCharacter = v!),
+                    ),
+                    const SizedBox(height: 8),
+                    ElevatedButton(
+                      onPressed: _demoSigningIn ? null : _doDemoSignIn,
+                      child: const Text('Sign in as Demo User'),
+                    ),
+                  ],
+                ],
               ),
             ),
           );
@@ -114,14 +154,28 @@ class _SignedInScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('HabloTengo'),
-        actions: [
-          TextButton(onPressed: onSignOut, child: const Text('Sign out')),
-        ],
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('HabloTengo'),
+          actions: [
+            TextButton(onPressed: onSignOut, child: const Text('Sign out')),
+          ],
+          bottom: const TabBar(
+            tabs: [
+              Tab(text: 'Contacts'),
+              Tab(text: 'My Card'),
+            ],
+          ),
+        ),
+        body: TabBarView(
+          children: [
+            ContactsScreen(emulator: emulator),
+            MyContactScreen(emulator: emulator),
+          ],
+        ),
       ),
-      body: ContactsScreen(emulator: emulator),
     );
   }
 }
