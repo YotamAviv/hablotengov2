@@ -70,8 +70,8 @@ We might need to add a new set for testing/developing replace conflicts and such
 
 ## Security
 Server requires proof of identity
-- to serve info, runs Greedy BFS from your proven identity.
-- to update info, manage account
+- to serve info to others, runs Greedy BFS from your proven identity to theirs to check if they have access.
+- only you can update your own info, manage account
 
 ## Algorithm
 
@@ -86,3 +86,6 @@ Fancy view like the Mac wheel thing
 Sort by last name
 - Last name is the last string not in parens
 
+## Public web page, deploy script(s)
+Like https://nerdster.org, https://nerdster.org/app, this project should have an informational web page at https://hablotengo.com and the online web app availale at https://hablotengo.com/app.
+Use a similar strategy and set of scripts like the Nerdster's.
