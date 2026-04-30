@@ -8,6 +8,8 @@ import 'contacts_screen.dart';
 import 'demo_sign_in_service.dart';
 import 'key_store.dart';
 import 'my_contact_screen.dart';
+import 'settings_screen.dart';
+import 'settings_state.dart';
 import 'sign_in_state.dart';
 
 class HabloApp extends StatelessWidget {
@@ -90,8 +92,12 @@ class _HabloHomeState extends State<_HabloHome> {
             ),
           );
         }
+        settingsState.load(widget.emulator);
         return _SignedInScreen(
-          onSignOut: signInState.signOut,
+          onSignOut: () {
+            settingsState.reset();
+            signInState.signOut();
+          },
           emulator: widget.emulator,
         );
       },
@@ -158,13 +164,19 @@ class _SignedInScreen extends StatelessWidget {
     );
   }
 
+  void _openSettings(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => SettingsScreen(emulator: emulator)),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('HabloTengo'),
         actions: [
-          IconButton(icon: const Icon(Icons.settings), onPressed: () {}),
+          IconButton(icon: const Icon(Icons.settings), onPressed: () => _openSettings(context)),
           IconButton(icon: const Icon(Icons.person), onPressed: () => _openMyCard(context)),
           TextButton(onPressed: onSignOut, child: const Text('Sign out')),
         ],

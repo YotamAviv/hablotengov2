@@ -1,59 +1,34 @@
 // Headless demo data generator.
-// Writes Simpsons contact data to the hablotengo Firestore emulator.
+// Writes Simpsons contact data via the setMyContact CF (demo auth).
 //
 // Run via: bin/createSimpsonsContactData.sh
-// Requires: hablotengo emulator running (Firestore 8082, Functions 5003)
-//
-// TO RUN ON PROD: remove the useFirestoreEmulator call below.
+// Requires: hablotengo emulator running (Functions 5003)
 
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_core/firebase_core.dart';
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:oneofus_common/crypto/crypto.dart';
-import 'package:oneofus_common/crypto/crypto25519.dart';
-import 'package:oneofus_common/jsonish.dart';
+import 'package:http/http.dart' as http;
 
 import 'package:hablotengo/constants.dart';
-import 'package:hablotengo/firebase_options.dart';
 import 'package:hablotengo/models/contact_statement.dart';
 import 'package:hablotengo/dev/widget_runner.dart';
 import 'package:hablotengo/dev/simpsons_public_keys.dart';
 
-const OouCryptoFactory _crypto = crypto;
-
-void main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  try {
-    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  } catch (e) {
-    if (!e.toString().contains('duplicate-app')) rethrow;
-  }
-
-  // EMULATOR ONLY — remove this line to run on prod:
-  FirebaseFirestore.instance
-      .useFirestoreEmulator('localhost', kHabloFirestoreEmulatorPort);
-
   runApp(WidgetRunner(scenario: _run));
 }
 
 Future<void> _run() async {
-  final firestore = FirebaseFirestore.instance;
-
   for (final character in _simpsons) {
-    await _writeContact(firestore, character);
+    await _writeContact(character);
   }
-
   // ignore: avoid_print
   print('PASS');
 }
 
-Future<void> _writeContact(FirebaseFirestore firestore, _Character c) async {
-  final Json publicKeyJson =
-      (kSimpsonsPublicKeys[c.keyName]! as Map).cast<String, dynamic>();
-  final OouPublicKey publicKey = await _crypto.parsePublicKey(publicKeyJson);
-  final String identityToken = getToken(await publicKey.json);
-
-  final Map<String, dynamic> doc = {
+Future<void> _writeContact(_Character c) async {
+  final identity = (kSimpsonsPublicKeys[c.keyName]! as Map).cast<String, dynamic>();
+  final contact = {
     'name': c.name,
     if (c.notes != null) 'notes': c.notes,
     'entries': c.entries
@@ -63,13 +38,20 @@ Future<void> _writeContact(FirebaseFirestore firestore, _Character c) async {
               if (e.preferred) 'preferred': true,
             })
         .toList(),
-    'time': DateTime.now().toUtc().toIso8601String(),
   };
 
-  await firestore.collection('contacts').doc(identityToken).set(doc);
+  final response = await http.post(
+    Uri.parse(habloSetMyContactUrl(true)),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode({'identity': identity, 'demo': true, 'contact': contact}),
+  );
+
+  if (response.statusCode != 200) {
+    throw Exception('setMyContact failed for ${c.name}: ${response.statusCode} ${response.body}');
+  }
 
   // ignore: avoid_print
-  print('${c.name}: identityToken=$identityToken');
+  print('${c.name}: OK');
 }
 
 class _Character {
@@ -112,5 +94,69 @@ const List<_Character> _simpsons = [
       keyName: 'milhouse',
       entries: [
         ContactEntry(tech: 'email', value: 'milhouse@springfield-elementary.edu'),
+      ]),
+  _Character('Luann Van Houten',
+      keyName: 'luann',
+      notes: "Milhouse gets me on weekdays.",
+      entries: [
+        ContactEntry(tech: 'phone', value: '+1-555-LUANN', preferred: true),
+        ContactEntry(tech: 'email', value: 'luann@springfield.net'),
+      ]),
+  _Character('Nelson Muntz',
+      keyName: 'nelson',
+      notes: 'Ha-HA!',
+      entries: [
+        ContactEntry(tech: 'email', value: 'nelson@springfield-elementary.edu'),
+        ContactEntry(tech: 'instagram', value: '@ha_haa_muntz'),
+      ]),
+  _Character('Lenny Leonard',
+      keyName: 'lenny',
+      entries: [
+        ContactEntry(tech: 'phone', value: '+1-555-LENNY', preferred: true),
+        ContactEntry(tech: 'email', value: 'lenny@springfield-nuclear.gov'),
+        ContactEntry(tech: 'signal', value: 'lenny.l'),
+      ]),
+  _Character('Carl Carlson',
+      keyName: 'carl',
+      entries: [
+        ContactEntry(tech: 'phone', value: '+1-555-CARL', preferred: true),
+        ContactEntry(tech: 'email', value: 'carl@springfield-nuclear.gov'),
+      ]),
+  _Character('C. Montgomery Burns',
+      keyName: 'burns',
+      notes: 'Contact through Smithers only. Do NOT call after 9 PM.',
+      entries: [
+        ContactEntry(tech: 'email', value: 'burns@springfield-nuclear.gov'),
+        ContactEntry(tech: 'fax', value: '+1-555-BRNSFX'),
+      ]),
+  _Character('Waylon Smithers',
+      keyName: 'smithers',
+      notes: "If it's about Mr. Burns, I'm already on it.",
+      entries: [
+        ContactEntry(tech: 'phone', value: '+1-555-SMTHS', preferred: true),
+        ContactEntry(tech: 'email', value: 'smithers@springfield-nuclear.gov'),
+      ]),
+  _Character('Krusty the Clown',
+      keyName: 'krusty',
+      notes: 'For bookings contact my agent.',
+      entries: [
+        ContactEntry(tech: 'email', value: 'krusty@krustybrand.com', preferred: true),
+        ContactEntry(tech: 'fax', value: '+1-555-KRUST'),
+        ContactEntry(tech: 'tiktok', value: '@therealKrustyKlown'),
+      ]),
+  _Character('Sideshow Bob',
+      keyName: 'sideshow',
+      notes: 'Do NOT leave me a voicemail about rakes.',
+      entries: [
+        ContactEntry(tech: 'email', value: 'r.terwilliger@springfield-arts.org', preferred: true),
+        ContactEntry(tech: 'phone', value: '+1-555-TBOB'),
+      ]),
+  _Character('Seymour Skinner',
+      keyName: 'seymore',
+      notes: 'Mother screens my calls before 8 AM.',
+      entries: [
+        ContactEntry(tech: 'phone', value: '+1-555-SKNNR', preferred: true),
+        ContactEntry(tech: 'email', value: 'principal@springfield-elementary.edu'),
+        ContactEntry(tech: 'email', value: 'armin.tanzarian@gmail.com'),
       ]),
 ];

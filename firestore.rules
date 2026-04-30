@@ -9,8 +9,9 @@ service cloud.firestore {
     // Contact records: one document per identity token.
     // Reads are served by cloud functions (admin SDK); no direct client reads.
     match /contacts/{identityToken} {
-      allow write: if true;
+      allow write: if false;
       allow read: if false;
     }
+
   }
 }

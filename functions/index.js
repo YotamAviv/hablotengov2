@@ -50,6 +50,18 @@ exports.setMyContact = onRequest({ cors: true }, async (req, res) => {
   await handleSetMyContact(req, res);
 });
 
+const { handleGetSettings } = require('./get_settings');
+
+exports.getSettings = onRequest({ cors: true }, async (req, res) => {
+  await handleGetSettings(req, res);
+});
+
+const { handleSetSettings } = require('./set_settings');
+
+exports.setSettings = onRequest({ cors: true }, async (req, res) => {
+  await handleSetSettings(req, res);
+});
+
 const { fetchStatements } = require('./statement_fetcher');
 const { parseIrevoke } = require('./jsonish_util');
 
