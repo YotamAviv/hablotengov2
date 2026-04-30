@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'settings_state.dart';
+import 'visibility_picker.dart';
 
 class SettingsScreen extends StatelessWidget {
   final bool emulator;
@@ -32,22 +33,22 @@ class SettingsScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Default visibility', style: Theme.of(context).textTheme.titleSmall),
+                  Row(
+                    children: [
+                      Text('Default visibility', style: Theme.of(context).textTheme.titleSmall),
+                      const SizedBox(width: 6),
+                      const VisibilityHelpButton(),
+                    ],
+                  ),
                   const SizedBox(height: 4),
                   Text(
                     'Who can see your contact entries by default',
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                   const SizedBox(height: 12),
-                  SegmentedButton<String>(
-                    segments: const [
-                      ButtonSegment(value: 'permissive', label: Text('Permissive')),
-                      ButtonSegment(value: 'standard', label: Text('Standard')),
-                      ButtonSegment(value: 'strict', label: Text('Strict')),
-                    ],
-                    selected: {settingsState.defaultStrictness},
-                    onSelectionChanged: (s) =>
-                        settingsState.setDefaultStrictness(s.first, emulator),
+                  VisibilityPicker(
+                    value: settingsState.defaultStrictness,
+                    onChanged: (v) => settingsState.setDefaultStrictness(v, emulator),
                   ),
                 ],
               ),

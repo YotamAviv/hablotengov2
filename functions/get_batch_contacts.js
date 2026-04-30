@@ -11,6 +11,17 @@ function _meetsStrictness(level, distance, pathCount) {
   return true;
 }
 
+function _resolveCanonical(replacements, token) {
+  let cur = token;
+  const seen = new Set([cur]);
+  while (replacements.has(cur)) {
+    cur = replacements.get(cur);
+    if (seen.has(cur)) break;
+    seen.add(cur);
+  }
+  return cur;
+}
+
 function _filterEntries(contact, defaultStrictness, distance, pathCount) {
   const all = contact.entries || [];
   const entries = all.filter(entry => {
@@ -46,6 +57,11 @@ async function handleGetBatchContacts(req, res) {
         continue;
       }
       const graph = graphs.get(targetToken);
+      // Also catch old keys: if the target's graph resolves target → auth user via replacements
+      if (graph && _resolveCanonical(graph.replacements, targetToken) === auth.identityToken) {
+        trustedTargets.push({ targetToken, candidates: [auth.identityToken, targetToken], graph: null, isSelf: true });
+        continue;
+      }
       if (graph && graph.distances.has(auth.identityToken)) {
         const candidates = [targetToken];
         for (const [old, newt] of graph.replacements) {

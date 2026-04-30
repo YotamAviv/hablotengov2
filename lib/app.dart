@@ -159,8 +159,10 @@ class _SignedInScreen extends StatelessWidget {
   const _SignedInScreen({required this.onSignOut, required this.emulator});
 
   void _openMyCard(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => MyContactScreen(emulator: emulator)),
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => MyContactSheet(emulator: emulator),
     );
   }
 

@@ -9,8 +9,15 @@ import 'package:oneofus_common/trust_statement.dart';
 import 'constants.dart';
 import 'contact_service.dart';
 import 'labeler.dart';
+import 'my_contact_screen.dart' show ContactEntryViewRow, MyContactSheet;
 import 'settings_state.dart';
 import 'sign_in_state.dart';
+
+List<String> _sortKey(String name) {
+  final cleaned = name.replaceAll(RegExp(r'\([^)]*\)'), '').trim();
+  final words = cleaned.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
+  return words.reversed.toList();
+}
 
 class _ContactEntry {
   final String name;
@@ -67,7 +74,6 @@ class _ContactsScreenState extends State<ContactsScreen> {
       final contacts = <_ContactEntry>[];
       for (final key in graph.orderedKeys) {
         final canonical = graph.resolveIdentity(key);
-        if (canonical == graph.pov) continue;
         if (seen.contains(canonical)) continue;
         seen.add(canonical);
 
@@ -108,6 +114,14 @@ class _ContactsScreenState extends State<ContactsScreen> {
   }
 
   void _showContactDetail(BuildContext context, _ContactEntry contact) {
+    if (contact.token == signInState.identityToken) {
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        builder: (_) => MyContactSheet(emulator: widget.emulator),
+      );
+      return;
+    }
     final result = _results?[contact.token];
     showModalBottomSheet(
       context: context,
@@ -144,6 +158,20 @@ class _ContactsScreenState extends State<ContactsScreen> {
           if (query.isEmpty) return true;
           return _matchesSearch(contact, _results?[contact.token], query);
         }).toList();
+
+        visibleContacts.sort((a, b) {
+          final aName = _results?[a.token]?.status == ContactStatus.found
+              ? _results![a.token]!.contact!.name : a.name;
+          final bName = _results?[b.token]?.status == ContactStatus.found
+              ? _results![b.token]!.contact!.name : b.name;
+          final aKey = _sortKey(aName);
+          final bKey = _sortKey(bName);
+          for (int i = 0; i < aKey.length && i < bKey.length; i++) {
+            final cmp = aKey[i].toLowerCase().compareTo(bKey[i].toLowerCase());
+            if (cmp != 0) return cmp;
+          }
+          return aKey.length.compareTo(bKey.length);
+        });
 
         final items = <Widget>[
           Padding(
@@ -272,17 +300,7 @@ class _ContactDetailSheet extends StatelessWidget {
                 const SizedBox(height: 8),
               ],
               for (final entry in result!.contact!.entries)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 2),
-                  child: Row(
-                    children: [
-                      Text('${entry.tech}: ', style: const TextStyle(fontWeight: FontWeight.bold)),
-                      Expanded(child: SelectableText(entry.value)),
-                      if (entry.preferred)
-                        const Icon(Icons.star, size: 14, color: Colors.amber),
-                    ],
-                  ),
-                ),
+                ContactEntryViewRow(entry: entry),
               if (result!.someHidden) ...[
                 const SizedBox(height: 8),
                 const Text(

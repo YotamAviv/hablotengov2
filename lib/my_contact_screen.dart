@@ -3,129 +3,35 @@ import 'package:flutter/material.dart';
 import 'contact_service.dart';
 import 'models/contact_statement.dart';
 import 'sign_in_state.dart';
+import 'visibility_picker.dart';
 
-class MyContactScreen extends StatefulWidget {
+class MyContactSheet extends StatefulWidget {
   final bool emulator;
-  const MyContactScreen({super.key, required this.emulator});
+  const MyContactSheet({super.key, required this.emulator});
 
   @override
-  State<MyContactScreen> createState() => _MyContactScreenState();
+  State<MyContactSheet> createState() => _MyContactSheetState();
 }
 
-class _MyContactScreenState extends State<MyContactScreen> {
+class _MyContactSheetState extends State<MyContactSheet> {
   ContactData? _contact;
   bool _loading = true;
   String? _error;
+  bool _editing = false;
 
-  @override
-  void initState() {
-    super.initState();
-    _load();
-  }
-
-  Future<void> _load() async {
-    try {
-      final contact = await getMyContact(widget.emulator);
-      setState(() {
-        _contact = contact;
-        _loading = false;
-      });
-    } catch (e, st) {
-      debugPrint('MyContactScreen load error: $e\n$st');
-      setState(() {
-        _error = e.toString();
-        _loading = false;
-      });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (_loading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    if (_error != null) return Scaffold(body: Center(child: SelectableText('Error: $_error')));
-
-    return Scaffold(
-      appBar: AppBar(title: const Text('My Card')),
-      body: Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Text(
-                _contact?.name ?? '(no contact card)',
-                style: Theme.of(context).textTheme.headlineSmall,
-              ),
-              const Spacer(),
-              TextButton(
-                onPressed: () => _openEditor(context),
-                child: const Text('Edit'),
-              ),
-            ],
-          ),
-          if (_contact?.notes != null) ...[
-            const SizedBox(height: 8),
-            SelectableText(_contact!.notes!),
-          ],
-          const SizedBox(height: 16),
-          for (final entry in _contact?.entries ?? [])
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 2),
-              child: Row(
-                children: [
-                  Text('${entry.tech}: ',
-                      style: const TextStyle(fontWeight: FontWeight.bold)),
-                  Expanded(child: SelectableText(entry.value)),
-                  if (entry.preferred)
-                    const Icon(Icons.star, size: 14, color: Colors.amber),
-                ],
-              ),
-            ),
-          const SizedBox(height: 16),
-          SelectableText(
-            'Identity: ${signInState.identityToken}',
-            style: const TextStyle(fontSize: 11, color: Colors.grey),
-          ),
-        ],
-      ),
-      ),
-    );
-  }
-
-  Future<void> _openEditor(BuildContext context) async {
-    final updated = await showDialog<ContactData>(
-      context: context,
-      builder: (_) => _ContactEditor(initial: _contact, emulator: widget.emulator),
-    );
-    if (updated != null) {
-      setState(() => _contact = updated);
-    }
-  }
-}
-
-class _ContactEditor extends StatefulWidget {
-  final ContactData? initial;
-  final bool emulator;
-  const _ContactEditor({required this.initial, required this.emulator});
-
-  @override
-  State<_ContactEditor> createState() => _ContactEditorState();
-}
-
-class _ContactEditorState extends State<_ContactEditor> {
   late TextEditingController _nameCtrl;
   late TextEditingController _notesCtrl;
-  late List<ContactEntry> _entries;
+  List<_EditableEntry> _editEntries = [];
+  int _nextEntryId = 0;
   bool _saving = false;
-  String? _error;
+  String? _saveError;
 
   @override
   void initState() {
     super.initState();
-    _nameCtrl = TextEditingController(text: widget.initial?.name ?? '');
-    _notesCtrl = TextEditingController(text: widget.initial?.notes ?? '');
-    _entries = List.of(widget.initial?.entries ?? []);
+    _nameCtrl = TextEditingController();
+    _notesCtrl = TextEditingController();
+    _load();
   }
 
   @override
@@ -135,183 +41,416 @@ class _ContactEditorState extends State<_ContactEditor> {
     super.dispose();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Dialog(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Edit Contact Card', style: Theme.of(context).textTheme.titleLarge),
-              const SizedBox(height: 16),
-              TextField(controller: _nameCtrl, decoration: const InputDecoration(labelText: 'Name')),
-              const SizedBox(height: 8),
-              TextField(controller: _notesCtrl, decoration: const InputDecoration(labelText: 'Notes')),
-              const SizedBox(height: 16),
-              Text('Entries', style: Theme.of(context).textTheme.titleMedium),
-              for (int i = 0; i < _entries.length; i++)
-                _EntryRow(
-                  entry: _entries[i],
-                  onChanged: (e) => setState(() => _entries[i] = e),
-                  onDelete: () => setState(() => _entries.removeAt(i)),
-                ),
-              TextButton.icon(
-                onPressed: _addEntry,
-                icon: const Icon(Icons.add),
-                label: const Text('Add entry'),
-              ),
-              if (_error != null) ...[
-                const SizedBox(height: 8),
-                Text(_error!, style: const TextStyle(color: Colors.red)),
-              ],
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('Cancel'),
-                  ),
-                  const SizedBox(width: 8),
-                  ElevatedButton(
-                    onPressed: _saving ? null : _save,
-                    child: const Text('Save'),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+  Future<void> _load() async {
+    try {
+      final contact = await getMyContact(widget.emulator);
+      if (mounted) setState(() { _contact = contact; _loading = false; });
+    } catch (e, st) {
+      debugPrint('MyContactSheet load error: $e\n$st');
+      if (mounted) setState(() { _error = e.toString(); _loading = false; });
+    }
   }
 
-  void _addEntry() {
-    setState(() => _entries.add(const ContactEntry(tech: 'email', value: '')));
+  void _startEdit() {
+    _nameCtrl.text = _contact?.name ?? '';
+    _notesCtrl.text = _contact?.notes ?? '';
+    _nextEntryId = 0;
+    _editEntries = (_contact?.entries ?? [])
+        .map((e) => _EditableEntry(_nextEntryId++, e))
+        .toList();
+    setState(() { _editing = true; _saveError = null; });
   }
+
+  void _cancelEdit() => setState(() { _editing = false; _saveError = null; });
 
   Future<void> _save() async {
-    setState(() { _saving = true; _error = null; });
+    setState(() { _saving = true; _saveError = null; });
     try {
       final contact = ContactData(
         name: _nameCtrl.text.trim(),
         notes: _notesCtrl.text.trim().isEmpty ? null : _notesCtrl.text.trim(),
-        entries: _entries.where((e) => e.value.isNotEmpty).toList(),
+        entries: _editEntries.map((e) => e.entry).where((e) => e.value.isNotEmpty).toList(),
       );
       await setMyContact(contact, widget.emulator);
-      if (mounted) Navigator.pop(context, contact);
+      if (mounted) setState(() { _contact = contact; _editing = false; _saving = false; });
     } catch (e, st) {
-      debugPrint('_ContactEditor save error: $e\n$st');
-      setState(() { _error = e.toString(); _saving = false; });
+      debugPrint('MyContactSheet save error: $e\n$st');
+      if (mounted) setState(() { _saveError = e.toString(); _saving = false; });
     }
+  }
+
+  Future<void> _addEntry() async {
+    final tech = await showDialog<String>(
+      context: context,
+      builder: (_) => const _TechPickerDialog(),
+    );
+    if (tech != null && tech.isNotEmpty) {
+      setState(() => _editEntries.add(
+          _EditableEntry(_nextEntryId++, ContactEntry(tech: tech, value: ''))));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final titleStyle = Theme.of(context).textTheme.titleLarge!;
+    const padding = EdgeInsets.fromLTRB(16, 16, 16, 24);
+
+    if (_editing) {
+      return SafeArea(
+        child: Padding(
+          padding: padding,
+          child: SizedBox(
+            height: MediaQuery.sizeOf(context).height * 0.82,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Inline-editable name
+                TextField(
+                  controller: _nameCtrl,
+                  style: titleStyle,
+                  decoration: const InputDecoration(
+                    isDense: true,
+                    contentPadding: EdgeInsets.symmetric(vertical: 4),
+                    border: UnderlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                // Inline-editable notes
+                TextField(
+                  controller: _notesCtrl,
+                  maxLines: null,
+                  decoration: InputDecoration(
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 4),
+                    hintText: 'Notes',
+                    hintStyle: TextStyle(color: Colors.grey.shade400),
+                    border: const UnderlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Text('Entries', style: Theme.of(context).textTheme.titleSmall),
+                    const Spacer(),
+                    const VisibilityHelpButton(),
+                  ],
+                ),
+                if (_saveError != null)
+                  Text(_saveError!, style: const TextStyle(color: Colors.red, fontSize: 12)),
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        ReorderableListView(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          buildDefaultDragHandles: false,
+                          onReorder: (oldIndex, newIndex) {
+                            setState(() {
+                              if (newIndex > oldIndex) newIndex--;
+                              final item = _editEntries.removeAt(oldIndex);
+                              _editEntries.insert(newIndex, item);
+                            });
+                          },
+                          children: [
+                            for (int i = 0; i < _editEntries.length; i++)
+                              _EditEntryRow(
+                                key: ValueKey(_editEntries[i].id),
+                                index: i,
+                                entry: _editEntries[i].entry,
+                                onChanged: (e) => setState(() =>
+                                    _editEntries[i] = _EditableEntry(_editEntries[i].id, e)),
+                                onDelete: () => setState(() => _editEntries.removeAt(i)),
+                              ),
+                          ],
+                        ),
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: TextButton.icon(
+                            onPressed: _addEntry,
+                            icon: const Icon(Icons.add, size: 16),
+                            label: const Text('Add entry'),
+                            style: TextButton.styleFrom(padding: EdgeInsets.zero),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(onPressed: _saving ? null : _cancelEdit, child: const Text('Cancel')),
+                    const SizedBox(width: 4),
+                    ElevatedButton(onPressed: _saving ? null : _save, child: const Text('Save')),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    // View mode
+    return SafeArea(
+      child: Padding(
+        padding: padding,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: _loading
+                      ? const SizedBox.shrink()
+                      : Text(
+                          _contact?.name ?? '',
+                          style: titleStyle,
+                        ),
+                ),
+                if (!_loading && _error == null)
+                  IconButton(
+                    icon: const Icon(Icons.edit_outlined),
+                    tooltip: 'Edit',
+                    onPressed: _startEdit,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+              ],
+            ),
+            if (_loading)
+              const Center(child: Padding(
+                padding: EdgeInsets.all(24),
+                child: CircularProgressIndicator(),
+              ))
+            else if (_error != null)
+              Text('Error: $_error', style: const TextStyle(color: Colors.red))
+            else if (_contact == null)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 16),
+                child: Text('No contact card yet.', style: TextStyle(color: Colors.grey)),
+              )
+            else ...[
+              if (_contact!.notes != null) ...[
+                const SizedBox(height: 6),
+                Text(_contact!.notes!),
+              ],
+              if (_contact!.entries.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                ..._contact!.entries.map((e) => ContactEntryViewRow(entry: e)),
+              ],
+              const SizedBox(height: 12),
+              SelectableText(
+                'Identity: ${signInState.identityToken}',
+                style: const TextStyle(fontSize: 11, color: Colors.grey),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
   }
 }
 
-class _EntryRow extends StatefulWidget {
+// ---------------------------------------------------------------------------
+
+class _EditableEntry {
+  final int id;
+  final ContactEntry entry;
+  const _EditableEntry(this.id, this.entry);
+}
+
+// ---------------------------------------------------------------------------
+
+class ContactEntryViewRow extends StatelessWidget {
+  final ContactEntry entry;
+  const ContactEntryViewRow({super.key, required this.entry});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 72,
+            child: Text(
+              entry.tech,
+              style: const TextStyle(fontSize: 13, color: Colors.grey, fontWeight: FontWeight.w500),
+            ),
+          ),
+          Expanded(child: SelectableText(entry.value, style: const TextStyle(fontSize: 14))),
+          if (entry.preferred) const Icon(Icons.star, size: 14, color: Colors.amber),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+
+class _TechPickerDialog extends StatefulWidget {
+  const _TechPickerDialog();
+
+  @override
+  State<_TechPickerDialog> createState() => _TechPickerDialogState();
+}
+
+class _TechPickerDialogState extends State<_TechPickerDialog> {
+  final _ctrl = TextEditingController();
+
+  static const _common = ['email', 'phone', 'signal', 'whatsapp', 'instagram', 'tiktok', 'fax'];
+
+  @override
+  void dispose() { _ctrl.dispose(); super.dispose(); }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Add entry'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Wrap(
+            spacing: 8,
+            runSpacing: 4,
+            children: _common
+                .map((t) => ActionChip(
+                      label: Text(t),
+                      onPressed: () => Navigator.pop(context, t),
+                    ))
+                .toList(),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _ctrl,
+            decoration: const InputDecoration(
+              labelText: 'Or type a custom type',
+              isDense: true,
+            ),
+            onSubmitted: (v) {
+              if (v.trim().isNotEmpty) Navigator.pop(context, v.trim());
+            },
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+        ElevatedButton(
+          onPressed: () {
+            final v = _ctrl.text.trim();
+            if (v.isNotEmpty) Navigator.pop(context, v);
+          },
+          child: const Text('Add'),
+        ),
+      ],
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+
+class _EditEntryRow extends StatefulWidget {
+  final int index;
   final ContactEntry entry;
   final ValueChanged<ContactEntry> onChanged;
   final VoidCallback onDelete;
-  const _EntryRow({required this.entry, required this.onChanged, required this.onDelete});
+
+  const _EditEntryRow({
+    super.key,
+    required this.index,
+    required this.entry,
+    required this.onChanged,
+    required this.onDelete,
+  });
 
   @override
-  State<_EntryRow> createState() => _EntryRowState();
+  State<_EditEntryRow> createState() => _EditEntryRowState();
 }
 
-class _EntryRowState extends State<_EntryRow> {
-  late TextEditingController _techCtrl;
+class _EditEntryRowState extends State<_EditEntryRow> {
   late TextEditingController _valueCtrl;
-
   @override
   void initState() {
     super.initState();
-    _techCtrl = TextEditingController(text: widget.entry.tech);
     _valueCtrl = TextEditingController(text: widget.entry.value);
   }
 
   @override
   void dispose() {
-    _techCtrl.dispose();
     _valueCtrl.dispose();
     super.dispose();
   }
 
-  static const _visibilityOrder = ['default', 'permissive', 'standard', 'strict'];
-
-  void _notify() {
+  void _notify({bool? preferred, String? visibility}) {
     widget.onChanged(ContactEntry(
-      tech: _techCtrl.text.trim(),
+      tech: widget.entry.tech,
       value: _valueCtrl.text.trim(),
-      preferred: widget.entry.preferred,
-      visibility: widget.entry.visibility,
-    ));
-  }
-
-  void _cycleVisibility() {
-    final idx = _visibilityOrder.indexOf(widget.entry.visibility);
-    final next = _visibilityOrder[(idx + 1) % _visibilityOrder.length];
-    widget.onChanged(ContactEntry(
-      tech: _techCtrl.text.trim(),
-      value: _valueCtrl.text.trim(),
-      preferred: widget.entry.preferred,
-      visibility: next,
+      preferred: preferred ?? widget.entry.preferred,
+      visibility: visibility ?? widget.entry.visibility,
     ));
   }
 
   @override
   Widget build(BuildContext context) {
-    final vis = widget.entry.visibility;
-    return Row(
-      children: [
-        SizedBox(
-          width: 90,
-          child: TextField(
-            controller: _techCtrl,
-            decoration: const InputDecoration(labelText: 'tech'),
-            onChanged: (_) => _notify(),
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: TextField(
-            controller: _valueCtrl,
-            decoration: const InputDecoration(labelText: 'value'),
-            onChanged: (_) => _notify(),
-          ),
-        ),
-        Tooltip(
-          message: 'Visibility: $vis\nTap to cycle',
-          child: TextButton(
-            onPressed: _cycleVisibility,
-            style: TextButton.styleFrom(
-              minimumSize: const Size(60, 36),
-              padding: EdgeInsets.zero,
-            ),
-            child: Text(
-              vis == 'default' ? 'dflt' : vis.substring(0, 4),
-              style: TextStyle(
-                fontSize: 11,
-                color: _visibilityColor(vis, context),
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          // Tech label is the drag handle
+          ReorderableDragStartListener(
+            index: widget.index,
+            child: MouseRegion(
+              cursor: SystemMouseCursors.grab,
+              child: SizedBox(
+                width: 68,
+                child: Text(
+                  widget.entry.tech,
+                  style: const TextStyle(
+                      fontSize: 13, color: Colors.grey, fontWeight: FontWeight.w500),
+                ),
               ),
             ),
           ),
-        ),
-        IconButton(
-          icon: const Icon(Icons.delete_outline, size: 18),
-          onPressed: widget.onDelete,
-        ),
-      ],
+          const SizedBox(width: 6),
+          Expanded(
+            child: TextField(
+              controller: _valueCtrl,
+              decoration: const InputDecoration(
+                isDense: true,
+                contentPadding: EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+              ),
+              style: const TextStyle(fontSize: 13),
+              onChanged: (_) => _notify(),
+            ),
+          ),
+          const SizedBox(width: 6),
+          GestureDetector(
+            onTap: () => _notify(preferred: !widget.entry.preferred),
+            child: Icon(
+              widget.entry.preferred ? Icons.star : Icons.star_border,
+              size: 18,
+              color: widget.entry.preferred ? Colors.amber : Colors.grey,
+            ),
+          ),
+          const SizedBox(width: 6),
+          VisibilityPicker(
+            showLabels: false,
+            value: widget.entry.visibility,
+            onChanged: (v) => _notify(visibility: v),
+          ),
+          const SizedBox(width: 6),
+          GestureDetector(
+            onTap: widget.onDelete,
+            child: const Icon(Icons.close, size: 16, color: Colors.grey),
+          ),
+        ],
+      ),
     );
-  }
-
-  Color _visibilityColor(String vis, BuildContext context) {
-    switch (vis) {
-      case 'permissive': return Colors.green;
-      case 'strict': return Colors.red;
-      case 'standard': return Colors.orange;
-      default: return Theme.of(context).colorScheme.secondary;
-    }
   }
 }
