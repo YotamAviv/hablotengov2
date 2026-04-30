@@ -15,7 +15,8 @@ class _ContactEntry {
   final String name;
   final String token;
   final List<(String, String)> oldKeys;
-  _ContactEntry(this.name, this.token, this.oldKeys);
+  final List<String> monikers;
+  _ContactEntry(this.name, this.token, this.oldKeys, this.monikers);
 }
 
 class ContactsScreen extends StatefulWidget {
@@ -68,7 +69,8 @@ class _ContactsScreenState extends State<ContactsScreen> {
             .map((k) => (labeler.getIdentityLabel(k), k.value))
             .toList();
 
-        contacts.add(_ContactEntry(name, canonical.value, oldKeys));
+        final monikers = labeler.getAllLabels(canonical);
+        contacts.add(_ContactEntry(name, canonical.value, oldKeys, monikers));
       }
 
       setState(() => _contacts = contacts);
@@ -191,7 +193,16 @@ class _ContactDetailSheet extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(contact.name, style: Theme.of(context).textTheme.titleLarge),
+            Text(
+              result?.status == ContactStatus.found
+                  ? result!.contact!.name
+                  : contact.name,
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            if (contact.monikers.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Text(contact.monikers.join(', '), style: const TextStyle(fontSize: 13, color: Colors.grey)),
+            ],
             const SizedBox(height: 12),
             if (result == null)
               const Center(child: CircularProgressIndicator())

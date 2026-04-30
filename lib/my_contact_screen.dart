@@ -41,10 +41,12 @@ class _MyContactScreenState extends State<MyContactScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) return const Center(child: CircularProgressIndicator());
-    if (_error != null) return Center(child: SelectableText('Error: $_error'));
+    if (_loading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    if (_error != null) return Scaffold(body: Center(child: SelectableText('Error: $_error')));
 
-    return Padding(
+    return Scaffold(
+      appBar: AppBar(title: const Text('My Card')),
+      body: Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -86,6 +88,7 @@ class _MyContactScreenState extends State<MyContactScreen> {
             style: const TextStyle(fontSize: 11, color: Colors.grey),
           ),
         ],
+      ),
       ),
     );
   }

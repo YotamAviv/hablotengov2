@@ -152,30 +152,24 @@ class _SignedInScreen extends StatelessWidget {
 
   const _SignedInScreen({required this.onSignOut, required this.emulator});
 
+  void _openMyCard(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => MyContactScreen(emulator: emulator)),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 2,
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('HabloTengo'),
-          actions: [
-            TextButton(onPressed: onSignOut, child: const Text('Sign out')),
-          ],
-          bottom: const TabBar(
-            tabs: [
-              Tab(text: 'Contacts'),
-              Tab(text: 'My Card'),
-            ],
-          ),
-        ),
-        body: TabBarView(
-          children: [
-            ContactsScreen(emulator: emulator),
-            MyContactScreen(emulator: emulator),
-          ],
-        ),
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('HabloTengo'),
+        actions: [
+          IconButton(icon: const Icon(Icons.settings), onPressed: () {}),
+          IconButton(icon: const Icon(Icons.person), onPressed: () => _openMyCard(context)),
+          TextButton(onPressed: onSignOut, child: const Text('Sign out')),
+        ],
       ),
+      body: ContactsScreen(emulator: emulator),
     );
   }
 }
