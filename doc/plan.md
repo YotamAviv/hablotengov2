@@ -55,13 +55,25 @@ Try to look like vCard.
 - ✅ email address, insta handles, etc..
 
 ## popup that must be dismissed if have !disabled equivalents ❌
-- disabler (if not you (equiv also counts as you))
-  - key
-  - link to disabler view on Nerdster
-- options
-  - merge and disable
-    Merges all fields unless they're strict duplicates.
-  - dismiss (leaves disabled, won't show again, notes that you dismissed somewhere, probably in your account)
+- Show who the disabler is if it wasn't you (equiv also counts as you).
+  - show key, like Nerdster (JsonQrDisplay, already in oneofus_common).
+  - DEFER: Include link to his view on Nerdster
+- Offer these options:
+  - Merge data and disable storage (account) of equivalent key
+    - Merges all fields from equiavlent account(s) into canonical account unless they're exact duplicates. (If they're near duplicates, the user can clean it up himself.)
+    - Mark this account as disabled by you (your canonical key, how you're currently signed in).
+  - Dismiss
+    Does nothing other than noting (in your account) that you've dismissed this issue and don't care to be shownn issues about it again.
+
+Also do:
+- Never even consider including disabled accounts as equivalent accounts when selecting data to show.
+- Alert a user if he actually signs in to a disabled account. 
+  - Show him the disabler and allow him to enable (un-disable) the account.
+  - (Only he can enable the account. We can't know who's account this really is unless someone signs in with the private key.)
+
+Notes:
+- When keys are lost, accounts for those keys can only be disabled once and can't be enabled ever once they're disabled (since the keys are lost).
+
 
 ## Simpsons ✅
 - ✅ Use them from the Nerdster.
