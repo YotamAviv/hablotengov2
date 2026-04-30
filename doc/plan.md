@@ -28,8 +28,8 @@ value is always a list of value objects
 - ✅ the value is the value (ie. yotam@aviv.net) - text box
 - bools and enums (shown as icons in UI):
   - ✅ preferred (or not) - click through to cycle
-  - ✅ visibility override (permissive, standard, strict, \<default>) - click through to cycle, color-coded dot
-  - ✅ move up/down in list
+  - ✅ visibility override (permissive, standard, strict, \<default>) - color-coded pill picker; tapping selected deselects to default
+  - ✅ drag to reorder (tech label is drag handle)
   - ✅ X - delete
 
 ## Contact info view
@@ -46,7 +46,7 @@ Try to look like vCard.
 
 ## Settings
 - ✅ gear icon always visible, top right
-- ✅ \<default> visibility
+- ✅ \<default> visibility — color-coded pill picker with help button
 - ❌ delete account
 
 ## search matches any string in any field ✅
@@ -84,11 +84,12 @@ Try to look like vCard.
 > A "Some fields hidden due to access restrictions" notice appears when entries are filtered.
 > This is consistent with the data model plan but was not spelled out at the algorithm level.
 
+## Contacts list
+- ✅ Sort by last name, middle, first (using card name when available, falling back to trust-graph moniker)
+- ✅ Signed-in user appears in their own contacts list; tapping opens their own editable card
+
 ## Roladex ✅ (in roladex branch)
 Fancy view like the Mac wheel thing
-
-- ❌ Sort by last name, middle, first, ...
-  - Extract the text-only strings, sort by them prioritizing last to first.
 
 ## Public web page, deploy script(s) ❌
 Like https://nerdster.org, https://nerdster.org/app, this project should have an informational web page at https://hablotengo.com and the online web app available at https://hablotengo.com/app.
