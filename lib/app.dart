@@ -106,11 +106,9 @@ class _HabloHomeState extends State<_HabloHome> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     ElevatedButton(
-                      onPressed: () => _showSignIn(context),
-                      child: const Text('Sign In'),
+                      onPressed: _demoSigningIn ? null : _doDemoSignIn,
+                      child: const Text('Sign in as Demo User'),
                     ),
-                    const SizedBox(height: 24),
-                    const Text('Demo sign-in:'),
                     const SizedBox(height: 8),
                     DropdownButton<String>(
                       value: _selectedCharacter,
@@ -118,11 +116,6 @@ class _HabloHomeState extends State<_HabloHome> {
                           .map((k) => DropdownMenuItem(value: k, child: Text(k)))
                           .toList(),
                       onChanged: (v) => setState(() => _selectedCharacter = v!),
-                    ),
-                    const SizedBox(height: 8),
-                    ElevatedButton(
-                      onPressed: _demoSigningIn ? null : _doDemoSignIn,
-                      child: const Text('Sign in as Demo User'),
                     ),
                   ],
                 ),
@@ -197,14 +190,6 @@ class _HabloHomeState extends State<_HabloHome> {
     );
   }
 
-  Future<void> _showSignIn(BuildContext context) async {
-    debugPrint('_showSignIn: opening sign-in dialog (emulator=${widget.emulator})');
-    await showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => Dialog(child: SignInDialog(config: _buildSignInConfig())),
-    );
-  }
 }
 
 class _SignedInScreen extends StatelessWidget {
