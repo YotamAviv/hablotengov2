@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>HabloTengo</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: sans-serif;
+      background: #f5f5f5;
+      color: #222;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem 2rem;
+      background: #fff;
+      border-bottom: 1px solid #e0e0e0;
+    }
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-decoration: none;
+      color: inherit;
+    }
+    .nav-brand img {
+      height: 40px;
+      width: 40px;
+      object-fit: contain;
+    }
+    .nav-brand span {
+      font-size: 1.3rem;
+      font-weight: 600;
+    }
+    .nav-links {
+      display: flex;
+      gap: 1.25rem;
+      align-items: center;
+    }
+    .nav-links a {
+      text-decoration: none;
+      color: #555;
+      font-size: 0.95rem;
+    }
+    .nav-links a.primary {
+      background: #1a73e8;
+      color: #fff;
+      padding: 0.45rem 1rem;
+      border-radius: 6px;
+      font-weight: 500;
+    }
+    .nav-links a.primary:hover { background: #1558b0; }
+    .nav-links a:not(.primary):hover { color: #111; }
+
+    main {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 4rem 2rem;
+    }
+    .hero {
+      max-width: 480px;
+      text-align: center;
+    }
+    .hero h1 {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+    }
+    .hero p {
+      font-size: 1.2rem;
+      color: #555;
+      line-height: 1.6;
+    }
+
+    footer {
+      text-align: center;
+      padding: 1.25rem 2rem;
+      font-size: 0.85rem;
+      color: #888;
+      border-top: 1px solid #e0e0e0;
+      background: #fff;
+      display: flex;
+      justify-content: center;
+      gap: 1.5rem;
+    }
+    footer a {
+      color: #888;
+      text-decoration: none;
+    }
+    footer a:hover { color: #333; }
+  </style>
+</head>
+<body>
+  <nav>
+    <a class="nav-brand" href="/">
+      <img src="/hablo.png" alt="HabloTengo logo" />
+      <span>HabloTengo</span>
+    </a>
+    <div class="nav-links">
+      <a href="/app?demo=true">Demo</a>
+      <a href="/app" class="primary">Open App</a>
+    </div>
+  </nav>
+
+  <main>
+    <div class="hero">
+      <h1>HabloTengo</h1>
+      <p>Share contact info - trusted, secure, nothing published or public.</p>
+      <p>Leverages our decentralized identity network, see <a href="https://one-of-us.net">https://one-of-us.net</a>.</p>
+    </div>
+  </main>
+
+  <footer>
+    <a href="https://github.com/YotamAviv/hablotengov2" target="_blank">Open Source</a>
+    <a href="mailto:contact@hablotengo.com">Contact</a>
+  </footer>
+</body>
+</html>

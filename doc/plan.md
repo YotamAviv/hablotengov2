@@ -73,6 +73,7 @@ Also do:
 
 Notes:
 - When keys are lost, accounts for those keys can only be disabled once and can't be enabled ever once they're disabled (since the keys are lost).
+- You can only disable accounts that trust you enough. Otherwise, you would even be presented them as an equivalent account that should be dealt with.
 
 
 ## Simpsons ✅

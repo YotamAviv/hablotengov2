@@ -44,6 +44,43 @@ class _HabloHome extends StatefulWidget {
 class _HabloHomeState extends State<_HabloHome> {
   String _selectedCharacter = 'lisa';
   bool _demoSigningIn = false;
+  bool _dialogShowing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    signInState.addListener(_onSignInChanged);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _maybeShowDialog());
+  }
+
+  @override
+  void dispose() {
+    signInState.removeListener(_onSignInChanged);
+    super.dispose();
+  }
+
+  void _onSignInChanged() {
+    if (!signInState.hasIdentity) {
+      _maybeShowDialog();
+    } else if (_dialogShowing && mounted) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_dialogShowing && mounted) Navigator.of(context).pop();
+      });
+    }
+  }
+
+  void _maybeShowDialog() {
+    if (_dialogShowing || !mounted || signInState.hasIdentity || widget.demoMode) return;
+    _dialogShowing = true;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => Dialog(child: SignInDialog(config: _buildSignInConfig())),
+    ).then((_) {
+      _dialogShowing = false;
+      if (!signInState.hasIdentity && mounted) _maybeShowDialog();
+    });
+  }
 
   Future<void> _doDemoSignIn() async {
     setState(() => _demoSigningIn = true);
@@ -62,16 +99,16 @@ class _HabloHomeState extends State<_HabloHome> {
       listenable: signInState,
       builder: (context, _) {
         if (!signInState.hasIdentity) {
-          return Scaffold(
-            body: Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  ElevatedButton(
-                    onPressed: () => _showSignIn(context),
-                    child: const Text('Sign In'),
-                  ),
-                  if (widget.demoMode) ...[
+          if (widget.demoMode) {
+            return Scaffold(
+              body: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ElevatedButton(
+                      onPressed: () => _showSignIn(context),
+                      child: const Text('Sign In'),
+                    ),
                     const SizedBox(height: 24),
                     const Text('Demo sign-in:'),
                     const SizedBox(height: 8),
@@ -88,10 +125,11 @@ class _HabloHomeState extends State<_HabloHome> {
                       child: const Text('Sign in as Demo User'),
                     ),
                   ],
-                ],
+                ),
               ),
-            ),
-          );
+            );
+          }
+          return const Scaffold(body: SizedBox.shrink());
         }
         settingsState.load(widget.emulator).then((_) {
           if (!context.mounted) return;
@@ -118,9 +156,8 @@ class _HabloHomeState extends State<_HabloHome> {
     );
   }
 
-  Future<void> _showSignIn(BuildContext context) async {
-    debugPrint('_showSignIn: opening sign-in dialog (emulator=${widget.emulator})');
-    final config = SignInConfig(
+  SignInConfig _buildSignInConfig() {
+    return SignInConfig(
       sessionFactory: () async {
         debugPrint('sessionFactory: creating session domain=$kHabloDomain signInUrl=${habloSignInUrl(widget.emulator)}');
         final session = await SignInSession.create(
@@ -158,10 +195,14 @@ class _HabloHomeState extends State<_HabloHome> {
         ),
       ),
     );
+  }
+
+  Future<void> _showSignIn(BuildContext context) async {
+    debugPrint('_showSignIn: opening sign-in dialog (emulator=${widget.emulator})');
     await showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (_) => Dialog(child: SignInDialog(config: config)),
+      builder: (_) => Dialog(child: SignInDialog(config: _buildSignInConfig())),
     );
   }
 }

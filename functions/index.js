@@ -16,7 +16,7 @@ admin.initializeApp();
 
 const { handleSignIn } = require('./sign_in');
 
-exports.signIn = onRequest({ cors: true }, async (req, res) => {
+exports.signIn = onRequest({ cors: true, invoker: 'public' }, async (req, res) => {
   await handleSignIn(req, res);
 });
 

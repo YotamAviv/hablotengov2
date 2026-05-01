@@ -13,11 +13,11 @@ String oneofusExportUrl(bool emulator) => emulator
 
 String habloSignInUrl(bool emulator) => emulator
     ? 'http://127.0.0.1:$kHabloFunctionsEmulatorPort/$kHabloEmulatorProject/us-central1/signIn'
-    : 'https://us-central1-hablotengo.cloudfunctions.net/signIn';
+    : 'https://signin.hablotengo.com/signin';
 
 String habloDemoSignInUrl(bool emulator) => emulator
     ? 'http://127.0.0.1:$kHabloFunctionsEmulatorPort/$kHabloEmulatorProject/us-central1/demoSignIn'
-    : 'https://us-central1-hablotengo.cloudfunctions.net/demoSignIn';
+    : 'https://hablotengo.com/demoSignIn';
 
 String habloGetContactUrl(bool emulator) => emulator
     ? 'http://127.0.0.1:$kHabloFunctionsEmulatorPort/$kHabloEmulatorProject/us-central1/getContact'

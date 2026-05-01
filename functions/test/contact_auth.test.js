@@ -74,7 +74,7 @@ describe('getContact — trust-gated access', () => {
   test('Lisa reads Homer\'s contact card by canonical token — sees name, phone, email', async () => {
     // The canonical token for Homer as seen in Lisa's trust graph (Homer replaced his old key).
     // The app always passes the canonical token; getContact must resolve old keys too.
-    const canonicalHomerToken = '282d583ec2bd404bd473f3da442e7c2a5057b5e5';
+    const canonicalHomerToken = keyToken(SIMPSONS_KEYS['homer2']);
     const res = await post('getContact', {
       identity: lisaJwk,
       demo: true,

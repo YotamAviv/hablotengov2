@@ -14,10 +14,10 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   TrustStatement.init();
 
-  // TODO: restore URL-based switching when deploying to prod.
-  const bool emulator = true;
-
+  final String? fireParam = kIsWeb ? Uri.base.queryParameters['fire'] : null;
+  final bool emulator = kIsWeb && Uri.base.host == 'localhost' && fireParam != 'prod';
   final bool demoMode = kIsWeb && Uri.base.queryParameters['demo'] == 'true';
+  debugPrint('main: Uri.base=${Uri.base} emulator=$emulator demoMode=$demoMode');
 
   try {
     await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
@@ -26,8 +26,9 @@ Future<void> main() async {
   }
 
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
-  // $ ./bin/start_emulator.sh  (Firestore 8082, Functions 5003)
-  firestore.useFirestoreEmulator('localhost', kHabloFirestoreEmulatorPort);
+  if (emulator) {
+    firestore.useFirestoreEmulator('localhost', kHabloFirestoreEmulatorPort);
+  }
 
   startKeyStorageCoordinator();
   await tryRestoreKeys();
