@@ -107,10 +107,12 @@ class _MyContactSheetState extends State<MyContactSheet> {
                 TextField(
                   controller: _nameCtrl,
                   style: titleStyle,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     isDense: true,
-                    contentPadding: EdgeInsets.symmetric(vertical: 4),
-                    border: UnderlineInputBorder(),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 4),
+                    hintText: 'Name',
+                    hintStyle: TextStyle(color: Colors.grey.shade400),
+                    border: const UnderlineInputBorder(),
                   ),
                 ),
                 const SizedBox(height: 6),

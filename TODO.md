@@ -1,8 +1,10 @@
 # TODO
 
-## Minor
+## Re-create PROD simpsons data and files
 
-Use hint "Name" in the name field when editing contact card.
+Think about how to address so that we can
+- fix a bug and push
+- run the tests without trashing files we need to push
 
 ## Home page
 Embed the demo.
