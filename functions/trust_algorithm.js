@@ -108,7 +108,7 @@ async function reduceTrustGraph(pov, byIssuer, { pathRequirement, maxDegrees = k
 
   const distances = new Map([[pov, 0]]);
   const orderedKeys = [pov];
-  const replacements = new Map();
+  const equivalent2canonical = new Map();
   const blocked = new Set();
   const paths = new Map();
   const notifications = [];
@@ -120,8 +120,8 @@ async function reduceTrustGraph(pov, byIssuer, { pathRequirement, maxDegrees = k
   function resolveCanonical(token) {
     let cur = token;
     const seen = new Set([token]);
-    while (replacements.has(cur)) {
-      cur = replacements.get(cur);
+    while (equivalent2canonical.has(cur)) {
+      cur = equivalent2canonical.get(cur);
       if (seen.has(cur)) break;
       seen.add(cur);
     }
@@ -161,7 +161,7 @@ async function reduceTrustGraph(pov, byIssuer, { pathRequirement, maxDegrees = k
     // --- STAGE 2a: REPLACES ---
     for (const issuerToken of currentLayer) {
       let stmts = parsed.get(issuerToken) || [];
-      if (replacements.has(issuerToken)) stmts = [];
+      if (equivalent2canonical.has(issuerToken)) stmts = [];
 
       const edgeStmts = stmts.filter(s => {
         if (s.verb === 'clear') return false;
@@ -189,12 +189,12 @@ async function reduceTrustGraph(pov, byIssuer, { pathRequirement, maxDegrees = k
           continue;
         }
         if (distances.has(oldKey) && distances.get(oldKey) < dist) {
-          if (!replacements.has(oldKey)) replacements.set(oldKey, issuerToken);
+          if (!equivalent2canonical.has(oldKey)) equivalent2canonical.set(oldKey, issuerToken);
           notifications.push({ reason: `Trusted key ${oldKey} is being replaced by ${issuerToken} (Replacement constraint ignored due to distance)`, raw: s.raw, isConflict: false });
           continue;
         }
-        if (replacements.has(oldKey)) {
-          const existing = replacements.get(oldKey);
+        if (equivalent2canonical.has(oldKey)) {
+          const existing = equivalent2canonical.get(oldKey);
           if (existing !== issuerToken) {
             notifications.push({ reason: `Key ${oldKey} replaced by both ${existing} and ${issuerToken}`, raw: s.raw, isConflict: true });
             continue;
@@ -203,7 +203,7 @@ async function reduceTrustGraph(pov, byIssuer, { pathRequirement, maxDegrees = k
         if (distances.has(oldKey)) {
           notifications.push({ reason: `Trusted key ${oldKey} is being replaced by ${issuerToken}`, raw: s.raw, isConflict: false });
         }
-        replacements.set(oldKey, issuerToken);
+        equivalent2canonical.set(oldKey, issuerToken);
         addToGraph(issuerToken, oldKey);
         if (!visited.has(oldKey)) {
           visited.add(oldKey);
@@ -217,7 +217,7 @@ async function reduceTrustGraph(pov, byIssuer, { pathRequirement, maxDegrees = k
     // --- STAGE 2b: TRUSTS ---
     for (const issuerToken of currentLayer) {
       let stmts = edges.get(issuerToken) || [];
-      if (replacements.has(issuerToken)) stmts = [];
+      if (equivalent2canonical.has(issuerToken)) stmts = [];
 
       const decided = new Set();
       for (const s of stmts) {
@@ -277,7 +277,7 @@ async function reduceTrustGraph(pov, byIssuer, { pathRequirement, maxDegrees = k
     pov,
     distances,
     orderedKeys,
-    replacements,
+    equivalent2canonical,
     blocked,
     paths,
     notifications: [...uniqueNotifications.values()],
@@ -299,12 +299,12 @@ class TrustPipeline {
     const visited = new Set();
     const byIssuer = new Map();
     let frontier = new Set([povToken]);
-    let graph = { pov: povToken, distances: new Map([[povToken, 0]]), replacements: new Map() };
+    let graph = { pov: povToken, distances: new Map([[povToken, 0]]), equivalent2canonical: new Map() };
 
     for (let depth = 0; depth < this.maxDegrees; depth++) {
       if (frontier.size === 0) break;
 
-      const keysToFetch = [...frontier].filter(k => !visited.has(k) && !graph.replacements.has(k));
+      const keysToFetch = [...frontier].filter(k => !visited.has(k) && !graph.equivalent2canonical.has(k));
       if (keysToFetch.length === 0) break;
 
       const fetchMap = Object.fromEntries(keysToFetch.map(k => [k, null]));

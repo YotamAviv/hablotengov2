@@ -35,9 +35,9 @@ async function handleGetContact(req, res) {
 
     // targetToken is the canonical (newest) key. The contact may be stored under
     // an older key if the subject has replaced their key. Try all keys that
-    // resolve to targetToken via the replacements map.
+    // resolve to targetToken via the equivalent2canonical map.
     const candidateTokens = [targetToken];
-    for (const [old, newt] of graph.replacements) {
+    for (const [old, newt] of graph.equivalent2canonical) {
       if (newt === targetToken) candidateTokens.push(old);
     }
 

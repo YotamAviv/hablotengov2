@@ -4,11 +4,11 @@ const { MultiTargetTrustPipeline } = require('./multi_target_trust_pipeline');
 const { oneofusSource } = require('./oneofus_source');
 const { permissivePathRequirement } = require('./trust_algorithm');
 
-function _resolveCanonical(replacements, token) {
+function _resolveCanonical(equivalent2canonical, token) {
   let cur = token;
   const seen = new Set([cur]);
-  while (replacements.has(cur)) {
-    cur = replacements.get(cur);
+  while (equivalent2canonical.has(cur)) {
+    cur = equivalent2canonical.get(cur);
     if (seen.has(cur)) break;
     seen.add(cur);
   }
@@ -38,7 +38,7 @@ async function handleDisableEquivalent(req, res) {
     const graph = graphs.get(auth.identityToken);
     if (!graph) { res.status(403).send('Could not build trust graph'); return; }
 
-    const canonical = _resolveCanonical(graph.replacements, equivalentToken);
+    const canonical = _resolveCanonical(graph.equivalent2canonical, equivalentToken);
     if (canonical !== auth.identityToken) {
       res.status(403).send('equivalentToken is not equivalent to your identity');
       return;

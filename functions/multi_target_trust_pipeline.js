@@ -33,7 +33,7 @@ class MultiTargetTrustPipeline {
         byIssuer: new Map(),
         visited: new Set(),
         frontier: new Set([t]),
-        graph: { pov: t, distances: new Map([[t, 0]]), replacements: new Map() },
+        graph: { pov: t, distances: new Map([[t, 0]]), equivalent2canonical: new Map() },
       });
     }
 
@@ -42,7 +42,7 @@ class MultiTargetTrustPipeline {
       const needed = new Set();
       for (const state of states.values()) {
         for (const tok of state.frontier) {
-          if (!cache.has(tok) && !state.graph.replacements.has(tok)) {
+          if (!cache.has(tok) && !state.graph.equivalent2canonical.has(tok)) {
             needed.add(tok);
           }
         }
@@ -82,7 +82,7 @@ class MultiTargetTrustPipeline {
         // New frontier: keys discovered by the graph that haven't been visited
         state.frontier = new Set(
           [...state.graph.distances.keys()].filter(
-            k => !state.visited.has(k) && !state.graph.replacements.has(k)
+            k => !state.visited.has(k) && !state.graph.equivalent2canonical.has(k)
           )
         );
 

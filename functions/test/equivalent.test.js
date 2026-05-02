@@ -87,7 +87,7 @@ Module._load = function (request, parent, isMain) {
         async buildAll(tokens) {
           const graphs = new Map();
           for (const tok of tokens) {
-            graphs.set(tok, { replacements: _mockReplacements });
+            graphs.set(tok, { equivalent2canonical: _mockReplacements });
           }
           return graphs;
         }

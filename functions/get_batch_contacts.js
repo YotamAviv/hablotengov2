@@ -11,11 +11,11 @@ function _meetsStrictness(level, distance, pathCount) {
   return true;
 }
 
-function _resolveCanonical(replacements, token) {
+function _resolveCanonical(equivalent2canonical, token) {
   let cur = token;
   const seen = new Set([cur]);
-  while (replacements.has(cur)) {
-    cur = replacements.get(cur);
+  while (equivalent2canonical.has(cur)) {
+    cur = equivalent2canonical.get(cur);
     if (seen.has(cur)) break;
     seen.add(cur);
   }
@@ -57,14 +57,14 @@ async function handleGetBatchContacts(req, res) {
         continue;
       }
       const graph = graphs.get(targetToken);
-      // Also catch old keys: if the target's graph resolves target → auth user via replacements
-      if (graph && _resolveCanonical(graph.replacements, targetToken) === auth.identityToken) {
+      // Also catch old keys: if the target's graph resolves target → auth user via equivalent2canonical
+      if (graph && _resolveCanonical(graph.equivalent2canonical, targetToken) === auth.identityToken) {
         trustedTargets.push({ targetToken, candidates: [auth.identityToken, targetToken], graph: null, isSelf: true });
         continue;
       }
       if (graph && graph.distances.has(auth.identityToken)) {
         const oldKeys = [];
-        for (const [old, newt] of graph.replacements) {
+        for (const [old, newt] of graph.equivalent2canonical) {
           if (newt === targetToken) oldKeys.push(old);
         }
         const enabledOldKeys = (await Promise.all(oldKeys.map(async (tok) => {
