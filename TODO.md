@@ -6,13 +6,6 @@ Think about how to address so that we can
 - fix a bug and push
 - run the tests without trashing files we need to push
 
-## Home page
-Embed the demo.
-
-Add note below that you can sign out and sign in as someone else, change settings (but someone else might be too), ..
-
-Remove the Demo link.
-
 ## Home page 2
 
 AI: In your own words and in 3 sentences or less describe HabloTengo with a minor effor on contrasting it to the Nerdster.

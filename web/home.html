@@ -61,23 +61,46 @@
 
     main {
       flex: 1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 4rem 2rem;
+      padding: 3rem 2rem;
+      max-width: 680px;
+      margin: 0 auto;
+      width: 100%;
     }
+
     .hero {
-      max-width: 480px;
       text-align: center;
+      margin-bottom: 2rem;
     }
     .hero h1 {
-      font-size: 2.5rem;
-      margin-bottom: 1rem;
+      font-size: 2.2rem;
+      margin-bottom: 0.75rem;
     }
     .hero p {
-      font-size: 1.2rem;
+      font-size: 1.1rem;
       color: #555;
       line-height: 1.6;
+    }
+
+    .embed-area {
+      width: 100%;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      overflow: hidden;
+      background: #fff;
+    }
+    .embed-area iframe {
+      width: 100%;
+      height: 600px;
+      border: none;
+      display: block;
+    }
+
+    .demo-note {
+      margin-top: 0.75rem;
+      font-size: 0.9rem;
+      color: #666;
+      line-height: 1.5;
+      text-align: center;
     }
 
     footer {
@@ -105,7 +128,6 @@
       <span>HabloTengo</span>
     </a>
     <div class="nav-links">
-      <a href="/app?demo=true">Demo</a>
       <a href="/app" class="primary">Open App</a>
     </div>
   </nav>
@@ -113,9 +135,18 @@
   <main>
     <div class="hero">
       <h1>HabloTengo</h1>
-      <p>Share contact info - trusted, secure, nothing published or public.</p>
-      <p>Leverages our decentralized identity network, see <a href="https://one-of-us.net">https://one-of-us.net</a>.</p>
+      <p>Share contact info — trusted, secure, nothing published or public.</p>
+      <p>Leverages our decentralized identity network, see <a href="https://one-of-us.net">one-of-us.net</a>.</p>
     </div>
+
+    <div class="embed-area">
+      <iframe src="/app?demo=true" title="HabloTengo demo"></iframe>
+    </div>
+    <p class="demo-note">
+      This is a demo with pre-loaded Simpsons contacts. You can sign out and sign in as
+      someone else to see their view, or change settings — though other visitors may be doing
+      the same.
+    </p>
   </main>
 
   <footer>
