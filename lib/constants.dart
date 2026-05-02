@@ -11,6 +11,10 @@ String oneofusExportUrl(bool emulator) => emulator
     ? 'http://127.0.0.1:$kOneofusFunctionsEmulatorPort/$kOneofusEmulatorProject/us-central1/export'
     : 'https://export.one-of-us.net';
 
+String oneofusWriteUrl(bool emulator) => emulator
+    ? 'http://127.0.0.1:$kOneofusFunctionsEmulatorPort/$kOneofusEmulatorProject/us-central1'
+    : 'https://us-central1-one-of-us-net.cloudfunctions.net';
+
 String habloSignInUrl(bool emulator) => emulator
     ? 'http://127.0.0.1:$kHabloFunctionsEmulatorPort/$kHabloEmulatorProject/us-central1/signIn'
     : 'https://signin.hablotengo.com/signin';
