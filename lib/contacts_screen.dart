@@ -236,20 +236,6 @@ class _ContactsScreenState extends State<ContactsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _ContactNameWidget(contact: contact, result: result),
-                    SelectableText(contact.token, style: const TextStyle(fontSize: 11, color: Colors.grey)),
-                    for (final (label, tok) in contact.myOldKeys) ...[
-                      const SizedBox(height: 4),
-                      Padding(
-                        padding: const EdgeInsets.only(left: 12),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
-                            SelectableText(tok, style: const TextStyle(fontSize: 11, color: Colors.grey)),
-                          ],
-                        ),
-                      ),
-                    ],
                   ],
                 ),
               ),

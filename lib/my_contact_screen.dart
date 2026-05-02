@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import 'contact_service.dart';
 import 'models/contact_statement.dart';
-import 'sign_in_state.dart';
 import 'visibility_picker.dart';
 
 class MyContactSheet extends StatefulWidget {
@@ -242,11 +241,6 @@ class _MyContactSheetState extends State<MyContactSheet> {
                 const SizedBox(height: 12),
                 ..._contact!.entries.map((e) => ContactEntryViewRow(entry: e)),
               ],
-              const SizedBox(height: 12),
-              SelectableText(
-                'Identity: ${signInState.identityToken}',
-                style: const TextStyle(fontSize: 11, color: Colors.grey),
-              ),
             ],
           ],
         ),

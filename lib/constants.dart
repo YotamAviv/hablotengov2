@@ -1,7 +1,7 @@
 const String kHabloDomain = 'hablotengo.com';
 const int kHabloFirestoreEmulatorPort = 8082;
 const int kHabloFunctionsEmulatorPort = 5003;
-const String kHabloEmulatorProject = 'demo-hablotengo';
+const String kHabloEmulatorProject = 'hablotengo';
 
 const int kOneofusFirestoreEmulatorPort = 8081;
 const int kOneofusFunctionsEmulatorPort = 5002;
@@ -16,7 +16,7 @@ String oneofusWriteUrl(bool emulator) => emulator
     : 'https://us-central1-one-of-us-net.cloudfunctions.net';
 
 String habloSignInUrl(bool emulator) => emulator
-    ? 'http://127.0.0.1:$kHabloFunctionsEmulatorPort/$kHabloEmulatorProject/us-central1/signIn'
+    ? 'http://10.0.2.2:$kHabloFunctionsEmulatorPort/$kHabloEmulatorProject/us-central1/signIn'
     : 'https://signin.hablotengo.com/signin';
 
 String habloDemoSignInUrl(bool emulator) => emulator

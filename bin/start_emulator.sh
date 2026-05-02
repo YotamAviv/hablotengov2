@@ -33,11 +33,11 @@ fi
 echo "=== Starting hablotengo emulator (Firestore 8082, Functions 5003, UI 4002) ==="
 if [ -n "${IMPORT:-}" ]; then
     echo "Using import: $IMPORT"
-    nohup firebase --project=demo-hablotengo emulators:start --only functions,firestore --import "$IMPORT/" \
+    nohup firebase --project=hablotengo emulators:start --only functions,firestore --import "$IMPORT/" \
         > "$REPO_DIR/hablotengo_emulator.log" 2>&1 &
 else
     echo "No import data found. Starting with empty data."
-    nohup firebase --project=demo-hablotengo emulators:start --only functions,firestore \
+    nohup firebase --project=hablotengo emulators:start --only functions,firestore \
         > "$REPO_DIR/hablotengo_emulator.log" 2>&1 &
 fi
 
