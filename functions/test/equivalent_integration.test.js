@@ -190,3 +190,44 @@ describe('enableAccount — integration', { concurrency: false }, () => {
     assert.strictEqual(body[HOMER_TOKEN].disabledBy, null);
   });
 });
+
+// ---------------------------------------------------------------------------
+// deleteAccount
+// ---------------------------------------------------------------------------
+
+describe('deleteAccount — integration', { concurrency: false }, () => {
+  before(async () => {
+    await reset();
+    // Give homer2 a contact card so we can verify it's deleted.
+    const res = await post('setMyContact', {
+      ...demoAuth(homer2Jwk),
+      contact: { name: 'Homer Simpson (homer2)', entries: [] },
+    });
+    assert.strictEqual(res.status, 200, `setup setMyContact failed: ${await res.text()}`);
+  });
+
+  test('homer2 can delete their account', async () => {
+    const res = await post('deleteAccount', { ...demoAuth(homer2Jwk) });
+    const body = await res.text();
+    assert.strictEqual(res.status, 200, `Expected 200, got ${res.status}: ${body}`);
+  });
+
+  test("homer2's contact is gone", async () => {
+    const res = await post('getMyContact', { ...demoAuth(homer2Jwk) });
+    assert.strictEqual(res.status, 404);
+  });
+
+  test("homer's contact (old key) is also gone", async () => {
+    const res = await post('getMyContact', { ...demoAuth(homerJwk) });
+    assert.strictEqual(res.status, 404);
+  });
+
+  test("homer's settings (old key) are also gone", async () => {
+    const res = await post('getEquivalentStatus', {
+      ...demoAuth(homer2Jwk),
+      tokens: [HOMER_TOKEN],
+    });
+    const body = await res.json();
+    assert.strictEqual(body[HOMER_TOKEN].disabledBy, null);
+  });
+});

@@ -6,12 +6,23 @@ We need to delete any replaced, equiavlent accounts, too.
 But only if those accounts (identities) believe their yours.
 (If we don't, then when you sign in after deleting your account, you'll see yourself, your equivalent accounts)
 
-## Link to Nerdster for investingating, clearing or blocking vouch
+## Phone app should require version: 2.0.37+137
+
+I believe we implemented such a thing where we set the minimal version in a firebase variable or something.
+Find it.
+Let me try it.
+Then use it.
+
+## Link Hablo to Nerdster for investingating, clearing or blocking vouch
 
 The Nerdster will need url param upgrades to support this
 Show graph for 
 - You (PoV) to target
 - target to you
+
+## Link Nerdster to Hablo
+
+Show a contact info link to Hablo in Nerdster' NodeDetails if delegate key exists.
 
 ## The Hablo client seems to shows data before it's ready to show
 
