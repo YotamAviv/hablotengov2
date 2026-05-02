@@ -103,6 +103,43 @@
       text-align: center;
     }
 
+    .tabs {
+      margin-top: 2rem;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      overflow: hidden;
+      background: #fff;
+    }
+    .tab-bar {
+      display: flex;
+      border-bottom: 1px solid #ddd;
+    }
+    .tab-bar button {
+      flex: 1;
+      padding: 0.6rem 1rem;
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 0.9rem;
+      color: #555;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+    }
+    .tab-bar button.active {
+      color: #1a73e8;
+      border-bottom-color: #1a73e8;
+      font-weight: 500;
+    }
+    .tab-bar button:hover:not(.active) { background: #f5f5f5; }
+    .tab-panel {
+      display: none;
+      padding: 1.25rem 1.5rem;
+      font-size: 0.95rem;
+      line-height: 1.7;
+      color: #444;
+    }
+    .tab-panel.active { display: block; }
+
     footer {
       text-align: center;
       padding: 1.25rem 2rem;
@@ -147,7 +184,61 @@
       someone else to see their view, or change settings — though other visitors may be doing
       the same.
     </p>
+    <div class="tabs">
+      <div class="tab-bar">
+        <button class="active" onclick="switchTab(0)">HabloTengo</button>
+        <button onclick="switchTab(1)">English</button>
+        <button onclick="switchTab(2)">Español</button>
+      </div>
+      <div class="tab-panel active">
+        HabloTengo te deja share tu contact info — teléfono, email, dirección — solo con la gente
+        que tú trust, usando la red ONE-OF-US.NET. A diferencia del Nerdster, que es open y
+        transparent by design, HabloTengo keeps it private: nada se publica, y solo tu trusted
+        network puede ver tu card.
+      </div>
+      <div class="tab-panel">
+        HabloTengo lets you share contact info — phone, email, address — only with people you trust,
+        through the ONE-OF-US.NET identity network. Unlike the Nerdster, which is open and fully
+        transparent by design, HabloTengo keeps everything private: nothing is published or public,
+        and only your trusted contacts can see your card.
+      </div>
+      <div class="tab-panel">
+        HabloTengo te permite compartir tu información de contacto — teléfono, correo, dirección —
+        solo con personas de confianza, a través de la red de identidad ONE-OF-US.NET. A diferencia
+        del Nerdster, que es abierto y completamente transparente por diseño, HabloTengo mantiene
+        todo privado: nada se publica, y solo tus contactos de confianza pueden ver tu tarjeta.
+      </div>
+    </div>
+
+    <details style="margin-top:1.5rem;">
+      <summary style="cursor:pointer;font-size:0.95rem;color:#555;">AI: The terrifying reality</summary>
+      <div style="margin-top:0.75rem;font-size:0.95rem;line-height:1.7;color:#444;">
+        Another difference between Hablo and Nerdster is that
+        <ul style="margin:0.5rem 0 0 1.25rem;">
+          <li>I wrote Nerdster by typing code.</li>
+          <li>Nerdster V2 development leveraged AI.</li>
+          <li>Hablo is 100% Clacker; I typed no code.</li>
+          <li>The above description was created by my telling it (nicely):
+            <blockquote style="margin:0.5rem 0 0 0.5rem;padding:0.5rem 1rem;border-left:3px solid #ccc;color:#666;font-style:italic;">
+              In your own words and in 3 sentences or less describe HabloTengo with a minor effort on contrasting it to the Nerdster.
+              Now translate that into Spanish and Spanglish.
+              Put the results in a tabbed view under the demo with the Spanglish titled HabloTengo.
+            </blockquote>
+          </li>
+        </ul>
+
+      </div>
+    </details>
   </main>
+
+  <script>
+    function switchTab(i) {
+      document.querySelectorAll('.tab-bar button').forEach((b, j) =>
+        b.classList.toggle('active', i === j));
+      document.querySelectorAll('.tab-panel').forEach((p, j) =>
+        p.classList.toggle('active', i === j));
+    }
+  </script>
 
   <footer>
     <a href="https://github.com/YotamAviv/hablotengov2" target="_blank">Open Source</a>
