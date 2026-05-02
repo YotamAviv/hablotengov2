@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'contact_service.dart';
 import 'models/contact_statement.dart';
@@ -261,12 +262,28 @@ class _EditableEntry {
 
 // ---------------------------------------------------------------------------
 
+Uri? _entryUri(ContactEntry entry) {
+  final v = entry.value.trim();
+  if (v.isEmpty) return null;
+  switch (entry.tech.toLowerCase()) {
+    case 'email': return Uri.parse('mailto:$v');
+    case 'phone': return Uri.parse('tel:$v');
+    case 'signal': return Uri.parse('https://signal.me/#p/$v');
+    case 'whatsapp': return Uri.parse('https://wa.me/${v.replaceAll(RegExp(r'\D'), '')}');
+    case 'instagram': return Uri.parse('https://instagram.com/${v.replaceAll('@', '')}');
+    case 'tiktok': return Uri.parse('https://tiktok.com/@${v.replaceAll('@', '')}');
+    default: if (v.startsWith('http')) return Uri.tryParse(v);
+  }
+  return null;
+}
+
 class ContactEntryViewRow extends StatelessWidget {
   final ContactEntry entry;
   const ContactEntryViewRow({super.key, required this.entry});
 
   @override
   Widget build(BuildContext context) {
+    final uri = _entryUri(entry);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 3),
       child: Row(
@@ -278,7 +295,17 @@ class ContactEntryViewRow extends StatelessWidget {
               style: const TextStyle(fontSize: 13, color: Colors.grey, fontWeight: FontWeight.w500),
             ),
           ),
-          Expanded(child: SelectableText(entry.value, style: const TextStyle(fontSize: 14))),
+          Expanded(
+            child: uri != null
+                ? GestureDetector(
+                    onTap: () => launchUrl(uri, mode: LaunchMode.externalApplication),
+                    child: Text(
+                      entry.value,
+                      style: const TextStyle(fontSize: 14, color: Colors.blue, decoration: TextDecoration.underline),
+                    ),
+                  )
+                : SelectableText(entry.value, style: const TextStyle(fontSize: 14)),
+          ),
           if (entry.preferred) const Icon(Icons.star, size: 14, color: Colors.amber),
         ],
       ),
@@ -298,7 +325,7 @@ class _TechPickerDialog extends StatefulWidget {
 class _TechPickerDialogState extends State<_TechPickerDialog> {
   final _ctrl = TextEditingController();
 
-  static const _common = ['email', 'phone', 'signal', 'whatsapp', 'instagram', 'tiktok', 'fax'];
+  static const _common = ['email', 'phone', 'signal', 'whatsapp', 'instagram', 'tiktok', 'fax', 'home wifi'];
 
   @override
   void dispose() { _ctrl.dispose(); super.dispose(); }
