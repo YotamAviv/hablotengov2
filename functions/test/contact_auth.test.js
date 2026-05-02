@@ -10,7 +10,7 @@ const { keyToken } = require('../verify_util');
 const { DOMAIN } = require('../sign_in');
 const SIMPSONS_KEYS = require('../simpsons_keys.json');
 
-const BASE_URL = 'http://127.0.0.1:5003/demo-hablotengo/us-central1';
+const BASE_URL = 'http://127.0.0.1:5003/hablotengo/us-central1';
 
 async function post(path, body) {
   const res = await fetch(`${BASE_URL}/${path}`, {
@@ -40,6 +40,7 @@ const homerToken = keyToken(homerJwk);
 describe('contact card — demo auth roundtrip', () => {
   const notes = `test-${Date.now()}`;
 
+  // Writes to Lisa's contact — modifies existing demo data. Approved.
   test('setMyContact stores data for Lisa', async () => {
     const res = await post('setMyContact', {
       identity: lisaJwk,

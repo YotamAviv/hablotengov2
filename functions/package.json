@@ -2,7 +2,7 @@
   "name": "hablotengo-functions",
   "description": "Cloud Functions for hablotengo",
   "scripts": {
-    "test": "node --test test/*.test.js",
+    "test": "for f in test/*.test.js; do node --test \"$f\" || exit 1; done",
     "serve": "firebase emulators:start --only functions",
     "deploy": "firebase deploy --only functions",
     "logs": "firebase functions:log"

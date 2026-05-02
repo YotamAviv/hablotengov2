@@ -34,10 +34,10 @@ class ContactsScreen extends StatefulWidget {
   const ContactsScreen({super.key, required this.emulator});
 
   @override
-  State<ContactsScreen> createState() => _ContactsScreenState();
+  State<ContactsScreen> createState() => ContactsScreenState();
 }
 
-class _ContactsScreenState extends State<ContactsScreen> {
+class ContactsScreenState extends State<ContactsScreen> {
   List<_ContactEntry>? _contacts;
   Map<String, ContactResult>? _results;
   String? _error;
@@ -55,6 +55,8 @@ class _ContactsScreenState extends State<ContactsScreen> {
     _searchCtrl.dispose();
     super.dispose();
   }
+
+  void reload() => _load();
 
   Future<void> _load() async {
     try {

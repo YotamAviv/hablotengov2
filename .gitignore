@@ -51,6 +51,9 @@ tmp.json
 *-identity.json
 *.pid
 
+# Emulator exports (large, machine-specific)
+exports/
+
 # Local Firebase state
 .firebase/
 

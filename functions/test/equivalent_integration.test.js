@@ -6,6 +6,13 @@
  *
  * Resets Firestore to the known Simpsons state before each suite by running
  * ./bin/createSimpsonsContactData.sh.
+ *
+ * Test conventions (applies to all test files):
+ *   - Tests MAY rely on demo data being present (seeded by createSimpsonsContactData.sh).
+ *   - Tests MAY create new data and then modify that same data.
+ *   - Tests MUST NOT modify existing demo data without restoring it (reset() handles this).
+ *   - Test files MUST run serially (--concurrency=1 in package.json) because reset()
+ *     clears all Firestore data; concurrent runs would corrupt other tests.
  */
 
 const { describe, test, before } = require('node:test');
@@ -14,7 +21,7 @@ const { execSync } = require('child_process');
 const path = require('path');
 
 const REPO_DIR = path.join(__dirname, '..', '..');
-const BASE_URL = 'http://127.0.0.1:5003/demo-hablotengo/us-central1';
+const BASE_URL = 'http://127.0.0.1:5003/hablotengo/us-central1';
 
 const SIMPSONS_KEYS = require('../simpsons_keys.json');
 const homer2Jwk = SIMPSONS_KEYS['homer2'];
@@ -38,14 +45,11 @@ function demoAuth(jwk) {
   return { identity: jwk, demo: true };
 }
 
-const FIRESTORE_CLEAR_URL =
-  'http://127.0.0.1:8082/emulator/v1/projects/demo-hablotengo/databases/(default)/documents';
-
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-async function waitForEmulator(maxWaitMs = 10000) {
+async function waitForEmulator(maxWaitMs = 60000) {
   const deadline = Date.now() + maxWaitMs;
   while (Date.now() < deadline) {
     try {
@@ -54,7 +58,8 @@ async function waitForEmulator(maxWaitMs = 10000) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ identity: homer2Jwk, demo: true, tokens: [] }),
       });
-      if (res.status < 500) return; // emulator is up
+      const text = await res.text();
+      if (res.status < 500 && !text.includes('does not exist')) return;
     } catch (_) {}
     await sleep(500);
   }
@@ -62,15 +67,7 @@ async function waitForEmulator(maxWaitMs = 10000) {
 }
 
 async function reset() {
-  // Clear all Firestore data so settings from previous suites don't bleed through.
-  await fetch(FIRESTORE_CLEAR_URL, { method: 'DELETE' });
-
-  execSync('./bin/createSimpsonsContactData.sh', {
-    cwd: REPO_DIR,
-    stdio: 'pipe',
-  });
-
-  // Wait for emulator to finish hot-reloading after simpsons_keys.json is rewritten.
+  execSync('./bin/reset_emulator.sh', { cwd: REPO_DIR, stdio: 'pipe' });
   await waitForEmulator();
 }
 
@@ -167,16 +164,15 @@ describe('disableEquivalent with merge — integration', { concurrency: false },
 // ---------------------------------------------------------------------------
 
 describe('enableAccount — integration', { concurrency: false }, () => {
-  before(() => {
-    reset();
+  before(async () => {
+    await reset();
     // Disable homer's (old key) account as setup, then homer re-enables it.
-    return post('disableEquivalent', {
+    const res = await post('disableEquivalent', {
       ...demoAuth(homer2Jwk),
       equivalentToken: HOMER_TOKEN,
       mergeContact: false,
-    }).then(async (res) => {
-      assert.strictEqual(res.status, 200, `setup disableEquivalent failed: ${await res.text()}`);
     });
+    assert.strictEqual(res.status, 200, `setup disableEquivalent failed: ${await res.text()}`);
   });
 
   test('homer can enable their own disabled account', async () => {

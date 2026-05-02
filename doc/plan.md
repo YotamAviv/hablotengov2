@@ -47,7 +47,7 @@ Try to look like vCard.
 ## Settings
 - ✅ gear icon always visible, top right
 - ✅ \<default> visibility — color-coded pill picker with help button
-- ❌ delete account
+- ✅ delete account
 
 ## search matches any string in any field ✅
 - ✅ name

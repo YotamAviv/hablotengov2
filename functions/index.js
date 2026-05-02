@@ -2,7 +2,7 @@
  * Hablotengo Cloud Functions
  *
  * Deploy:
- *   firebase --project=demo-hablotengo deploy --only functions
+ *   firebase --project=hablotengo deploy --only functions
  *
  * Code duplication: statement_fetcher.js and jsonish_util.js are copied across
  * nerdster14/, oneofusv22/, and hablotengo/functions/. Changes must be applied
@@ -84,6 +84,12 @@ const { handleEnableAccount } = require('./enable_account');
 
 exports.enableAccount = onRequest({ cors: true }, async (req, res) => {
   await handleEnableAccount(req, res);
+});
+
+const { handleDeleteAccount } = require('./delete_account');
+
+exports.deleteAccount = onRequest({ cors: true }, async (req, res) => {
+  await handleDeleteAccount(req, res);
 });
 
 const { fetchStatements } = require('./statement_fetcher');

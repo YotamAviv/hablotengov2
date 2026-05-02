@@ -1,17 +1,29 @@
 #!/bin/bash
+# Runs the full Hablotengo test suite.
+#
+# Tests run against the latest hablotengo emulator export in exports/.
+# That export should be a golden export created by bin/create_golden_export.sh —
+# NOT a production export. Using a golden export means the Simpsons key files
+# (simpsons_keys.json, simpsons_public_keys.dart, etc.) are consistent with the
+# emulator data, but backwards compatibility with real production data is NOT tested.
+#
+# TODO: support running the test suite against a production export as well, to
+# catch regressions in backwards compatibility with real data.
 cd "$(dirname "$0")/.."
 
 FAILED_TESTS=()
 PASSED_TESTS=()
 
 # Prerequisites:
-#   Firebase emulators: ./bin/start_emulator.sh (hablotengo)
+#   Firebase emulators: ./bin/start_emulator.sh (hablotengo) — started from a golden export
 #                       oneofusv22/bin/start_emulator.sh (one-of-us-net)
 echo "Checking prerequisites..."
 curl -s --max-time 3 http://localhost:8082/ > /dev/null \
     || { echo "ERROR: Hablo Firebase emulator not responding on port 8082."; exit 1; }
 curl -s --max-time 3 http://localhost:5002/ > /dev/null \
     || { echo "ERROR: OneOfUs emulator not responding on port 5002."; exit 1; }
+[ -f lib/dev/simpsons_private_keys.dart ] \
+    || { echo "ERROR: lib/dev/simpsons_private_keys.dart missing. Run: python3 bin/gen_simpsons_private_keys_dart.py"; exit 1; }
 echo "Prerequisites OK."
 echo ""
 

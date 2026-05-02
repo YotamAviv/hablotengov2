@@ -192,24 +192,31 @@ class _HabloHomeState extends State<_HabloHome> {
 
 }
 
-class _SignedInScreen extends StatelessWidget {
+class _SignedInScreen extends StatefulWidget {
   final VoidCallback onSignOut;
   final bool emulator;
 
   const _SignedInScreen({required this.onSignOut, required this.emulator});
 
+  @override
+  State<_SignedInScreen> createState() => _SignedInScreenState();
+}
+
+class _SignedInScreenState extends State<_SignedInScreen> {
+  final _contactsKey = GlobalKey<ContactsScreenState>();
+
   void _openMyCard(BuildContext context) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder: (_) => MyContactSheet(emulator: emulator),
-    );
+      builder: (_) => MyContactSheet(emulator: widget.emulator),
+    ).then((_) => _contactsKey.currentState?.reload());
   }
 
   void _openSettings(BuildContext context) {
     Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => SettingsScreen(emulator: emulator)),
-    );
+      MaterialPageRoute(builder: (_) => SettingsScreen(emulator: widget.emulator)),
+    ).then((_) => _contactsKey.currentState?.reload());
   }
 
   @override
@@ -218,12 +225,13 @@ class _SignedInScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('HabloTengo'),
         actions: [
+          IconButton(icon: const Icon(Icons.refresh), onPressed: () => _contactsKey.currentState?.reload()),
           IconButton(icon: const Icon(Icons.settings), onPressed: () => _openSettings(context)),
           IconButton(icon: const Icon(Icons.person), onPressed: () => _openMyCard(context)),
-          TextButton(onPressed: onSignOut, child: const Text('Sign out')),
+          TextButton(onPressed: widget.onSignOut, child: const Text('Sign out')),
         ],
       ),
-      body: ContactsScreen(emulator: emulator),
+      body: ContactsScreen(key: _contactsKey, emulator: widget.emulator),
     );
   }
 }

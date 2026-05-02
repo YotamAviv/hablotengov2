@@ -12,7 +12,7 @@
 const crypto = require('crypto');
 const { keyToken } = require('../verify_util');
 
-const EMULATOR_URL = 'http://10.0.2.2:5003/demo-hablotengo/us-central1/signIn';
+const EMULATOR_URL = 'http://10.0.2.2:5003/hablotengo/us-central1/signIn';
 const PROD_URL = 'https://signIn.hablotengo.com/signIn'; // placeholder
 
 const useEmulator = process.argv.includes('--emulator') || true; // default emulator for now

@@ -103,3 +103,16 @@ Future<void> setMyContact(ContactData contact, bool emulator) async {
     throw Exception('setMyContact failed: ${response.statusCode} ${response.body}');
   }
 }
+
+Future<void> deleteAccount(bool emulator) async {
+  final url = Uri.parse(habloDeleteAccountUrl(emulator));
+  debugPrint('deleteAccount: $url');
+  final response = await http.post(
+    url,
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode(_authPayload()),
+  );
+  if (response.statusCode != 200) {
+    throw Exception('deleteAccount failed: ${response.statusCode} ${response.body}');
+  }
+}

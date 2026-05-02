@@ -17,7 +17,7 @@ hablotengo/          — this Flutter project
     serve_web.sh         — build + serve locally
   firebase.json          — hablotengo emulator config (Firestore 8082, Functions 5003, UI 4402)
   oneofus.firebase.json  — oneofus emulator config (Firestore 8081, Functions 5002, UI 4001)
-  .firebaserc            — project alias: demo-hablotengo
+  .firebaserc            — project alias: hablotengo
   firestore.rules        — open read/write (integrity via signatures)
   lib/
     dev/
@@ -99,7 +99,7 @@ Hablo Cloud Function from an Android emulator, or the machine's LAN IP from a ph
 Then in the web app:
 - Click **Scan QR Code** on the sign-in screen — a QR dialog appears.
 - Open the ONE-OF-US.NET phone app and scan the QR (or use the scanner in the app).
-- The phone POSTs to `http://10.0.2.2:5003/demo-hablotengo/us-central1/signIn`.
+- The phone POSTs to `http://10.0.2.2:5003/hablotengo/us-central1/signIn`.
 - The web app listens on Firestore `sessions/doc/<session>` and picks up the response.
 - The sign-in screen should update to show the signed-in identity.
 
@@ -135,7 +135,7 @@ flutter analyze
 ## Firebase project
 
 - Production project ID: `hablotengo`
-- Emulator project ID: `demo-hablotengo` (demo- prefix = no auth required)
+- Emulator project ID: `hablotengo` (demo- prefix = no auth required)
 - Firestore rules: open write — integrity enforced by Ed25519 signatures at read time
 
 ## Architecture notes
