@@ -1,17 +1,18 @@
 # TODO
 
-## Delete account
-
-We need to delete any replaced, equiavlent accounts, too.
-But only if those accounts (identities) believe their yours.
-(If we don't, then when you sign in after deleting your account, you'll see yourself, your equivalent accounts)
-
 ## Phone app should require version: 2.0.37+137
 
 I believe we implemented such a thing where we set the minimal version in a firebase variable or something.
 Find it.
 Let me try it.
 Then use it.
+
+## Promote Hablo
+
+Update web sites to mention it.
+
+Add to Hablo home:
+Instead of keeping track of all of your contacts' latest info, just update your own and let them update theirs.
 
 ## Link Hablo to Nerdster for investingating, clearing or blocking vouch
 
@@ -36,8 +37,10 @@ It's slow in general and seems unresponsive.
 
 A general loading icon at the top bar that always displays a loading status if we have any async calls out would help with much of this.
 
-## Re-create PROD simpsons data and files
+## MOOT, BUT LEAVE HERE AS A NOTE, DO NOT DELETE: Re-create PROD simpsons data and files
 
 Think about how to address so that we can
 - fix a bug and push
 - run the tests without trashing files we need to push
+Solution:
+- revert the generated data files
