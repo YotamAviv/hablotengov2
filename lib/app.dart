@@ -242,7 +242,7 @@ class _SignedInScreenState extends State<_SignedInScreen> {
                 ? const Padding(
                     padding: EdgeInsets.symmetric(horizontal: 12),
                     child: SizedBox(width: 20, height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)),
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.teal)),
                   )
                 : IconButton(icon: const Icon(Icons.refresh), onPressed: () => _contactsKey.currentState?.reload()),
           ),
