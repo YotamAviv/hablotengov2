@@ -7,12 +7,13 @@ Find it.
 Let me try it.
 Then use it.
 
+## Simpsons demo data - don't create multiple delegate keys
+
+Sometimes we run the hablo creation more than once. It shouldn't create a delegate key if a delegate statement already exists.
+
 ## Promote Hablo
 
 Update web sites to mention it.
-
-Add to Hablo home:
-Instead of keeping track of all of your contacts' latest info, just update your own and let them update theirs.
 
 ## Link Hablo to Nerdster for investingating, clearing or blocking vouch
 
@@ -38,6 +39,8 @@ It's slow in general and seems unresponsive.
 A general loading icon at the top bar that always displays a loading status if we have any async calls out would help with much of this.
 
 ## MOOT, BUT LEAVE HERE AS A NOTE, DO NOT DELETE: Re-create PROD simpsons data and files
+
+TODO: Consider writing the simpsons identities to the database.
 
 Think about how to address so that we can
 - fix a bug and push

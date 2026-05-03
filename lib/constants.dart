@@ -1,4 +1,9 @@
 const String kHabloDomain = 'hablotengo.com';
+const String kNerdsterUrl = 'https://nerdster.org/app';
+
+String nerdsterAppUrl(bool emulator) => emulator
+    ? 'http://localhost:8765/'
+    : kNerdsterUrl;
 const int kHabloFirestoreEmulatorPort = 8082;
 const int kHabloFunctionsEmulatorPort = 5003;
 const String kHabloEmulatorProject = 'hablotengo';

@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:nerdster_common/trust_graph.dart';
 import 'package:nerdster_common/trust_pipeline.dart';
@@ -5,6 +7,7 @@ import 'package:oneofus_common/cloud_functions_source.dart';
 import 'package:oneofus_common/keys.dart';
 import 'package:oneofus_common/oou_verifier.dart';
 import 'package:oneofus_common/trust_statement.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'constants.dart';
 import 'contact_service.dart';
@@ -75,7 +78,7 @@ class ContactsScreenState extends State<ContactsScreen> {
       debugPrint('ContactsScreen: orderedKeys=${graph.orderedKeys.map((k) => k.value.substring(0, 8)).join(', ')}');
       final povGroup = graph.getEquivalenceGroup(graph.pov);
       debugPrint('ContactsScreen: pov equivalenceGroup=${povGroup.map((k) => k.value.substring(0, 8)).join(', ')}');
-      debugPrint('ContactsScreen: replacements=${graph.replacements.entries.map((e) => '${e.key.value.substring(0, 8)}→${e.value.value.substring(0, 8)}').join(', ')}');
+      debugPrint('ContactsScreen: equivalent2canonical=${graph.equivalent2canonical.entries.map((e) => '${e.key.value.substring(0, 8)}→${e.value.value.substring(0, 8)}').join(', ')}');
       for (final key in graph.orderedKeys) {
         final canonical = graph.resolveIdentity(key);
         if (canonical != key) {
@@ -286,8 +289,25 @@ class _ContactDetailSheet extends StatelessWidget {
   final bool emulator;
   const _ContactDetailSheet({required this.contact, required this.result, required this.emulator});
 
+  Uri _nerdsterUri({
+    required String povPayload,
+    required String targetPayload,
+    required String identityPathsReq,
+  }) {
+    return Uri.parse(nerdsterAppUrl(emulator)).replace(queryParameters: {
+      if (emulator) 'fire': 'emulator',
+      'pov': povPayload,
+      'target': targetPayload,
+      'fcontext': '<identity>',
+      'identityPathsReq': identityPathsReq,
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
+    final String myPayload = jsonEncode(FedKey(signInState.identityJson!, kNativeEndpoint).toPayload());
+    final String contactPayload = jsonEncode(FedKey.find(IdentityKey(contact.token))!.toPayload());
+
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -326,6 +346,39 @@ class _ContactDetailSheet extends StatelessWidget {
                   style: TextStyle(fontSize: 12, color: Colors.grey, fontStyle: FontStyle.italic),
                 ),
               ],
+            ],
+            ...[
+              const SizedBox(height: 16),
+              const Divider(),
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  TextButton.icon(
+                    icon: const Icon(Icons.hub, size: 16),
+                    label: const Text('You → them'),
+                    onPressed: () => launchUrl(
+                      _nerdsterUri(
+                        povPayload: myPayload,
+                        targetPayload: contactPayload,
+                        identityPathsReq: settingsState.defaultStrictness,
+                      ),
+                      mode: LaunchMode.externalApplication,
+                    ),
+                  ),
+                  TextButton.icon(
+                    icon: const Icon(Icons.hub, size: 16),
+                    label: const Text('Them → you'),
+                    onPressed: () => launchUrl(
+                      _nerdsterUri(
+                        povPayload: contactPayload,
+                        targetPayload: myPayload,
+                        identityPathsReq: result?.defaultStrictness ?? 'standard',
+                      ),
+                      mode: LaunchMode.externalApplication,
+                    ),
+                  ),
+                ],
+              ),
             ],
           ],
         ),

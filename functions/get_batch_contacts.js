@@ -94,7 +94,7 @@ async function handleGetBatchContacts(req, res) {
             const distance = graph.distances.get(auth.identityToken);
             const pathCount = graph.paths.get(auth.identityToken)?.length ?? 0;
             const { contact, someHidden } = _filterEntries(doc.data(), defaultStrictness, distance, pathCount);
-            result[targetToken] = { status: 'found', contact, ...(someHidden && { someHidden: true }) };
+            result[targetToken] = { status: 'found', contact, defaultStrictness, ...(someHidden && { someHidden: true }) };
           }
           return;
         }

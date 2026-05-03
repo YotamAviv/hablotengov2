@@ -16,7 +16,8 @@ class ContactResult {
   final ContactStatus status;
   final ContactData? contact;
   final bool someHidden;
-  const ContactResult({required this.status, this.contact, this.someHidden = false});
+  final String defaultStrictness;
+  const ContactResult({required this.status, this.contact, this.someHidden = false, this.defaultStrictness = 'standard'});
 }
 
 Map<String, dynamic> _authPayload() {
@@ -87,7 +88,8 @@ Future<Map<String, ContactResult>> getBatchContacts(List<String> targetTokens, b
         ? ContactData.fromJson(v['contact'] as Map<String, dynamic>)
         : null;
     final someHidden = v['someHidden'] == true;
-    return MapEntry(token, ContactResult(status: status, contact: contact, someHidden: someHidden));
+    final defaultStrictness = v['defaultStrictness'] as String? ?? 'standard';
+    return MapEntry(token, ContactResult(status: status, contact: contact, someHidden: someHidden, defaultStrictness: defaultStrictness));
   });
 }
 
