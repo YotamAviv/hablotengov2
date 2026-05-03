@@ -62,6 +62,14 @@ class ContactsScreenState extends State<ContactsScreen> {
 
   void reload() => _load();
 
+  List<String> get myMonikers {
+    final me = _contacts?.firstWhere(
+      (c) => c.token == signInState.identityToken,
+      orElse: () => _ContactEntry('', '', [], []),
+    );
+    return me?.monikers ?? [];
+  }
+
   Future<void> _load() async {
     try {
       final identityToken = signInState.identityToken!;
@@ -171,7 +179,7 @@ class ContactsScreenState extends State<ContactsScreen> {
       showModalBottomSheet(
         context: context,
         isScrollControlled: true,
-        builder: (_) => MyContactSheet(emulator: widget.emulator),
+        builder: (_) => MyContactSheet(emulator: widget.emulator, monikers: contact.monikers),
       );
       return;
     }

@@ -213,7 +213,7 @@ class _SignedInScreenState extends State<_SignedInScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder: (_) => MyContactSheet(emulator: widget.emulator),
+      builder: (_) => MyContactSheet(emulator: widget.emulator, monikers: _contactsKey.currentState?.myMonikers ?? []),
     ).then((_) => _contactsKey.currentState?.reload());
   }
 

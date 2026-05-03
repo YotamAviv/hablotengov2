@@ -7,7 +7,8 @@ import 'visibility_picker.dart';
 
 class MyContactSheet extends StatefulWidget {
   final bool emulator;
-  const MyContactSheet({super.key, required this.emulator});
+  final List<String> monikers;
+  const MyContactSheet({super.key, required this.emulator, this.monikers = const []});
 
   @override
   State<MyContactSheet> createState() => _MyContactSheetState();
@@ -208,9 +209,14 @@ class _MyContactSheetState extends State<MyContactSheet> {
                 Expanded(
                   child: _loading
                       ? const SizedBox.shrink()
-                      : Text(
-                          _contact?.name ?? '',
-                          style: titleStyle,
+                      : Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(_contact?.name ?? '', style: titleStyle),
+                            if (widget.monikers.isNotEmpty)
+                              Text(widget.monikers.join(', '),
+                                  style: const TextStyle(fontSize: 13, color: Colors.grey)),
+                          ],
                         ),
                 ),
                 if (!_loading && _error == null)
