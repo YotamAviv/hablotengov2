@@ -34,7 +34,8 @@ class _ContactEntry {
 
 class ContactsScreen extends StatefulWidget {
   final bool emulator;
-  const ContactsScreen({super.key, required this.emulator});
+  final String? startupTarget;
+  const ContactsScreen({super.key, required this.emulator, this.startupTarget});
 
   @override
   State<ContactsScreen> createState() => ContactsScreenState();
@@ -130,6 +131,23 @@ class ContactsScreenState extends State<ContactsScreen> {
         final tokens = contacts.map((c) => c.token).toList();
         final results = await getBatchContacts(tokens, widget.emulator);
         if (mounted) setState(() => _results = results);
+      }
+
+      // Auto-open contact detail after results are ready
+      if (widget.startupTarget != null && mounted) {
+        final target = contacts.firstWhere(
+          (c) => c.token == widget.startupTarget,
+          orElse: () => contacts.firstWhere(
+            (c) => c.myOldKeys.any((k) => k.$2 == widget.startupTarget),
+            orElse: () => contacts.first,
+          ),
+        );
+        if (target.token == widget.startupTarget ||
+            target.myOldKeys.any((k) => k.$2 == widget.startupTarget)) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) _showContactDetail(context, target);
+          });
+        }
       }
     } catch (e, st) {
       debugPrint('ContactsScreen: error: $e\n$st');

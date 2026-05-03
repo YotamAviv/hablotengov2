@@ -17,7 +17,8 @@ Future<void> main() async {
   final String? fireParam = kIsWeb ? Uri.base.queryParameters['fire'] : null;
   final bool emulator = kIsWeb && Uri.base.host == 'localhost' && fireParam != 'prod';
   final bool demoMode = kIsWeb && Uri.base.queryParameters['demo'] == 'true';
-  debugPrint('main: Uri.base=${Uri.base} emulator=$emulator demoMode=$demoMode');
+  final String? startupTarget = kIsWeb ? Uri.base.queryParameters['target'] : null;
+  debugPrint('main: Uri.base=${Uri.base} emulator=$emulator demoMode=$demoMode startupTarget=$startupTarget');
 
   try {
     await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
@@ -33,5 +34,5 @@ Future<void> main() async {
   startKeyStorageCoordinator();
   await tryRestoreKeys();
 
-  runApp(HabloApp(firestore: firestore, emulator: emulator, demoMode: demoMode));
+  runApp(HabloApp(firestore: firestore, emulator: emulator, demoMode: demoMode, startupTarget: startupTarget));
 }

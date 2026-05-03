@@ -17,15 +17,16 @@ class HabloApp extends StatelessWidget {
   final FirebaseFirestore firestore;
   final bool emulator;
   final bool demoMode;
+  final String? startupTarget;
 
-  const HabloApp({super.key, required this.firestore, required this.emulator, this.demoMode = false});
+  const HabloApp({super.key, required this.firestore, required this.emulator, this.demoMode = false, this.startupTarget});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'HabloTengo',
       theme: ThemeData(colorSchemeSeed: Colors.teal),
-      home: _HabloHome(firestore: firestore, emulator: emulator, demoMode: demoMode),
+      home: _HabloHome(firestore: firestore, emulator: emulator, demoMode: demoMode, startupTarget: startupTarget),
     );
   }
 }
@@ -34,8 +35,9 @@ class _HabloHome extends StatefulWidget {
   final FirebaseFirestore firestore;
   final bool emulator;
   final bool demoMode;
+  final String? startupTarget;
 
-  const _HabloHome({required this.firestore, required this.emulator, required this.demoMode});
+  const _HabloHome({required this.firestore, required this.emulator, required this.demoMode, this.startupTarget});
 
   @override
   State<_HabloHome> createState() => _HabloHomeState();
@@ -144,6 +146,7 @@ class _HabloHomeState extends State<_HabloHome> {
             signInState.signOut();
           },
           emulator: widget.emulator,
+          startupTarget: widget.startupTarget,
         );
       },
     );
@@ -195,8 +198,9 @@ class _HabloHomeState extends State<_HabloHome> {
 class _SignedInScreen extends StatefulWidget {
   final VoidCallback onSignOut;
   final bool emulator;
+  final String? startupTarget;
 
-  const _SignedInScreen({required this.onSignOut, required this.emulator});
+  const _SignedInScreen({required this.onSignOut, required this.emulator, this.startupTarget});
 
   @override
   State<_SignedInScreen> createState() => _SignedInScreenState();
@@ -231,7 +235,7 @@ class _SignedInScreenState extends State<_SignedInScreen> {
           TextButton(onPressed: widget.onSignOut, child: const Text('Sign out')),
         ],
       ),
-      body: ContactsScreen(key: _contactsKey, emulator: widget.emulator),
+      body: ContactsScreen(key: _contactsKey, emulator: widget.emulator, startupTarget: widget.startupTarget),
     );
   }
 }
