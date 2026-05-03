@@ -11,8 +11,6 @@ class SettingsState extends ChangeNotifier {
   bool showEmptyCards = false;
   bool showHiddenCards = false;
   String defaultStrictness = 'standard'; // 'permissive', 'standard', 'strict'
-  List<String> dismissedEquivalents = [];
-  String? disabledBy; // non-null if the signed-in account has been disabled
 
   Future<void> load(bool emulator) async {
     try {
@@ -29,8 +27,6 @@ class SettingsState extends ChangeNotifier {
       showEmptyCards = data['showEmptyCards'] as bool? ?? false;
       showHiddenCards = data['showHiddenCards'] as bool? ?? false;
       defaultStrictness = data['defaultStrictness'] as String? ?? 'standard';
-      dismissedEquivalents = List<String>.from(data['dismissedEquivalents'] as List? ?? []);
-      disabledBy = data['disabledBy'] as String?;
       notifyListeners();
     } catch (e) {
       debugPrint('SettingsState.load error: $e');
@@ -41,8 +37,6 @@ class SettingsState extends ChangeNotifier {
     showEmptyCards = false;
     showHiddenCards = false;
     defaultStrictness = 'standard';
-    dismissedEquivalents = [];
-    disabledBy = null;
     notifyListeners();
   }
 

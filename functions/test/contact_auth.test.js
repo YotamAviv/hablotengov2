@@ -1,6 +1,7 @@
 /**
- * Integration tests for getMyContact / setMyContact auth.
- * Requires the Hablo Firebase emulator running on port 5003.
+ * Integration tests for getMyContact / getContact auth.
+ * Requires the Hablo Firebase emulator running on port 5003
+ * with Simpsons demo data seeded (createSimpsonsContactData.sh).
  */
 
 const { test, describe, before } = require('node:test');
@@ -37,25 +38,13 @@ const sideshowJwk = SIMPSONS_KEYS['sideshow'];
 const lisaToken = keyToken(lisaJwk);
 const homerToken = keyToken(homerJwk);
 
-describe('contact card — demo auth roundtrip', () => {
-  const notes = `test-${Date.now()}`;
-
-  // Writes to Lisa's contact — modifies existing demo data. Approved.
-  test('setMyContact stores data for Lisa', async () => {
-    const res = await post('setMyContact', {
-      identity: lisaJwk,
-      demo: true,
-      contact: { name: 'Lisa', notes, entries: [] },
-    });
-    assert.strictEqual(res.status, 200, `setMyContact failed: ${await res.text()}`);
-  });
-
-  test('getMyContact returns the stored data', async () => {
+describe('getMyContact — seeded demo data', () => {
+  test('getMyContact returns data for Lisa', async () => {
     const res = await post('getMyContact', { identity: lisaJwk, demo: true });
     const body = await res.text();
     assert.strictEqual(res.status, 200, `getMyContact failed: ${body}`);
     const data = JSON.parse(body);
-    assert.strictEqual(data.notes, notes, `Expected notes="${notes}", got "${data.notes}"`);
+    assert.ok(data.name, `Expected contact data with a name, got: ${body}`);
   });
 });
 

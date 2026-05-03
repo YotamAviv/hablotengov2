@@ -15,6 +15,19 @@ function _resolveCanonical(equivalent2canonical, token) {
   return cur;
 }
 
+async function _deleteStreamsForIdentity(db, identityToken) {
+  const streamsSnap = await db.collection('streams')
+    .where('identityToken', '==', identityToken)
+    .get();
+  for (const streamDoc of streamsSnap.docs) {
+    const stmtsSnap = await streamDoc.ref.collection('statements').get();
+    const batch = db.batch();
+    for (const stmtDoc of stmtsSnap.docs) batch.delete(stmtDoc.ref);
+    batch.delete(streamDoc.ref);
+    await batch.commit();
+  }
+}
+
 async function handleDeleteAccount(req, res) {
   res.setHeader('Content-Type', 'application/json');
 
@@ -38,17 +51,18 @@ async function handleDeleteAccount(req, res) {
           k => _resolveCanonical(graph.equivalent2canonical, k) === auth.identityToken
         )
       : [];
+    const allOldTokens = myOldKeys;
 
+    // Delete all delegate streams (statements + stream doc) for each identity token.
+    await Promise.all([auth.identityToken, ...allOldTokens].map(tok => _deleteStreamsForIdentity(db, tok)));
+
+    // Delete settings docs.
     await Promise.all([
-      db.collection('contacts').doc(auth.identityToken).delete(),
       db.collection('settings').doc(auth.identityToken).delete(),
-      ...myOldKeys.flatMap(tok => [
-        db.collection('contacts').doc(tok).delete(),
-        db.collection('settings').doc(tok).delete(),
-      ]),
+      ...allOldTokens.map(tok => db.collection('settings').doc(tok).delete()),
     ]);
 
-    console.log(`[delete_account] deleted account for ${auth.identityToken} oldKeys=${myOldKeys.length}`);
+    console.log(`[delete_account] deleted account for ${auth.identityToken} oldKeys=${allOldTokens.length}`);
     res.status(200).json({});
   } catch (e) {
     console.error('[delete_account] error:', e.message);

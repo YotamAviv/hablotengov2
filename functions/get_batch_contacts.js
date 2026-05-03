@@ -3,6 +3,7 @@ const { verifyAuth } = require('./auth_util');
 const { MultiTargetTrustPipeline } = require('./multi_target_trust_pipeline');
 const { oneofusSource } = require('./oneofus_source');
 const { permissivePathRequirement, defaultPathRequirement, strictPathRequirement } = require('./trust_algorithm');
+const { buildContact } = require('./build_contact');
 
 function _meetsStrictness(level, distance, pathCount) {
   if (level === 'permissive') return true;
@@ -44,62 +45,47 @@ async function handleGetBatchContacts(req, res) {
   }
 
   try {
+    const db = admin.firestore();
     const pipeline = new MultiTargetTrustPipeline(oneofusSource, { pathRequirement: permissivePathRequirement });
     const graphs = await pipeline.buildAll(targetTokens);
 
-    // Determine access and collect candidate Firestore tokens for trusted targets
     const result = {};
-    const trustedTargets = []; // { targetToken, candidates, graph, isSelf }
+    const trustedTargets = []; // { targetToken, canonicalToken, graph, isSelf }
 
     for (const targetToken of targetTokens) {
       if (targetToken === auth.identityToken) {
-        trustedTargets.push({ targetToken, candidates: [targetToken], graph: null, isSelf: true });
+        trustedTargets.push({ targetToken, canonicalToken: auth.identityToken, graph: null, isSelf: true });
         continue;
       }
       const graph = graphs.get(targetToken);
-      // Also catch old keys: if the target's graph resolves target → auth user via equivalent2canonical
       if (graph && _resolveCanonical(graph.equivalent2canonical, targetToken) === auth.identityToken) {
-        trustedTargets.push({ targetToken, candidates: [auth.identityToken, targetToken], graph: null, isSelf: true });
+        trustedTargets.push({ targetToken, canonicalToken: auth.identityToken, graph: null, isSelf: true });
         continue;
       }
       if (graph && graph.distances.has(auth.identityToken)) {
-        const oldKeys = [];
-        for (const [old, newt] of graph.equivalent2canonical) {
-          if (newt === targetToken) oldKeys.push(old);
-        }
-        const enabledOldKeys = (await Promise.all(oldKeys.map(async (tok) => {
-          const s = await admin.firestore().collection('settings').doc(tok).get();
-          return (s.exists && s.data().disabledBy) ? null : tok;
-        }))).filter(Boolean);
-        trustedTargets.push({ targetToken, candidates: [targetToken, ...enabledOldKeys], graph, isSelf: false });
+        trustedTargets.push({ targetToken, canonicalToken: targetToken, graph, isSelf: false });
       } else {
         result[targetToken] = { status: 'denied' };
       }
     }
 
-    // Fetch Firestore docs in parallel for all trusted targets
-    await Promise.all(trustedTargets.map(async ({ targetToken, candidates, graph, isSelf }) => {
+    await Promise.all(trustedTargets.map(async ({ targetToken, canonicalToken, graph, isSelf }) => {
+      const contact = await buildContact(db, canonicalToken);
+      if (!contact) {
+        result[targetToken] = { status: 'not_found' };
+        return;
+      }
+      if (isSelf) {
+        result[targetToken] = { status: 'found', contact };
+        return;
+      }
       let defaultStrictness = 'standard';
-      if (!isSelf) {
-        const settingsDoc = await admin.firestore().collection('settings').doc(targetToken).get();
-        if (settingsDoc.exists) defaultStrictness = settingsDoc.data().defaultStrictness ?? 'standard';
-      }
-
-      for (const tok of candidates) {
-        const doc = await admin.firestore().collection('contacts').doc(tok).get();
-        if (doc.exists) {
-          if (isSelf) {
-            result[targetToken] = { status: 'found', contact: doc.data() };
-          } else {
-            const distance = graph.distances.get(auth.identityToken);
-            const pathCount = graph.paths.get(auth.identityToken)?.length ?? 0;
-            const { contact, someHidden } = _filterEntries(doc.data(), defaultStrictness, distance, pathCount);
-            result[targetToken] = { status: 'found', contact, defaultStrictness, ...(someHidden && { someHidden: true }) };
-          }
-          return;
-        }
-      }
-      result[targetToken] = { status: 'not_found' };
+      const settingsDoc = await db.collection('settings').doc(canonicalToken).get();
+      if (settingsDoc.exists) defaultStrictness = settingsDoc.data().defaultStrictness ?? 'standard';
+      const distance = graph.distances.get(auth.identityToken);
+      const pathCount = graph.paths.get(auth.identityToken)?.length ?? 0;
+      const { contact: filtered, someHidden } = _filterEntries(contact, defaultStrictness, distance, pathCount);
+      result[targetToken] = { status: 'found', contact: filtered, defaultStrictness, ...(someHidden && { someHidden: true }) };
     }));
 
     console.log(`[get_batch_contacts] ${auth.identityToken} batch=${targetTokens.length} trusted=${trustedTargets.length}`);

@@ -44,12 +44,6 @@ exports.getMyContact = onRequest({ cors: true }, async (req, res) => {
   await handleGetMyContact(req, res);
 });
 
-const { handleSetMyContact } = require('./set_my_contact');
-
-exports.setMyContact = onRequest({ cors: true }, async (req, res) => {
-  await handleSetMyContact(req, res);
-});
-
 const { handleGetSettings } = require('./get_settings');
 
 exports.getSettings = onRequest({ cors: true }, async (req, res) => {
@@ -60,30 +54,6 @@ const { handleSetSettings } = require('./set_settings');
 
 exports.setSettings = onRequest({ cors: true }, async (req, res) => {
   await handleSetSettings(req, res);
-});
-
-const { handleGetEquivalentStatus } = require('./get_equivalent_status');
-
-exports.getEquivalentStatus = onRequest({ cors: true }, async (req, res) => {
-  await handleGetEquivalentStatus(req, res);
-});
-
-const { handleDisableEquivalent } = require('./disable_equivalent');
-
-exports.disableEquivalent = onRequest({ cors: true }, async (req, res) => {
-  await handleDisableEquivalent(req, res);
-});
-
-const { handleDismissEquivalent } = require('./dismiss_equivalent');
-
-exports.dismissEquivalent = onRequest({ cors: true }, async (req, res) => {
-  await handleDismissEquivalent(req, res);
-});
-
-const { handleEnableAccount } = require('./enable_account');
-
-exports.enableAccount = onRequest({ cors: true }, async (req, res) => {
-  await handleEnableAccount(req, res);
 });
 
 const { handleDeleteAccount } = require('./delete_account');

@@ -73,71 +73,8 @@ async function handleWrite(req, res) {
     return;
   }
 
-  try {
-    await rebuildContactsCache(db, auth.identityToken);
-  } catch (e) {
-    console.error('[write] rebuildContactsCache error:', e.message);
-  }
-
   console.log(`[write] token=${token} delegate=${delegateToken} identity=${auth.identityToken}`);
   res.status(200).json({ token });
-}
-
-async function rebuildContactsCache(db, identityToken) {
-  const streamsSnap = await db.collection('streams')
-    .where('identityToken', '==', identityToken)
-    .get();
-
-  const allStatements = [];
-  for (const streamDoc of streamsSnap.docs) {
-    const stmtsSnap = await streamDoc.ref.collection('statements').get();
-    for (const stmtDoc of stmtsSnap.docs) {
-      allStatements.push(stmtDoc.data());
-    }
-  }
-
-  allStatements.sort((a, b) => {
-    const ta = a.time ?? '';
-    const tb = b.time ?? '';
-    return ta < tb ? -1 : ta > tb ? 1 : 0;
-  });
-
-  let name = '';
-  let notes = null;
-  const entries = {};
-
-  for (const stmt of allStatements) {
-    const set = stmt.set;
-    const clear = stmt.clear;
-
-    if (set && typeof set === 'object') {
-      if (set.field === 'name') {
-        name = set.value ?? '';
-      } else if (set.field === 'notes') {
-        notes = set.value ?? null;
-      } else if (typeof set.order === 'number') {
-        entries[set.order] = {
-          order: set.order,
-          tech: set.tech,
-          value: set.value,
-          ...(set.preferred ? { preferred: true } : {}),
-          ...(set.visibility && set.visibility !== 'default' ? { visibility: set.visibility } : {}),
-        };
-      }
-    } else if (typeof clear === 'number') {
-      delete entries[clear];
-    }
-  }
-
-  const entriesArray = Object.values(entries).sort((a, b) => a.order - b.order);
-  const contact = {
-    name,
-    entries: entriesArray,
-    time: new Date().toISOString(),
-  };
-  if (notes !== null) contact.notes = notes;
-
-  await db.collection('contacts').doc(identityToken).set(contact);
 }
 
 module.exports = { handleWrite };

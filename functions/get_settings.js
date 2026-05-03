@@ -14,8 +14,6 @@ async function handleGetSettings(req, res) {
       showEmptyCards: data.showEmptyCards ?? false,
       showHiddenCards: data.showHiddenCards ?? false,
       defaultStrictness: data.defaultStrictness ?? 'standard',
-      dismissedEquivalents: data.dismissedEquivalents ?? [],
-      disabledBy: data.disabledBy ?? null,
     });
   } catch (e) {
     console.error('[get_settings] error:', e.message);

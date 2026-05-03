@@ -6,7 +6,6 @@ import 'package:nerdster_common/ui/sign_in_dialog.dart';
 import 'constants.dart';
 import 'contacts_screen.dart';
 import 'demo_sign_in_service.dart';
-import 'equivalent_popup.dart';
 import 'key_store.dart';
 import 'my_contact_screen.dart';
 import 'settings_screen.dart';
@@ -126,20 +125,7 @@ class _HabloHomeState extends State<_HabloHome> {
           }
           return const Scaffold(body: SizedBox.shrink());
         }
-        settingsState.load(widget.emulator).then((_) {
-          if (!context.mounted) return;
-          final disabledBy = settingsState.disabledBy;
-          if (disabledBy != null) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (context.mounted) {
-                showDisabledAccountAlert(context, disabledBy, widget.emulator, () {
-                  settingsState.reset();
-                  signInState.signOut();
-                });
-              }
-            });
-          }
-        });
+        settingsState.load(widget.emulator);
         return _SignedInScreen(
           onSignOut: () {
             settingsState.reset();

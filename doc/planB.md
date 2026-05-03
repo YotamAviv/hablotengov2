@@ -45,9 +45,9 @@ For deletion:
 
 Merge rule: latest non-cleared statement per `order` wins. Display order: sort by `order`.
 
-Notary stream path: `{delegateToken}/statements/{statementToken}` — same layout as the
-Nerdster. `contacts/{identityToken}` is still updated on every write as a merged fast-read
-cache.
+Notary stream path: `streams/{delegateToken}/statements/{statementToken}` — same layout as
+the Nerdster. Each stream doc has an `identityToken` field pointing to the identity that
+owns the delegate key.
 
 The write infrastructure already exists in `oneofus_common`:
 - **`CloudFunctionsWriter`** (Dart) — per-issuer serialized writes, calls a `/write` endpoint
@@ -56,8 +56,27 @@ The write infrastructure already exists in `oneofus_common`:
 - **`write.js`** (server) — verifies signature, enforces chain linking and time ordering,
   writes to Firestore
 
-Hablo needs a thin wrapper of `write.js` that adds the delegate verification step and
-updates the `contacts` cache after each write.
+## Storage: streams only (no contacts/ cache)
+
+Contact data lives entirely in `streams/{delegateToken}/statements/{statementToken}`.
+There is no `contacts/{identityToken}` materialized view. `buildContact(db, identityToken)`
+(in `build_contact.js`) replays stream statements to produce the contact object on every
+read.
+
+When a user rotates keys, the old delegate key is revoked by publishing a `TrustVerb.revoke`
+statement in ONE-OF-US.NET. `buildContact` finds the delegate's stream via `identityToken`
+field; the server verifies current delegate trust on every write, so revoked delegates cannot
+add new statements. Reads are unaffected by revocation — old statements remain readable.
+
+### Key merge path
+
+When `disableEquivalent` is called with `mergeContact: true`:
+- The old key's token is added to `settings/{canonicalToken}.mergedTokens`.
+- `buildContact` includes streams for all tokens in `mergedTokens` automatically.
+
+When `deleteAccount` is called:
+- All streams and their statements are deleted for the canonical token and all merged tokens.
+- Settings docs are deleted.
 
 ## What changes
 
@@ -97,27 +116,33 @@ updates the `contacts` cache after each write.
 
 ### Server (Cloud Functions / JS)
 
-8. **`write.js`** (new — wraps existing write logic from nerdster14/oneofus_common)
+8. **`write.js`**
    - Request body: `{ statement, identity, sessionTime, sessionSignature }`
    - Verify session auth (`verifyAuth`) — proves submitter controls `verifiedIdentity`
    - Verify statement signature — proves delegate key signed this content
    - Verify `statement.with.verifiedIdentity == auth.identityToken`
    - Verify `I` is a current, non-revoked delegate of `verifiedIdentity` in ONE-OF-US.NET
    - Enforce chain (reuse nerdster14's `write.js` chain logic)
-   - After writing to the notary stream, recompute merged contact card and update
-     `contacts/{identityToken}` cache
-   - Demo users: identities are hard-coded; skip delegate verification and signature check,
-     same as current code. No new problem introduced.
+   - Writes to `streams/{delegateToken}/statements/{statementToken}`; sets `identityToken` on the stream doc
 
-9. **`index.js`**
-   - Register the `/write` endpoint
+9. **`build_contact.js`**
+   - `buildContact(db, identityToken)`: collects all streams where `identityToken == token`,
+     replays statements sorted by time, returns merged contact object or null
+
+10. **`get_my_contact.js`**, **`get_contact.js`**, **`get_batch_contacts.js`**
+    - All call `buildContact(db, token)` — no contacts/ cache read
+
+11. **`index.js`**
+    - Register `/write` and `/getStreamHead` endpoints; `setMyContact` removed
 
 ## What's deferred
 
 - "Show Crypto" UI
 - Third-party write authorization
+- Signed settings (showEmptyCards, defaultStrictness, etc. remain plain Firestore docs in `settings/`)
 
 ## Notes
 
 - No migration of existing unsigned data. First signed write from a user replaces it naturally.
 - Stream read access uses the same session auth + BFS check as reading the contact card.
+- Demo users: server accepts demo auth tokens directly; no signature verification needed for writes.

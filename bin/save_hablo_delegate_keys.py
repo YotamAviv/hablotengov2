@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Reads a log file (from createSimpsonsContactData.sh), parses HABLO_DELEGATE lines,
-and writes {name}-hablo0 entries to simpsonsPrivateKeys.json."""
+and writes {name}-hablo0 entries to simpsonsHabloKeys.json (sibling of simpsonsPrivateKeys.json)."""
 import json, os, re, sys
 
 if len(sys.argv) != 2:
@@ -8,10 +8,12 @@ if len(sys.argv) != 2:
     sys.exit(1)
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
-keys_path = os.path.join(script_dir, '..', '..', 'simpsonsPrivateKeys.json')
+keys_path = os.path.join(script_dir, '..', '..', 'simpsonsHabloKeys.json')
 
-with open(keys_path) as f:
-    all_keys = json.load(f)
+all_keys = {}
+if os.path.exists(keys_path):
+    with open(keys_path) as f:
+        all_keys = json.load(f)
 
 with open(sys.argv[1]) as f:
     for line in f:

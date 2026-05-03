@@ -11,8 +11,6 @@ import 'package:url_launcher/url_launcher.dart';
 
 import 'constants.dart';
 import 'contact_service.dart';
-import 'equivalent_popup.dart';
-import 'equivalent_service.dart';
 import 'labeler.dart';
 import 'my_contact_screen.dart' show ContactEntryViewRow, MyContactSheet;
 import 'settings_state.dart';
@@ -121,23 +119,6 @@ class ContactsScreenState extends State<ContactsScreen> {
       }
 
       setState(() => _contacts = contacts);
-
-      // Check for undismissed, non-disabled equivalent keys on the signed-in user's identity.
-      final myOldKeys = graph.getEquivalenceGroup(graph.pov)
-          .where((k) => k != graph.pov)
-          .map((k) => k.value)
-          .toList();
-      if (myOldKeys.isNotEmpty && mounted && signInState.hasDelegate) {
-        final status = await getEquivalentStatus(myOldKeys, widget.emulator);
-        if (mounted) {
-          WidgetsBinding.instance.addPostFrameCallback((_) async {
-            if (mounted) {
-              final anyDisabled = await showEquivalentPopupsIfNeeded(context, myOldKeys, status, widget.emulator);
-              if (mounted && anyDisabled) _load();
-            }
-          });
-        }
-      }
 
       // Batch-load all contact cards
       if (contacts.isNotEmpty) {

@@ -2,6 +2,7 @@ const admin = require('firebase-admin');
 const { verifyAuth } = require('./auth_util');
 const { TrustPipeline } = require('./trust_algorithm');
 const { oneofusSource } = require('./oneofus_source');
+const { buildContact } = require('./build_contact');
 
 async function handleGetContact(req, res) {
   res.setHeader('Content-Type', 'application/json');
@@ -15,15 +16,16 @@ async function handleGetContact(req, res) {
     return;
   }
 
-  if (targetToken === auth.identityToken) {
-    // Reading your own contact — just return it directly.
-    const doc = await admin.firestore().collection('contacts').doc(targetToken).get();
-    if (!doc.exists) { res.status(404).json(null); return; }
-    res.status(200).json(doc.data());
-    return;
-  }
-
   try {
+    const db = admin.firestore();
+
+    if (targetToken === auth.identityToken) {
+      const contact = await buildContact(db, auth.identityToken);
+      if (!contact) { res.status(404).json(null); return; }
+      res.status(200).json(contact);
+      return;
+    }
+
     const pipeline = new TrustPipeline(oneofusSource);
     const graph = await pipeline.build(targetToken);
 
@@ -33,23 +35,13 @@ async function handleGetContact(req, res) {
       return;
     }
 
-    // targetToken is the canonical (newest) key. The contact may be stored under
-    // an older key if the subject has replaced their key. Try all keys that
-    // resolve to targetToken via the equivalent2canonical map.
-    const candidateTokens = [targetToken];
-    for (const [old, newt] of graph.equivalent2canonical) {
-      if (newt === targetToken) candidateTokens.push(old);
-    }
-
-    let doc = null;
-    for (const tok of candidateTokens) {
-      const d = await admin.firestore().collection('contacts').doc(tok).get();
-      if (d.exists) { doc = d; break; }
-    }
-    if (!doc) { res.status(404).json(null); return; }
+    // targetToken may be a canonical that replaced an older key; buildContact
+    // handles equivalent merges via settings.mergedTokens, so we only need the canonical.
+    const contact = await buildContact(db, targetToken);
+    if (!contact) { res.status(404).json(null); return; }
 
     console.log(`[get_contact] ${auth.identityToken} reading contact of ${targetToken}`);
-    res.status(200).json(doc.data());
+    res.status(200).json(contact);
   } catch (e) {
     console.error('[get_contact] error:', e.message);
     res.status(500).send(e.message);
