@@ -35,7 +35,8 @@ class _ContactEntry {
 class ContactsScreen extends StatefulWidget {
   final bool emulator;
   final String? startupTarget;
-  const ContactsScreen({super.key, required this.emulator, this.startupTarget});
+  final ValueNotifier<bool>? isLoading;
+  const ContactsScreen({super.key, required this.emulator, this.startupTarget, this.isLoading});
 
   @override
   State<ContactsScreen> createState() => ContactsScreenState();
@@ -46,10 +47,12 @@ class ContactsScreenState extends State<ContactsScreen> {
   Map<String, ContactResult>? _results;
   String? _error;
   final TextEditingController _searchCtrl = TextEditingController();
+  late final ValueNotifier<bool> _loadingNotifier;
 
   @override
   void initState() {
     super.initState();
+    _loadingNotifier = widget.isLoading ?? ValueNotifier(true);
     _load();
     _searchCtrl.addListener(() => setState(() {}));
   }
@@ -57,6 +60,7 @@ class ContactsScreenState extends State<ContactsScreen> {
   @override
   void dispose() {
     _searchCtrl.dispose();
+    if (widget.isLoading == null) _loadingNotifier.dispose();
     super.dispose();
   }
 
@@ -71,6 +75,7 @@ class ContactsScreenState extends State<ContactsScreen> {
   }
 
   Future<void> _load() async {
+    _loadingNotifier.value = true;
     try {
       final identityToken = signInState.identityToken!;
       debugPrint('ContactsScreen: building trust graph from $identityToken');
@@ -160,6 +165,8 @@ class ContactsScreenState extends State<ContactsScreen> {
     } catch (e, st) {
       debugPrint('ContactsScreen: error: $e\n$st');
       setState(() => _error = e.toString());
+    } finally {
+      if (mounted) _loadingNotifier.value = false;
     }
   }
 
@@ -289,8 +296,8 @@ class _ContactNameWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (result == null) {
-      // Still loading batch results
-      return Text(contact.name, style: const TextStyle(fontWeight: FontWeight.bold));
+      return Text(contact.name,
+          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black38));
     }
     return switch (result!.status) {
       ContactStatus.found => Text(

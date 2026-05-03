@@ -208,6 +208,13 @@ class _SignedInScreen extends StatefulWidget {
 
 class _SignedInScreenState extends State<_SignedInScreen> {
   final _contactsKey = GlobalKey<ContactsScreenState>();
+  final ValueNotifier<bool> _isLoading = ValueNotifier(true);
+
+  @override
+  void dispose() {
+    _isLoading.dispose();
+    super.dispose();
+  }
 
   void _openMyCard(BuildContext context) {
     showModalBottomSheet(
@@ -229,13 +236,22 @@ class _SignedInScreenState extends State<_SignedInScreen> {
       appBar: AppBar(
         title: const Text('HabloTengo'),
         actions: [
-          IconButton(icon: const Icon(Icons.refresh), onPressed: () => _contactsKey.currentState?.reload()),
+          ValueListenableBuilder<bool>(
+            valueListenable: _isLoading,
+            builder: (_, loading, _) => loading
+                ? const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 12),
+                    child: SizedBox(width: 20, height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)),
+                  )
+                : IconButton(icon: const Icon(Icons.refresh), onPressed: () => _contactsKey.currentState?.reload()),
+          ),
           IconButton(icon: const Icon(Icons.settings), onPressed: () => _openSettings(context)),
           IconButton(icon: const Icon(Icons.person), onPressed: () => _openMyCard(context)),
           TextButton(onPressed: widget.onSignOut, child: const Text('Sign out')),
         ],
       ),
-      body: ContactsScreen(key: _contactsKey, emulator: widget.emulator, startupTarget: widget.startupTarget),
+      body: ContactsScreen(key: _contactsKey, emulator: widget.emulator, startupTarget: widget.startupTarget, isLoading: _isLoading),
     );
   }
 }
