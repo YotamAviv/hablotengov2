@@ -1,30 +1,12 @@
 # TODO
 
-## Phone app should require version: 2.0.37+137
-
-I believe we implemented such a thing where we set the minimal version in a firebase variable or something.
-Find it.
-Let me try it.
-Then use it.
-
 ## Simpsons demo data - don't create multiple delegate keys
 
 Sometimes we run the hablo creation more than once. It shouldn't create a delegate key if a delegate statement already exists.
 
-## Promote Hablo
-
-Update web sites to mention it.
-
-## Link Hablo to Nerdster for investingating, clearing or blocking vouch
-
-The Nerdster will need url param upgrades to support this
-Show graph for 
-- You (PoV) to target
-- target to you
-
 ## Link Nerdster to Hablo
 
-Show a contact info link to Hablo in Nerdster' NodeDetails if delegate key exists.
+Show a contact info link to Hablo in the Nerdster's NodeDetails if Hablo delegate key exists.
 
 ## The Hablo client seems to shows data before it's ready to show
 
