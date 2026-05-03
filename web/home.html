@@ -14,11 +14,9 @@
       flex-direction: column;
       min-height: 100vh;
     }
-
     nav {
       display: flex;
       align-items: center;
-      justify-content: space-between;
       padding: 1rem 2rem;
       background: #fff;
       border-bottom: 1px solid #e0e0e0;
@@ -39,107 +37,24 @@
       font-size: 1.3rem;
       font-weight: 600;
     }
-    .nav-links {
-      display: flex;
-      gap: 1.25rem;
-      align-items: center;
-    }
-    .nav-links a {
-      text-decoration: none;
-      color: #555;
-      font-size: 0.95rem;
-    }
-    .nav-links a.primary {
-      background: #1a73e8;
-      color: #fff;
-      padding: 0.45rem 1rem;
-      border-radius: 6px;
-      font-weight: 500;
-    }
-    .nav-links a.primary:hover { background: #1558b0; }
-    .nav-links a:not(.primary):hover { color: #111; }
-
     main {
       flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
       padding: 3rem 2rem;
-      max-width: 680px;
-      margin: 0 auto;
-      width: 100%;
-    }
-
-    .hero {
       text-align: center;
-      margin-bottom: 2rem;
     }
-    .hero h1 {
-      font-size: 2.2rem;
-      margin-bottom: 0.75rem;
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 1rem;
     }
-    .hero p {
+    p {
       font-size: 1.1rem;
       color: #555;
       line-height: 1.6;
     }
-
-    .embed-area {
-      width: 100%;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      overflow: hidden;
-      background: #fff;
-    }
-    .embed-area iframe {
-      width: 100%;
-      height: 600px;
-      border: none;
-      display: block;
-    }
-
-    .demo-note {
-      margin-top: 0.75rem;
-      font-size: 0.9rem;
-      color: #666;
-      line-height: 1.5;
-      text-align: center;
-    }
-
-    .tabs {
-      margin-top: 2rem;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      overflow: hidden;
-      background: #fff;
-    }
-    .tab-bar {
-      display: flex;
-      border-bottom: 1px solid #ddd;
-    }
-    .tab-bar button {
-      flex: 1;
-      padding: 0.6rem 1rem;
-      background: none;
-      border: none;
-      cursor: pointer;
-      font-size: 0.9rem;
-      color: #555;
-      border-bottom: 2px solid transparent;
-      margin-bottom: -1px;
-    }
-    .tab-bar button.active {
-      color: #1a73e8;
-      border-bottom-color: #1a73e8;
-      font-weight: 500;
-    }
-    .tab-bar button:hover:not(.active) { background: #f5f5f5; }
-    .tab-panel {
-      display: none;
-      padding: 1.25rem 1.5rem;
-      font-size: 0.95rem;
-      line-height: 1.7;
-      color: #444;
-    }
-    .tab-panel.active { display: block; }
-
     footer {
       text-align: center;
       padding: 1.25rem 2rem;
@@ -164,80 +79,12 @@
       <img src="/hablo.png" alt="HabloTengo logo" />
       <span>HabloTengo</span>
     </a>
-    <div class="nav-links">
-      <a href="/app" class="primary">Open App</a>
-    </div>
   </nav>
 
   <main>
-    <div class="hero">
-      <h1>HabloTengo</h1>
-      <p>Share contact info — trusted, secure, nothing published or public.</p>
-      <p>Leverages our decentralized identity network, see <a href="https://one-of-us.net">one-of-us.net</a>.</p>
-      <p>Instead of keeping track of your contacts' latest info, just keep your own updated and let them update theirs.</p>
-    </div>
-
-    <div class="embed-area">
-      <iframe src="/app?demo=true" title="HabloTengo demo"></iframe>
-    </div>
-    <p class="demo-note">
-      The demo above is pre-loaded with Simpsons dummy data. Sign in, sign out, sign in as someone else, change settings, ...
-    </p>
-    <div class="tabs">
-      <div class="tab-bar">
-        <button class="active" onclick="switchTab(0)">HabloTengo</button>
-        <button onclick="switchTab(1)">English</button>
-        <button onclick="switchTab(2)">Español</button>
-      </div>
-      <div class="tab-panel active">
-        HabloTengo te deja share tu contact info — teléfono, email, dirección — solo con la gente
-        que tú trust, usando nuestra decentralized identity network. A diferencia del Nerdster, que es open y
-        transparent by design, HabloTengo keeps it private: nada se publica, y solo tu trusted
-        network puede ver tu card.
-      </div>
-      <div class="tab-panel">
-        HabloTengo lets you share contact info — phone, email, address — only with people you trust,
-        through our decentralized identity network. Unlike the Nerdster, which is open and fully
-        transparent by design, HabloTengo keeps everything private: nothing is published or public,
-        and only your trusted contacts can see your card.
-      </div>
-      <div class="tab-panel">
-        HabloTengo te permite compartir tu información de contacto — teléfono, correo, dirección —
-        solo con personas de confianza, a través de nuestra red de identidad descentralizada. A diferencia
-        del Nerdster, que es abierto y completamente transparente por diseño, HabloTengo mantiene
-        todo privado: nada se publica, y solo tus contactos de confianza pueden ver tu tarjeta.
-      </div>
-    </div>
-
-    <details style="margin-top:1.5rem;">
-      <summary style="cursor:pointer;font-size:0.95rem;color:#555;">AI: The terrifying reality</summary>
-      <div style="margin-top:0.75rem;font-size:0.95rem;line-height:1.7;color:#444;">
-        Another difference between Hablo and Nerdster is that
-        <ul style="margin:0.5rem 0 0 1.25rem;">
-          <li>I (not a robot) wrote the original Nerdster (and ONE-OF-US.NET) by typing code.</li>
-          <li>Nerdster V2 development leveraged AI.</li>
-          <li>Hablo is 100% Clacker; I typed no code.</li>
-          <li>The above description was created by my telling it (nicely):
-            <blockquote style="margin:0.5rem 0 0 0.5rem;padding:0.5rem 1rem;border-left:3px solid #ccc;color:#666;font-style:italic;">
-              In your own words and in 3 sentences or less describe HabloTengo with a minor effort on contrasting it to the Nerdster.
-              Now translate that into Spanish and Spanglish.
-              Put the results in a tabbed view under the demo with the Spanglish titled HabloTengo.
-            </blockquote>
-          </li>
-        </ul>
-        Recognize: a robot wrote the code that will help us discern one-of-them from ONE-OF-US.
-      </div>
-    </details>
+    <h1>Coming Soon</h1>
+    <p>Share contact info — trusted, secure, nothing shared without authorization.</p>
   </main>
-
-  <script>
-    function switchTab(i) {
-      document.querySelectorAll('.tab-bar button').forEach((b, j) =>
-        b.classList.toggle('active', i === j));
-      document.querySelectorAll('.tab-panel').forEach((p, j) =>
-        p.classList.toggle('active', i === j));
-    }
-  </script>
 
   <footer>
     <a href="https://github.com/YotamAviv/hablotengov2" target="_blank">Open Source</a>
