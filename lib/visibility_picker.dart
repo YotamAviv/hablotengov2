@@ -83,10 +83,20 @@ class VisibilityHelpButton extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _row(ctx, 'permissive', 'Permissive', 'Anyone in your trust network'),
-            _row(ctx, 'standard',   'Standard',   'Within standard trust distance'),
-            _row(ctx, 'strict',     'Strict',      'Only very close contacts'),
-            _row(ctx, 'default',    'Default',     'Follows your default visibility setting'),
+            _row(ctx, 'permissive', 'Permissive',
+                'Anyone reachable in your network.'),
+            _row(ctx, 'standard', 'Standard',
+                '≤3 hops: 1 path. 4 hops: 2 paths. 5+: 3 paths.'),
+            _row(ctx, 'strict', 'Strict',
+                '≤2 hops: 1 path. 3 hops: 2 paths. 4+: 3 paths.'),
+            _row(ctx, 'default', 'Default',
+                'Uses your default visibility setting.'),
+            const SizedBox(height: 10),
+            const Text(
+              'You have one default visibility setting that applies to all fields, '
+              'but you can override it per field — for example: email on Permissive, phone on Strict.',
+              style: TextStyle(fontSize: 12, color: Colors.grey),
+            ),
           ],
         ),
         actions: [
@@ -107,12 +117,14 @@ class VisibilityHelpButton extends StatelessWidget {
             onChanged: (_) {},
           ),
           const SizedBox(width: 10),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(label, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-              Text(description, style: const TextStyle(fontSize: 12, color: Colors.grey)),
-            ],
+          Flexible(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                Text(description, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+              ],
+            ),
           ),
         ],
       ),
