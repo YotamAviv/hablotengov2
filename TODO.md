@@ -1,11 +1,22 @@
 # TODO
 
-## The Hablo client seems to shows data before it's ready to show
+## Not allow us to deceive or be a silo
 
-It looks like we see monikers before the cards are ready, then some go away some change when they're loaded
-When we don't know what's going on yet (who has data / data that's visible to us) paint the monikers in a gray that hints that they're still arriving / loading / being computed.
+An architectural change
 
-Add general loading icon at the top bar that displays a loading status iff we have any async calls out.
+The Nerdster presents a signed cryptographic chain from your key to all content.
+
+Hablo would need to replace the private nonce with a public none or nonce alternative, sort of like a delegate
+
+People could revoke or clear these with their identity app (like revoking or clering delegate keys)
+
+Hablo 
+- would respect revoked nonce/delegates.
+- would show proof from your identity to data (other user signed nonce/delegation to hablotengo.com)
+
+Other services could receive signed autorization to interact with Hablo: read contacts, maybe write/update, Hablo would authenticate and oblige
+
+
 
 ## Simpsons demo data - don't create multiple delegate keys
 
