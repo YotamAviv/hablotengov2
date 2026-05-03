@@ -22,7 +22,7 @@ const key2order = {
   "equate": 11,
   "dontEquate": 12,
   "follow": 13,
-  // 14 intentionally absent
+  "set": 14, // hablotengo: set entry or field
   "with": 15,
   "other": 16,
   "moniker": 17,

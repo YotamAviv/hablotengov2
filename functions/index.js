@@ -92,6 +92,18 @@ exports.deleteAccount = onRequest({ cors: true }, async (req, res) => {
   await handleDeleteAccount(req, res);
 });
 
+const { handleWrite } = require('./write');
+
+exports.write = onRequest({ cors: true }, async (req, res) => {
+  await handleWrite(req, res);
+});
+
+const { handleGetStreamHead } = require('./get_stream_head');
+
+exports.getStreamHead = onRequest({ cors: true }, async (req, res) => {
+  await handleGetStreamHead(req, res);
+});
+
 const { fetchStatements } = require('./statement_fetcher');
 const { parseIrevoke } = require('./jsonish_util');
 

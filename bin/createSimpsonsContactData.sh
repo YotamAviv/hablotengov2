@@ -9,5 +9,8 @@ echo "Requires: ../simpsonsPublicKeys.json and ../simpsonsPrivateKeys.json (run 
 echo ""
 
 
+tmpfile=$(mktemp)
 python3 bin/chrome_widget_runner.py --headless -t lib/dev/simpsons_demo.dart \
-    --dart-define=EMULATOR=true 2>&1
+    --dart-define=EMULATOR=true 2>&1 | tee "$tmpfile"
+python3 bin/save_hablo_delegate_keys.py "$tmpfile"
+rm "$tmpfile"

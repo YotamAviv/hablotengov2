@@ -173,7 +173,7 @@ class _HabloHomeState extends State<_HabloHome> {
       hasIdentity: () => signInState.hasIdentity,
       hasDelegate: () => signInState.hasDelegate,
       identityJson: () => signInState.identityJson,
-      delegatePublicKeyJson: () => null,
+      delegatePublicKeyJson: () => signInState.delegatePublicKeyJson,
       onSignOut: signInState.signOut,
       onForgetIdentity: signInState.signOut,
       showPasteInitially: widget.emulator,
@@ -246,7 +246,8 @@ class _SignedInScreenState extends State<_SignedInScreen> {
                   )
                 : IconButton(icon: const Icon(Icons.refresh), onPressed: () => _contactsKey.currentState?.reload()),
           ),
-          IconButton(icon: const Icon(Icons.settings), onPressed: () => _openSettings(context)),
+          if (signInState.hasDelegate)
+            IconButton(icon: const Icon(Icons.settings), onPressed: () => _openSettings(context)),
           IconButton(icon: const Icon(Icons.person), onPressed: () => _openMyCard(context)),
           TextButton(onPressed: widget.onSignOut, child: const Text('Sign out')),
         ],

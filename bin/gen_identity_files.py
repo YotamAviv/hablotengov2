@@ -22,6 +22,9 @@ with open(keys_path) as f:
 for key_name, display in CHARACTERS.items():
     key = private_keys[key_name]
     out = {'identity': key['keyPair']}
+    delegate_key = private_keys.get(f'{key_name}-hablo0')
+    if delegate_key:
+        out['hablotengo.com'] = delegate_key['keyPair']
     filename = f'{key_name}-identity.json'
     out_path = os.path.join(out_dir, filename)
     with open(out_path, 'w') as f:

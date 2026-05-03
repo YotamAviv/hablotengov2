@@ -1,15 +1,22 @@
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:oneofus_common/crypto/crypto.dart';
+import 'package:oneofus_common/crypto/crypto25519.dart';
 import 'package:oneofus_common/jsonish.dart';
+import 'package:oneofus_common/oou_signer.dart';
 
 class SignInState with ChangeNotifier {
   Json? _identityJson;
   String? _sessionTime;
   String? _sessionSignature;
   bool _isDemo = false;
+  OouKeyPair? _delegateKeyPair;
+  Json? _delegatePublicKeyJson;
+  StatementSigner? _signer;
 
   bool get hasIdentity => _identityJson != null;
-  bool get hasDelegate => false; // Hablo does not use delegate keys
+  bool get hasDelegate => _delegateKeyPair != null;
   bool get isDemo => _isDemo;
   bool get hasSession => _sessionTime != null && _sessionSignature != null;
 
@@ -17,38 +24,76 @@ class SignInState with ChangeNotifier {
   String? get identityToken => _identityJson != null ? getToken(_identityJson!) : null;
   String? get sessionTime => _sessionTime;
   String? get sessionSignature => _sessionSignature;
+  Json? get delegatePublicKeyJson => _delegatePublicKeyJson;
+  OouKeyPair? get delegateKeyPair => _delegateKeyPair;
+  StatementSigner? get signer => _signer;
 
-  // Called by SignInDialog.onData when the phone responds.
   Future<void> onData(Json data, PkeKeyPair pke) async {
     try {
       _identityJson = data['identity'] as Json?;
       _sessionTime = data['sessionTime'] as String?;
       _sessionSignature = data['sessionSignature'] as String?;
       _isDemo = false;
-      debugPrint('SignInState.onData: identityToken=$identityToken hasSession=$hasSession');
+      _delegateKeyPair = null;
+      _delegatePublicKeyJson = null;
+      _signer = null;
+      await _parseDelegate(data, pke);
+      debugPrint('SignInState.onData: identityToken=$identityToken hasSession=$hasSession hasDelegate=$hasDelegate');
       notifyListeners();
     } catch (e, st) {
       debugPrint('SignInState.onData error: $e\n$st');
     }
   }
 
-  // Called by tryRestoreKeys on app startup (real auth restore).
-  void restoreKeys(Json identityJson, {String? sessionTime, String? sessionSignature}) {
+  Future<void> _parseDelegate(Json data, PkeKeyPair pke) async {
+    if (data['delegateCiphertext'] == null && data['delegateCleartext'] == null) return;
+    try {
+      final String ephemeralPKKey = data.containsKey('ephemeralPK') ? 'ephemeralPK' : 'publicKey';
+      final PkePublicKey phonePke = await crypto.parsePkePublicKey(data[ephemeralPKKey]);
+      String? cleartext = data['delegateCleartext'] as String?;
+      if (data['delegateCiphertext'] != null) {
+        cleartext = await pke.decrypt(data['delegateCiphertext'] as String, phonePke);
+      }
+      final Json delegateJson = jsonDecode(cleartext!) as Json;
+      await _setDelegate(await crypto.parseKeyPair(delegateJson));
+    } catch (e, st) {
+      debugPrint('SignInState._parseDelegate error: $e\n$st');
+    }
+  }
+
+  Future<void> _setDelegate(OouKeyPair keyPair) async {
+    _delegateKeyPair = keyPair;
+    final OouPublicKey pk = await keyPair.publicKey;
+    _delegatePublicKeyJson = await pk.json;
+    _signer = await OouSigner.make(keyPair);
+  }
+
+  void restoreKeys(Json identityJson,
+      {String? sessionTime, String? sessionSignature, OouKeyPair? delegateKeyPair}) {
     _identityJson = identityJson;
     _sessionTime = sessionTime;
     _sessionSignature = sessionSignature;
     _isDemo = false;
-    debugPrint('SignInState.restoreKeys: identityToken=$identityToken hasSession=$hasSession');
-    notifyListeners();
+    _delegateKeyPair = null;
+    _delegatePublicKeyJson = null;
+    _signer = null;
+    debugPrint('SignInState.restoreKeys: identityToken=${getToken(identityJson)} hasSession=${sessionTime != null}');
+    if (delegateKeyPair != null) {
+      _setDelegate(delegateKeyPair).then((_) => notifyListeners());
+    } else {
+      notifyListeners();
+    }
   }
 
-  // Called by demo sign-in.
   void restoreDemoKeys(Json identityJson) {
     _identityJson = identityJson;
     _sessionTime = null;
     _sessionSignature = null;
     _isDemo = true;
-    debugPrint('SignInState.restoreDemoKeys: identityToken=$identityToken');
+    _delegateKeyPair = null;
+    _delegatePublicKeyJson = null;
+    _signer = null;
+    debugPrint('SignInState.restoreDemoKeys: identityToken=${getToken(identityJson)}');
     notifyListeners();
   }
 
@@ -58,6 +103,9 @@ class SignInState with ChangeNotifier {
     _sessionTime = null;
     _sessionSignature = null;
     _isDemo = false;
+    _delegateKeyPair = null;
+    _delegatePublicKeyJson = null;
+    _signer = null;
     notifyListeners();
   }
 }

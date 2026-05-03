@@ -127,7 +127,7 @@ class ContactsScreenState extends State<ContactsScreen> {
           .where((k) => k != graph.pov)
           .map((k) => k.value)
           .toList();
-      if (myOldKeys.isNotEmpty && mounted) {
+      if (myOldKeys.isNotEmpty && mounted && signInState.hasDelegate) {
         final status = await getEquivalentStatus(myOldKeys, widget.emulator);
         if (mounted) {
           WidgetsBinding.instance.addPostFrameCallback((_) async {

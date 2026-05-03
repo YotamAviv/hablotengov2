@@ -71,3 +71,7 @@ String habloEnableAccountUrl(bool emulator) => emulator
 String habloDeleteAccountUrl(bool emulator) => emulator
     ? 'http://127.0.0.1:$kHabloFunctionsEmulatorPort/$kHabloEmulatorProject/us-central1/deleteAccount'
     : 'https://us-central1-hablotengo.cloudfunctions.net/deleteAccount';
+
+String habloFunctionsBaseUrl(bool emulator) => emulator
+    ? 'http://127.0.0.1:$kHabloFunctionsEmulatorPort/$kHabloEmulatorProject/us-central1'
+    : 'https://us-central1-hablotengo.cloudfunctions.net';
