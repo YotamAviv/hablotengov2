@@ -2,15 +2,10 @@
 
 ## The Hablo client seems to shows data before it's ready to show
 
-It looks like 
-- we see monikers before the cards are ready
-- we see folks without cards before they're cleared (unless the setting says to show folks without cards)
+It looks like we see monikers before the cards are ready, then some go away some change when they're loaded
+When we don't know what's going on yet (who has data / data that's visible to us) paint the monikers in a gray that hints that they're still arriving / loading / being computed.
 
-It's confusing and looks sloppy.
-I'd prefer a loading icon until things are ready.
-It's slow in general and seems unresponsive.
-
-A general loading icon at the top bar that always displays a loading status if we have any async calls out would help with much of this.
+Add general loading icon at the top bar that displays a loading status iff we have any async calls out.
 
 ## Simpsons demo data - don't create multiple delegate keys
 
