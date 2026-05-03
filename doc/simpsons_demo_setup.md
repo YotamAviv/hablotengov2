@@ -1,7 +1,20 @@
 # Simpsons Demo Data Setup
 
-Creates the Simpsons demo identities in oneofus, Hablo delegate keys, and Hablo contact data.
+Creates the Simpsons 
+Nerdster scripts create:
+- identities and nerdster delegates in oneofus
+- content data in nerdster
+Hablo scripts create:
+- hablo delegates in oneofus
+- contact data in hablo
+
 Run the nerdster step first — it produces the key files that hablotengo consumes.
+
+Hablo's been a bigger pain because:
+- it's mostly implemented in JavaScript cloud functions and so requires more integration testing.
+- it has more cloud functions, and so the emulator is slow to start
+- its testing changes database state and needs to be restored between runs.
+- its data is protected, and so it requires disabling protection guards to write the demo data.
 
 ---
 
@@ -15,7 +28,7 @@ cd ~/src/github/oneofusv22   && bin/start_emulator.sh --empty
 cd ~/src/github/hablotengo   && bin/start_emulator.sh --empty
 ```
 
-### 2. Create nerdster demo data
+### 2. Create nerdster and oneofus demo data
 
 ```
 cd ~/src/github/nerdster14
@@ -33,8 +46,7 @@ python3 bin/gen_simpsons_private_keys_dart.py
 python3 bin/gen_simpsons_server_keys.py
 ```
 
-Generates `lib/dev/simpsons_public_keys.dart`, `lib/dev/simpsons_private_keys.dart` (gitignored),
-and `functions/simpsons_keys.json` from the JSON files produced in step 2.
+Generates `lib/dev/simpsons_public_keys.dart`, `lib/dev/simpsons_private_keys.dart` (gitignored), and `functions/simpsons_keys.json` from the JSON files produced in step 2.
 
 ### 4. Create Hablo contact data
 
@@ -102,7 +114,7 @@ Restore `functions/set_my_contact.js` and redeploy:
 firebase deploy --only functions:setMyContact
 ```
 
-### 6. Deploy hablotengo web app
+### 6. Deploy hablotengo web app  (critical for demo)
 
 ```
 cd ~/src/github/hablotengo
@@ -111,6 +123,10 @@ bin/deploy_web.sh
 
 Required because `simpsons_public_keys.dart` (compiled into the web app) contains the new identities.
 
-### 7. Commit and deploy nerdster
+### 7. Commit and deploy nerdster and oneofus (less critical)
 
-Commit `web/common/data/demoData.js` in nerdster14 and deploy the web app.
+Commit `web/common/data/demoData.js` in nerdster and deploy:
+bin/deploy_web.sh
+
+Commit  `web/common/data/demoData.js` in oneofus and deploy:
+firebase --project=one-of-us-net deploy --only hosting
