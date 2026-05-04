@@ -14,9 +14,7 @@ ONE-OF-US.NET identity key.
 
 ## If your phone is stolen or your key is compromised
 
-Act quickly. Someone holding your key can read your contact data and the contact data of
-everyone who trusts you. They can also write false contact information that your network
-will see as coming from you.
+Act quickly.
 
 **Steps to recover:**
 
@@ -24,7 +22,7 @@ will see as coming from you.
 
 Tell at least a few of those who've previously vouched for your formerly recognized identity.
 
-3. **Claim and revoke your Hablotengo delegate key** using your new identity. Set the revocation time
+2. **Claim and revoke your Hablotengo delegate key** using your new identity. Set the revocation time
    to when you believe the compromise occurred (or since always if you're not sure, or if it's too complicated). Any contact data written after that point
    by the attacker will be ignored.
 

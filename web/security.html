@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Security — HabloTengo</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: sans-serif;
+      background: #f5f5f5;
+      color: #222;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem 2rem;
+      background: #fff;
+      border-bottom: 1px solid #e0e0e0;
+    }
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-decoration: none;
+      color: inherit;
+    }
+    .nav-brand img {
+      height: 40px;
+      width: 40px;
+      object-fit: contain;
+    }
+    .nav-brand span {
+      font-size: 1.3rem;
+      font-weight: 600;
+    }
+    .nav-links {
+      display: flex;
+      gap: 1.25rem;
+      align-items: center;
+    }
+    .nav-links a {
+      text-decoration: none;
+      color: #555;
+      font-size: 0.95rem;
+    }
+    .nav-links a.primary {
+      background: #1a73e8;
+      color: #fff;
+      padding: 0.45rem 1rem;
+      border-radius: 6px;
+      font-weight: 500;
+    }
+    .nav-links a.primary:hover { background: #1558b0; }
+    .nav-links a:not(.primary):hover { color: #111; }
+
+    main {
+      flex: 1;
+      padding: 3rem 2rem;
+      max-width: 680px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    h1 { font-size: 1.9rem; margin-bottom: 2rem; }
+    h2 { font-size: 1.15rem; margin: 2rem 0 0.6rem; }
+    p { font-size: 0.95rem; line-height: 1.7; color: #444; margin-top: 0.5rem; }
+    ol, ul { margin: 0.5rem 0 0 1.25rem; font-size: 0.95rem; line-height: 1.7; color: #444; }
+    li { margin-top: 0.35rem; }
+
+    footer {
+      text-align: center;
+      padding: 1.25rem 2rem;
+      font-size: 0.85rem;
+      color: #888;
+      border-top: 1px solid #e0e0e0;
+      background: #fff;
+      display: flex;
+      justify-content: center;
+      gap: 1.5rem;
+    }
+    footer a { color: #888; text-decoration: none; }
+    footer a:hover { color: #333; }
+  </style>
+</head>
+<body>
+  <nav>
+    <a class="nav-brand" href="/">
+      <img src="/hablo.png" alt="HabloTengo logo" />
+      <span>HabloTengo</span>
+    </a>
+    <div class="nav-links">
+      <a href="/app" class="primary">Open App</a>
+    </div>
+  </nav>
+
+  <main>
+    <h1>Protecting Your Data on HabloTengo</h1>
+
+    <h2>What HabloTengo protects</h2>
+    <p>Your contact card is private. Only people in your trusted network can read it — and only
+    you can write to it. This is enforced cryptographically: your data is gated by your
+    ONE-OF-US.NET identity key.</p>
+
+    <h2>What an attacker with your key can do</h2>
+    <ol>
+      <li><strong>Read your contact card</strong> — your data is gated by your key, so they have full access.</li>
+      <li><strong>Read your contacts' data</strong> — anyone who trusts you has shared their card with you; the attacker inherits that access.</li>
+      <li><strong>Write as you</strong> — they can publish false contact information that your network will accept as coming from you.</li>
+    </ol>
+
+    <h2>If your phone is stolen or your key is compromised</h2>
+    <p>Act quickly.</p>
+    <p><strong>Steps to recover:</strong></p>
+    <ol>
+      <li><strong>Rotate your identity key</strong> using the ONE-OF-US.NET phone app.</li>
+      <li>Tell at least a few of those who've previously vouched for your formerly recognized identity.</li>
+      <li><strong>Claim and revoke your HabloTengo delegate key</strong> using your new identity. Set the revocation time
+      to when you believe the compromise occurred (or since always if you're not sure, or if it's too complicated). Any contact data written after that point
+      by the attacker will be ignored.</li>
+    </ol>
+
+    <h2>What this fixes</h2>
+    <p>Once your new key is accepted by your network:</p>
+    <ul>
+      <li>Contact data written by the attacker after the revocation time is discarded.</li>
+      <li>Your legitimate contact data (written before the compromise) is preserved.</li>
+      <li>Your network sees your real contact information again.</li>
+    </ul>
+
+    <h2>What cannot be undone</h2>
+    <p>If the attacker read your data or your contacts' data before you revoked the key, that
+    exposure already happened. There is no way to un-read information.</p>
+
+    <h2>The broader model</h2>
+    <p>HabloTengo inherits its trust model from ONE-OF-US.NET. Trust is not a central database
+    that can be patched — it is a web of signed statements. Recovery means rebuilding that web
+    around your new key, with help from the people who know you.</p>
+  </main>
+
+  <footer>
+    <a href="https://github.com/YotamAviv/hablotengov2" target="_blank">Open Source</a>
+    <a href="mailto:contact@hablotengo.com">Contact</a>
+  </footer>
+</body>
+</html>
