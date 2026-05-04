@@ -12,25 +12,58 @@ statements — no server-side state for these concerns.
 
 ## Data Storage
 
-### Firestore collections
+### Schema
 
-**`streams/{delegateToken}/`**  
-One document per delegate key pair that has ever written. Fields:
-- `identityToken` — SHA1 token of the ONE-OF-US.NET identity key that owns this delegate
-- `head` — token of the most recently written statement (null if none)
+```
+streams/
+  {delegateToken}_{identityToken}/        ← composite key, delegate first
+    head: "<sha1>"                        ← token of most recent statement
+    statements/
+      {statementToken}/                   ← full signed statement JSON
 
-**`streams/{delegateToken}/statements/{statementToken}/`**  
-One document per signed Hablo statement. The document is the full statement JSON verbatim.
+sessions/
+  doc/
+    {sessionId}/
+      {auto-id}/                          ← sign-in payload from phone app
+
+settings/
+  {identityToken}/                        ← plain (unsigned) UI preferences
+```
+
+### Stream key design
+
+The stream document key is `{delegateToken}_{identityToken}`. Both SHA1 tokens are
+40-char lowercase hex — no underscores — so splitting on `_` is unambiguous.
+
+AI: Why would we care about splitting these?
+
+
+**Why delegate first**: a write knows the delegate token first (it is `keyToken(statement.I)`).
+Putting it first means the server can construct the full key from what it already has
+(delegate token from the statement, identity token from the session). There is no ambiguity
+about which identity owns a stream: the identity is baked into the key, not inferred from
+a stored field.
+
+AI: Does the above paragraph help in any way?
+
+
+
+
+**Ownership enforcement**: on write, the server constructs
+`${delegateToken}_${auth.identityToken}`. The session-verified identity is part of the key.
+There is no way to write to another identity's stream — the key won't match.
+
+### Other collections
 
 **`sessions/doc/{sessionId}/{auto-id}/`**  
-Written by the phone app via `/signIn`. Contains the session body
-`{session, identity, sessionTime, sessionSignature}`. The web app polls this collection to
-complete sign-in. Documents are not cleaned up automatically.
+Written by the phone app via `/signIn`. Contains
+`{session, identity, sessionTime, sessionSignature}`. The web app polls this to complete
+sign-in. Documents are not cleaned up automatically.
 
 **`settings/{identityToken}/`**  
 Plain Firestore document. Fields: `showEmptyCards`, `showHiddenCards`, `defaultStrictness`.
-Not signed — these are UI preferences, not contact data. Written by `/setSettings`,
-read by `/getSettings` and `/getBatchContacts`.
+Not signed — UI preferences only. Written by `/setSettings`, read by `/getSettings` and
+`/getBatchContacts`.
 
 ### What does NOT exist
 
@@ -66,9 +99,15 @@ Deletion: `"clear": <order>` instead of `"set"`.
 **Merge rule**: latest statement per `order` wins (sort by `time`, lexicographic ISO8601).
 `clear` removes the slot. Display order: sort entries by `order` (float).
 
+
+
+
 **Signing**: The cleartext is the canonical pretty-printed JSON of the statement without
 the `signature` field (keys in `jsonish_util.js` order). Ed25519 signature in lowercase hex.
 The statement token is SHA1 of the canonical pretty-printed full statement (with signature).
+
+AI: If it's the same as the other projects, then say that it's the same. Explaining it from scratch makes me have to figure out if it's the same or different.
+
 
 ---
 
@@ -78,6 +117,10 @@ The statement token is SHA1 of the canonical pretty-printed full statement (with
 
 1. The Flutter web app calls `SignInSession.create(domain: 'hablotengo.com', signInUrl: ...)`.
    This generates a random `sessionId` and a QR code URL.
+
+AI: Is the sessionId random?
+AI: If it's the same as Nerdster, the see my earlier comment. Ideally, highlight the differences.
+
 2. The ONE-OF-US.NET phone app scans the QR. It signs
    `"hablotengo.com-{identityToken}-{sessionTime}"` with the user's Ed25519 identity key,
    then POSTs `{session, identity, sessionTime, sessionSignature}` to `/signIn`.
@@ -94,6 +137,8 @@ The statement token is SHA1 of the canonical pretty-printed full statement (with
 Session window for API calls: 1 week. The 5-minute freshness check only applies at sign-in.
 
 ### Demo sign-in (emulator only)
+
+AI: What about demo on PROD?
 
 `/demoSignIn` accepts `{identity}`, validates it against the hardcoded `simpsons_keys.json`,
 returns `{identityToken}`. No session is created. Demo requests send `{identity, demo: true}`
@@ -129,7 +174,7 @@ Server checks, in order:
 4. **Delegate key present** — `statement.I` must be an object.
 5. **Identity binding** — `statement.with.verifiedIdentity` must equal `auth.identityToken`.
 6. **Statement signature** — Ed25519 signature on the statement verifies against `statement.I`.
-7. **Chain** — in a Firestore transaction: reads `streams/{delegateToken}.head`;
+7. **Chain** — in a Firestore transaction: reads `streams/{delegateToken}_{identityToken}.head`;
    `statement.previous` must equal `head` (or both null). On mismatch → 409.
 
 On success: writes `streams/{delegateToken}/statements/{token}` and updates
@@ -138,6 +183,8 @@ On success: writes `streams/{delegateToken}/statements/{token}` and updates
 **Gap**: The server does not currently verify that `statement.I` is a currently trusted,
 non-revoked delegate of `verifiedIdentity` in ONE-OF-US.NET. A client with a revoked
 delegate key can still write. This is planned but not implemented.
+
+AI: I don't think this is planned or necessary or really a gap.
 
 ---
 
