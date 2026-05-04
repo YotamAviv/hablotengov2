@@ -37,8 +37,10 @@ fi
 echo ""
 
 # 2. oneofus_common package tests
+# --verbose fixes exit-255 in non-TTY; grep strips Flutter tool internals (lines starting with '[')
 echo "=== Running oneofus_common Package Tests ==="
-if (cd packages/oneofus_common && flutter test); then
+(cd packages/oneofus_common && flutter test --verbose 2>&1) | grep -v "^\["
+if [ ${PIPESTATUS[0]} -eq 0 ]; then
     PASSED_TESTS+=("oneofus_common tests")
 else
     FAILED_TESTS+=("oneofus_common tests")
@@ -53,37 +55,6 @@ else
     FAILED_TESTS+=("contacts_web_test (chrome)")
 fi
 echo ""
-
-# 4. Equivalent key scenarios (homer / homer2) — fresh emulator state per scenario
-_reset_for_equivalent() {
-    echo "  Resetting emulator..."
-    ./bin/stop_emulator.sh
-    ./bin/start_emulator.sh
-    echo "  Waiting for hablotengo emulator..."
-    for i in {1..30}; do
-        if curl -s --max-time 2 http://localhost:8082/ > /dev/null 2>&1; then
-            echo "  Emulator ready."
-            break
-        fi
-        sleep 2
-        if [ "$i" -eq 30 ]; then
-            echo "ERROR: Emulator did not start in time."; exit 1
-        fi
-    done
-    ./bin/createSimpsonsContactData.sh
-}
-
-for scenario in a b c d e; do
-    upper=$(echo "$scenario" | tr '[:lower:]' '[:upper:]')
-    echo "=== Running Equivalent Scenario $upper (Chrome) ==="
-    _reset_for_equivalent
-    if python3 bin/chrome_widget_runner.py -t "lib/dev/equivalent_web_test_${scenario}.dart"; then
-        PASSED_TESTS+=("equivalent_scenario_$upper (chrome)")
-    else
-        FAILED_TESTS+=("equivalent_scenario_$upper (chrome)")
-    fi
-    echo ""
-done
 
 # Summary
 echo "========================================"

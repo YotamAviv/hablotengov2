@@ -6,7 +6,6 @@ import 'package:nerdster_common/ui/sign_in_dialog.dart';
 import 'constants.dart';
 import 'contacts_screen.dart';
 import 'demo_sign_in_service.dart';
-import 'equivalent_popup.dart';
 import 'key_store.dart';
 import 'my_contact_screen.dart';
 import 'settings_screen.dart';
@@ -126,20 +125,7 @@ class _HabloHomeState extends State<_HabloHome> {
           }
           return const Scaffold(body: SizedBox.shrink());
         }
-        settingsState.load(widget.emulator).then((_) {
-          if (!context.mounted) return;
-          final disabledBy = settingsState.disabledBy;
-          if (disabledBy != null) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (context.mounted) {
-                showDisabledAccountAlert(context, disabledBy, widget.emulator, () {
-                  settingsState.reset();
-                  signInState.signOut();
-                });
-              }
-            });
-          }
-        });
+        settingsState.load(widget.emulator);
         return _SignedInScreen(
           onSignOut: () {
             settingsState.reset();
@@ -173,7 +159,7 @@ class _HabloHomeState extends State<_HabloHome> {
       hasIdentity: () => signInState.hasIdentity,
       hasDelegate: () => signInState.hasDelegate,
       identityJson: () => signInState.identityJson,
-      delegatePublicKeyJson: () => null,
+      delegatePublicKeyJson: () => signInState.delegatePublicKeyJson,
       onSignOut: signInState.signOut,
       onForgetIdentity: signInState.signOut,
       showPasteInitially: widget.emulator,
@@ -246,7 +232,8 @@ class _SignedInScreenState extends State<_SignedInScreen> {
                   )
                 : IconButton(icon: const Icon(Icons.refresh), onPressed: () => _contactsKey.currentState?.reload()),
           ),
-          IconButton(icon: const Icon(Icons.settings), onPressed: () => _openSettings(context)),
+          if (signInState.hasIdentity)
+            IconButton(icon: const Icon(Icons.settings), onPressed: () => _openSettings(context)),
           IconButton(icon: const Icon(Icons.person), onPressed: () => _openMyCard(context)),
           TextButton(onPressed: widget.onSignOut, child: const Text('Sign out')),
         ],

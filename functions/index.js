@@ -14,7 +14,7 @@ const admin = require('firebase-admin');
 
 admin.initializeApp();
 
-const { handleSignIn } = require('./sign_in');
+const { handleSignIn } = require('./hablo_sign_in');
 
 exports.signIn = onRequest({ cors: true, invoker: 'public' }, async (req, res) => {
   await handleSignIn(req, res);
@@ -44,52 +44,28 @@ exports.getMyContact = onRequest({ cors: true }, async (req, res) => {
   await handleGetMyContact(req, res);
 });
 
-const { handleSetMyContact } = require('./set_my_contact');
-
-exports.setMyContact = onRequest({ cors: true }, async (req, res) => {
-  await handleSetMyContact(req, res);
-});
-
 const { handleGetSettings } = require('./get_settings');
 
 exports.getSettings = onRequest({ cors: true }, async (req, res) => {
   await handleGetSettings(req, res);
 });
 
-const { handleSetSettings } = require('./set_settings');
-
-exports.setSettings = onRequest({ cors: true }, async (req, res) => {
-  await handleSetSettings(req, res);
-});
-
-const { handleGetEquivalentStatus } = require('./get_equivalent_status');
-
-exports.getEquivalentStatus = onRequest({ cors: true }, async (req, res) => {
-  await handleGetEquivalentStatus(req, res);
-});
-
-const { handleDisableEquivalent } = require('./disable_equivalent');
-
-exports.disableEquivalent = onRequest({ cors: true }, async (req, res) => {
-  await handleDisableEquivalent(req, res);
-});
-
-const { handleDismissEquivalent } = require('./dismiss_equivalent');
-
-exports.dismissEquivalent = onRequest({ cors: true }, async (req, res) => {
-  await handleDismissEquivalent(req, res);
-});
-
-const { handleEnableAccount } = require('./enable_account');
-
-exports.enableAccount = onRequest({ cors: true }, async (req, res) => {
-  await handleEnableAccount(req, res);
-});
-
 const { handleDeleteAccount } = require('./delete_account');
 
 exports.deleteAccount = onRequest({ cors: true }, async (req, res) => {
   await handleDeleteAccount(req, res);
+});
+
+const { handleWrite } = require('./hablo_write');
+
+exports.write = onRequest({ cors: true }, async (req, res) => {
+  await handleWrite(req, res);
+});
+
+const { handleGetStreamHead } = require('./get_stream_head');
+
+exports.getStreamHead = onRequest({ cors: true }, async (req, res) => {
+  await handleGetStreamHead(req, res);
 });
 
 const { fetchStatements } = require('./statement_fetcher');

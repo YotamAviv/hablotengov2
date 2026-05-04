@@ -11,7 +11,7 @@
  */
 
 const { keyToken } = require('./verify_util');
-const { verifySessionSignature, DOMAIN } = require('./sign_in');
+const { verifySessionSignature, DOMAIN } = require('./hablo_sign_in');
 const { simpsonsName } = require('./demo_sign_in');
 
 const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;

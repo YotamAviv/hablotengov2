@@ -1,7 +1,8 @@
 const { test, describe } = require('node:test');
 const assert = require('node:assert');
 const path = require('path');
-const { TrustPipeline, defaultPathRequirement } = require('../trust_algorithm');
+const { TrustPipeline } = require('../trust_pipeline');
+const { defaultPathRequirement } = require('../trust_logic');
 
 const fixture = require('./trust_fixture.json');
 const golden = require('./trust_golden.json');

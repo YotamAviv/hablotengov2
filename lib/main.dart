@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'package:oneofus_common/trust_statement.dart';
+import 'package:oneofus_common/ui/json_display.dart';
 
 import 'app.dart';
 import 'constants.dart';
@@ -30,6 +31,8 @@ Future<void> main() async {
   if (emulator) {
     firestore.useFirestoreEmulator('localhost', kHabloFirestoreEmulatorPort);
   }
+
+  JsonDisplay.highlightKeys = const {'I', 'set', 'with', 'name', 'entries', 'tech', 'value', 'preferred', 'verifiedIdentity'};
 
   startKeyStorageCoordinator();
   await tryRestoreKeys();

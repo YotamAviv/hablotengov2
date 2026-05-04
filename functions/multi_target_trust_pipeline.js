@@ -7,7 +7,7 @@
  * Source interface: same as TrustPipeline — { fetch(fetchMap) => Promise<{[token]: Statement[]}> }
  */
 
-const { reduceTrustGraph, defaultPathRequirement, kSinceAlways } = require('./trust_algorithm');
+const { reduceTrustGraph, defaultPathRequirement, kSinceAlways } = require('./trust_logic');
 
 const kDefaultMaxDegrees = 6;
 

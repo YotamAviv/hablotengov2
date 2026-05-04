@@ -1,13 +1,14 @@
 /**
- * Integration tests for getMyContact / setMyContact auth.
- * Requires the Hablo Firebase emulator running on port 5003.
+ * Integration tests for getMyContact / getContact auth.
+ * Requires the Hablo Firebase emulator running on port 5003
+ * with Simpsons demo data seeded (createSimpsonsContactData.sh).
  */
 
 const { test, describe, before } = require('node:test');
 const assert = require('node:assert');
 const crypto = require('crypto');
 const { keyToken } = require('../verify_util');
-const { DOMAIN } = require('../sign_in');
+const { DOMAIN } = require('../hablo_sign_in');
 const SIMPSONS_KEYS = require('../simpsons_keys.json');
 
 const BASE_URL = 'http://127.0.0.1:5003/hablotengo/us-central1';
@@ -37,25 +38,30 @@ const sideshowJwk = SIMPSONS_KEYS['sideshow'];
 const lisaToken = keyToken(lisaJwk);
 const homerToken = keyToken(homerJwk);
 
-describe('contact card — demo auth roundtrip', () => {
-  const notes = `test-${Date.now()}`;
-
-  // Writes to Lisa's contact — modifies existing demo data. Approved.
-  test('setMyContact stores data for Lisa', async () => {
-    const res = await post('setMyContact', {
-      identity: lisaJwk,
-      demo: true,
-      contact: { name: 'Lisa', notes, entries: [] },
-    });
-    assert.strictEqual(res.status, 200, `setMyContact failed: ${await res.text()}`);
-  });
-
-  test('getMyContact returns the stored data', async () => {
+describe('getMyContact — seeded demo data', () => {
+  test('Lisa: name, email, phone', async () => {
     const res = await post('getMyContact', { identity: lisaJwk, demo: true });
     const body = await res.text();
     assert.strictEqual(res.status, 200, `getMyContact failed: ${body}`);
     const data = JSON.parse(body);
-    assert.strictEqual(data.notes, notes, `Expected notes="${notes}", got "${data.notes}"`);
+    assert.strictEqual(data.name, 'Lisa Simpson', `Expected "Lisa Simpson", got: ${data.name}`);
+    const email = data.entries?.find(e => e.tech === 'email');
+    assert.ok(email, `Expected email entry, got: ${JSON.stringify(data.entries)}`);
+    const phone = data.entries?.find(e => e.tech === 'phone');
+    assert.ok(phone, `Expected phone entry, got: ${JSON.stringify(data.entries)}`);
+  });
+
+  test('Homer: name, notes, phone, email', async () => {
+    const res = await post('getMyContact', { identity: homerJwk, demo: true });
+    const body = await res.text();
+    assert.strictEqual(res.status, 200, `getMyContact failed: ${body}`);
+    const data = JSON.parse(body);
+    assert.strictEqual(data.name, 'Homer Simpson', `Expected "Homer Simpson", got: ${data.name}`);
+    assert.strictEqual(data.notes, 'Never call me', `Expected notes "Never call me", got: ${data.notes}`);
+    const phone = data.entries?.find(e => e.tech === 'phone');
+    assert.ok(phone, `Expected phone entry, got: ${JSON.stringify(data.entries)}`);
+    const email = data.entries?.find(e => e.tech === 'email');
+    assert.ok(email, `Expected email entry, got: ${JSON.stringify(data.entries)}`);
   });
 });
 

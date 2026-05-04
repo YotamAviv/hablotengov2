@@ -1,14 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:nerdster_common/labeler.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'contact_service.dart';
+import 'crypto_shield_button.dart';
 import 'models/contact_statement.dart';
+import 'settings_state.dart';
+import 'sign_in_state.dart';
 import 'visibility_picker.dart';
 
 class MyContactSheet extends StatefulWidget {
   final bool emulator;
   final List<String> monikers;
-  const MyContactSheet({super.key, required this.emulator, this.monikers = const []});
+  final Labeler? labeler;
+  const MyContactSheet({super.key, required this.emulator, this.monikers = const [], this.labeler});
 
   @override
   State<MyContactSheet> createState() => _MyContactSheetState();
@@ -16,6 +21,7 @@ class MyContactSheet extends StatefulWidget {
 
 class _MyContactSheetState extends State<MyContactSheet> {
   ContactData? _contact;
+  dynamic _rawStatement;
   bool _loading = true;
   String? _error;
   bool _editing = false;
@@ -44,8 +50,8 @@ class _MyContactSheetState extends State<MyContactSheet> {
 
   Future<void> _load() async {
     try {
-      final contact = await getMyContact(widget.emulator);
-      if (mounted) setState(() { _contact = contact; _loading = false; });
+      final result = await getMyContact(widget.emulator);
+      if (mounted) setState(() { _contact = result.contact; _rawStatement = result.rawStatement; _loading = false; });
     } catch (e, st) {
       debugPrint('MyContactSheet load error: $e\n$st');
       if (mounted) setState(() { _error = e.toString(); _loading = false; });
@@ -86,8 +92,7 @@ class _MyContactSheetState extends State<MyContactSheet> {
       builder: (_) => const _TechPickerDialog(),
     );
     if (tech != null && tech.isNotEmpty) {
-      setState(() => _editEntries.add(
-          _EditableEntry(_nextEntryId++, ContactEntry(tech: tech, value: ''))));
+      setState(() => _editEntries.add(_EditableEntry(_nextEntryId++, ContactEntry(tech: tech, value: ''))));
     }
   }
 
@@ -219,7 +224,7 @@ class _MyContactSheetState extends State<MyContactSheet> {
                           ],
                         ),
                 ),
-                if (!_loading && _error == null)
+                if (!_loading && _error == null && signInState.hasDelegate)
                   IconButton(
                     icon: const Icon(Icons.edit_outlined),
                     tooltip: 'Edit',
@@ -249,6 +254,10 @@ class _MyContactSheetState extends State<MyContactSheet> {
               if (_contact!.entries.isNotEmpty) ...[
                 const SizedBox(height: 12),
                 ..._contact!.entries.map((e) => ContactEntryViewRow(entry: e)),
+              ],
+              if (settingsState.showCrypto && _rawStatement != null) ...[
+                const SizedBox(height: 8),
+                CryptoShieldButton(statement: _rawStatement, labeler: widget.labeler),
               ],
             ],
           ],
@@ -416,11 +425,10 @@ class _EditEntryRowState extends State<_EditEntryRow> {
   }
 
   void _notify({bool? preferred, String? visibility}) {
-    widget.onChanged(ContactEntry(
-      tech: widget.entry.tech,
+    widget.onChanged(widget.entry.copyWith(
       value: _valueCtrl.text.trim(),
-      preferred: preferred ?? widget.entry.preferred,
-      visibility: visibility ?? widget.entry.visibility,
+      preferred: preferred,
+      visibility: visibility,
     ));
   }
 

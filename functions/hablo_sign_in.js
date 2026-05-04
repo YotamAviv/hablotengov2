@@ -1,13 +1,11 @@
 /**
- * Handles QR sign-in from the ONE-OF-US.NET phone app.
+ * hablo_sign_in.js — Hablo-specific sign-in endpoint.
  *
- * Parallel to Nerdster's signin CF (inlined in nerdster14/functions/index.js),
- * with one addition: verifies that the identity key signed the session string
- * '<domain>-<identityKeyToken>-<sessionTime>' before writing
- * the session data to Firestore.
- *
- * TODO: Keep in sync with Nerdster's signin. When Nerdster migrates to
- * CloudFunctionsWriter, consider unifying into a shared library.
+ * Differs from nerdster14/oneofusv22 sign_in.js: verifies a cryptographic
+ * signature from the phone app before writing the session to Firestore.
+ * The phone signs "hablotengo.com-{identityToken}-{sessionTime}" with the
+ * user's Ed25519 identity key. Nerdster/OneOfUs accept the session payload
+ * without signature verification.
  */
 
 const crypto = require('crypto');

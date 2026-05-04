@@ -2,96 +2,96 @@
   "lisa": {
     "crv": "Ed25519",
     "kty": "OKP",
-    "x": "fZ2PYolFRYPO95U5Y3ASXmWGF5AMreVxcdziTrH1pp0"
+    "x": "1uDfxDcG7bgSOeJkB8G008g1RAhQynBjRhyAT2xayys"
   },
   "bart": {
     "crv": "Ed25519",
     "kty": "OKP",
-    "x": "SYe_CWB_QlyeBxq8QInYJCocSvAE2bP6bBej6CEhajc"
+    "x": "xQsxNImuEIRn0iYTiQrSYrLtxdG2iH7R4c8SaRWIxaY"
   },
   "homer": {
     "crv": "Ed25519",
     "kty": "OKP",
-    "x": "OoGVJvpwkYJhSbjBXho7P3vkUcY9OepFj1MMHmUJlMk"
+    "x": "rDj3q0GZxX3loHN95CUc5KD4ysSQ_AzTgJTILnBLD_4"
   },
   "homer2": {
     "crv": "Ed25519",
     "kty": "OKP",
-    "x": "6A60t47ibcnD_S1l8633xvFXtSrPJ_VDd6BHscVVDsE"
+    "x": "mXuoppSoc-_vLtfK6MVtbyzFSNhJhuobmORRvFalh7g"
   },
   "marge": {
     "crv": "Ed25519",
     "kty": "OKP",
-    "x": "3_yYaFPg4Om2gAUH0I672BqkAXHdHk3K_CixoQofCWk"
+    "x": "2WqtL2syxx8wxqxSCrBQjwK-7NvnrT1aM1bQk1YWVRo"
   },
   "maggie": {
     "crv": "Ed25519",
     "kty": "OKP",
-    "x": "ZHD4Q0JmxTxzt_NsuWVHjNg4_FMqBKyxDUSMAIrtbfI"
+    "x": "DKEVwTJ-jdE1VoSQXfYpW_1MSFbwRX8xBgmUApLskwM"
   },
   "milhouse": {
     "crv": "Ed25519",
     "kty": "OKP",
-    "x": "y4risAvsZHhwd0E8X0tUSLLwKLdVZ-87dSlowrbhIbQ"
+    "x": "ClSZG_YaAnzvXVu42YRJPcQ8we-jrW9V58gGJtEl37g"
   },
   "luann": {
     "crv": "Ed25519",
     "kty": "OKP",
-    "x": "n1MuYKOGcf_aL3HK0310qyBhQaJWtyD09TgjEdUFSYc"
+    "x": "APzX3c5IkJxiJgzdQARtx89Kt8teu8mCATJuPONAxgw"
   },
   "ralph": {
     "crv": "Ed25519",
     "kty": "OKP",
-    "x": "VTqfJDM2wx0EcD-sWtblVzmCyYlxu3i8LCoKYx1ltZM"
+    "x": "L4Q9JUbxtxFWv2L4Yq-41BWfjUfwA2dq8wUJ3zMefzE"
   },
   "nelson": {
     "crv": "Ed25519",
     "kty": "OKP",
-    "x": "4SrP6GDVZJmegoinJSTQPcfh8vyOJFEKH2X8yzhnDdM"
+    "x": "pveKIXBig1B7cSS-_Mi8bWc2ekGKWBDzdzQqsTUOvpo"
   },
   "lenny": {
     "crv": "Ed25519",
     "kty": "OKP",
-    "x": "ipcnQ8rE_HGeGMQoeLMytuvjZAw2TL2BTJbwWtTX0Nc"
+    "x": "FOV_Xbbrvrwp-1IBMT8W-BArg9r_7A1yvRE2Kyo2O1U"
   },
   "carl": {
     "crv": "Ed25519",
     "kty": "OKP",
-    "x": "xv1Q7HaEF1PGB7Bo93Y4a-LhgBKO6x3-GGVgCwlZ0sU"
+    "x": "Wv20-Pt8vDK1rVIYjues4W0wduUlsSoUK_bDHKTSADc"
   },
   "burns": {
     "crv": "Ed25519",
     "kty": "OKP",
-    "x": "_DhNl8wtf8rOxNdIAO7PgxljZm9SKWSXXsTFLQ-ZRU8"
+    "x": "ohbTqPOuBPA5OIO7JHgjVzBxSQxOzNqq83bo5TJvzjc"
   },
   "smithers": {
     "crv": "Ed25519",
     "kty": "OKP",
-    "x": "wsYrrXRoJlAjNHNmW-nkT9AGg_yBTU_oNfPfz4_y_4M"
+    "x": "OFH7gGH5No170RZ4P1-GgtpgGBaSQq7FfSYJqximGTc"
   },
   "krusty": {
     "crv": "Ed25519",
     "kty": "OKP",
-    "x": "7y2Ks3_cUg5FgekIFSAhFOaQoi7kbpanyQRDzdbmSRQ"
+    "x": "peAXJ8QpEEdEyA3HJXqo21kc3yozPA1MFytITQ1bu9M"
   },
   "sideshow": {
     "crv": "Ed25519",
     "kty": "OKP",
-    "x": "CoqrjU4zL2t1Wc3zraaEdHOTjcBnoi_TqcUZSBdTya8"
+    "x": "fX21PuiH_CIQT6n4f0sLgtbg1X4oxdBjeFRfiHUZt-4"
   },
   "mel": {
     "crv": "Ed25519",
     "kty": "OKP",
-    "x": "K5Nkcdnx_MVxoXGRTABa0--b2MTn8vZGWG0rrwCm7MM"
+    "x": "85C2MzjWvO05-5Fw0UVfoOfDcw8xxOqopOV-Ee33Gnw"
   },
   "seymore": {
     "crv": "Ed25519",
     "kty": "OKP",
-    "x": "xkyJ2CBBE3ouZJ1FBws2PWqhqtRhxDy5GYw2Iwk9JcI"
+    "x": "8uHMIz82Axnd4FqRryxaT8-WY6jVmSBN117ayLhkB0Y"
   },
   "amanda": {
     "crv": "Ed25519",
     "kty": "OKP",
-    "x": "RK5hgIuCtyXFph1sqDhPrlAFwnd6s8qp1Yy1F4VTzLE"
+    "x": "JNJqfg5NaQC6_AstH1NFDZ5HhS-fAysBDpJMOr-iYHg"
   }
 }

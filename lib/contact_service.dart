@@ -1,8 +1,10 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:oneofus_common/jsonish.dart';
 
 import 'constants.dart';
+import 'hablo_channel.dart';
 import 'models/contact_statement.dart';
 import 'sign_in_state.dart';
 
@@ -17,7 +19,14 @@ class ContactResult {
   final ContactData? contact;
   final bool someHidden;
   final String defaultStrictness;
-  const ContactResult({required this.status, this.contact, this.someHidden = false, this.defaultStrictness = 'standard'});
+  final Json? rawStatement;
+  const ContactResult({required this.status, this.contact, this.someHidden = false, this.defaultStrictness = 'standard', this.rawStatement});
+}
+
+class MyContactResult {
+  final ContactData? contact;
+  final Json? rawStatement;
+  const MyContactResult({this.contact, this.rawStatement});
 }
 
 Map<String, dynamic> _authPayload() {
@@ -31,7 +40,22 @@ Map<String, dynamic> _authPayload() {
   };
 }
 
-Future<ContactData?> getMyContact(bool emulator) async {
+// Per-delegate channel cache. Key: delegateToken.
+final Map<String, HabloChannel> _channels = {};
+
+HabloChannel _getChannel(bool emulator) {
+  final delegateToken = getToken(signInState.delegatePublicKeyJson!);
+  return _channels.putIfAbsent(
+    delegateToken,
+    () => HabloChannel(habloFunctionsBaseUrl(emulator), signInState),
+  );
+}
+
+void resetChannels() => _channels.clear();
+
+// ── Read operations (unchanged) ──────────────────────────────────────────────
+
+Future<MyContactResult> getMyContact(bool emulator) async {
   final url = Uri.parse(habloGetMyContactUrl(emulator));
   debugPrint('getMyContact: $url');
   final response = await http.post(
@@ -39,12 +63,15 @@ Future<ContactData?> getMyContact(bool emulator) async {
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(_authPayload()),
   );
-  if (response.statusCode == 404) return null;
+  if (response.statusCode == 404) return const MyContactResult();
   if (response.statusCode != 200) {
     throw Exception('getMyContact failed: ${response.statusCode} ${response.body}');
   }
   final json = jsonDecode(response.body) as Map<String, dynamic>;
-  return ContactData.fromJson(json);
+  return MyContactResult(
+    contact: ContactData.fromJson(json),
+    rawStatement: json['latestStatement'] as Json?,
+  );
 }
 
 Future<ContactData?> getContact(String targetToken, bool emulator) async {
@@ -57,7 +84,6 @@ Future<ContactData?> getContact(String targetToken, bool emulator) async {
   );
   if (response.statusCode == 404) return null;
   if (response.statusCode == 403) throw const ContactAccessDeniedException();
-
   if (response.statusCode != 200) {
     throw Exception('getContact failed: ${response.statusCode} ${response.body}');
   }
@@ -89,21 +115,33 @@ Future<Map<String, ContactResult>> getBatchContacts(List<String> targetTokens, b
         : null;
     final someHidden = v['someHidden'] == true;
     final defaultStrictness = v['defaultStrictness'] as String? ?? 'standard';
-    return MapEntry(token, ContactResult(status: status, contact: contact, someHidden: someHidden, defaultStrictness: defaultStrictness));
+    final rawStatement = v['rawStatement'] as Json?;
+    return MapEntry(token, ContactResult(status: status, contact: contact, someHidden: someHidden, defaultStrictness: defaultStrictness, rawStatement: rawStatement));
   });
 }
 
+// ── Write operations ─────────────────────────────────────────────────────────
+
 Future<void> setMyContact(ContactData contact, bool emulator) async {
-  final url = Uri.parse(habloSetMyContactUrl(emulator));
-  debugPrint('setMyContact: $url');
-  final response = await http.post(
-    url,
-    headers: {'Content-Type': 'application/json'},
-    body: jsonEncode({..._authPayload(), 'contact': contact.toJson()}),
+  final channel = _getChannel(emulator);
+  final signer = signInState.signer!;
+  final delegatePk = signInState.delegatePublicKeyJson!;
+  final identityToken = signInState.identityToken!;
+  await channel.push(
+    buildContactSnapshot(contact: contact, delegatePublicKeyJson: delegatePk, identityToken: identityToken),
+    signer,
   );
-  if (response.statusCode != 200) {
-    throw Exception('setMyContact failed: ${response.statusCode} ${response.body}');
-  }
+}
+
+Future<void> setSettingsField(String field, dynamic value, bool emulator) async {
+  final channel = _getChannel(emulator);
+  final signer = signInState.signer!;
+  final delegatePk = signInState.delegatePublicKeyJson!;
+  final identityToken = signInState.identityToken!;
+  await channel.push(
+    buildSetFieldJson(field: field, value: value, delegatePublicKeyJson: delegatePk, identityToken: identityToken),
+    signer,
+  );
 }
 
 Future<void> deleteAccount(bool emulator) async {

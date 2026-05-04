@@ -2,6 +2,8 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:oneofus_common/crypto/crypto.dart';
+import 'package:oneofus_common/crypto/crypto25519.dart';
 import 'package:oneofus_common/jsonish.dart';
 
 import 'sign_in_state.dart';
@@ -11,6 +13,7 @@ const String _kIdentityKey = 'hablo_identity';
 const String _kSessionTimeKey = 'hablo_session_time';
 const String _kSessionSigKey = 'hablo_session_sig';
 const String _kIsDemoKey = 'hablo_is_demo';
+const String _kDelegateKey = 'hablo_delegate';
 
 final ValueNotifier<bool> storeKeys = ValueNotifier(true);
 
@@ -28,6 +31,13 @@ Future<void> _enforceAsync() async {
       await _storage.write(key: _kSessionTimeKey, value: signInState.sessionTime ?? '');
       await _storage.write(key: _kSessionSigKey, value: signInState.sessionSignature ?? '');
       await _storage.write(key: _kIsDemoKey, value: signInState.isDemo ? '1' : '0');
+      final delegateKeyPair = signInState.delegateKeyPair;
+      if (delegateKeyPair != null) {
+        final delegateJson = await delegateKeyPair.json;
+        await _storage.write(key: _kDelegateKey, value: jsonEncode(delegateJson));
+      } else {
+        await _storage.delete(key: _kDelegateKey);
+      }
     } catch (e) {
       debugPrint('HabloKeyStore write error: $e');
     }
@@ -49,6 +59,17 @@ Future<void> tryRestoreKeys() async {
     final String? sessionSig = await _storage.read(key: _kSessionSigKey);
     final bool isDemo = (await _storage.read(key: _kIsDemoKey)) == '1';
 
+    OouKeyPair? delegateKeyPair;
+    final String? delegateStr = await _storage.read(key: _kDelegateKey);
+    if (delegateStr != null) {
+      try {
+        final Json delegateJson = jsonDecode(delegateStr) as Json;
+        delegateKeyPair = await crypto.parseKeyPair(delegateJson);
+      } catch (e) {
+        debugPrint('HabloKeyStore: failed to parse delegate key pair: $e');
+      }
+    }
+
     if (isDemo) {
       signInState.restoreDemoKeys(identityJson);
     } else {
@@ -56,6 +77,7 @@ Future<void> tryRestoreKeys() async {
         identityJson,
         sessionTime: sessionTime?.isEmpty == true ? null : sessionTime,
         sessionSignature: sessionSig?.isEmpty == true ? null : sessionSig,
+        delegateKeyPair: delegateKeyPair,
       );
     }
   } catch (e) {
