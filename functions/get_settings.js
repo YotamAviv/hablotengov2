@@ -11,8 +11,6 @@ async function handleGetSettings(req, res) {
   try {
     const contact = await buildContact(admin.firestore(), auth.identityToken);
     res.status(200).json({
-      showEmptyCards: contact?.showEmptyCards ?? false,
-      showHiddenCards: contact?.showHiddenCards ?? false,
       defaultStrictness: contact?.defaultStrictness ?? 'standard',
     });
   } catch (e) {

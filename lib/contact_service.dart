@@ -19,7 +19,14 @@ class ContactResult {
   final ContactData? contact;
   final bool someHidden;
   final String defaultStrictness;
-  const ContactResult({required this.status, this.contact, this.someHidden = false, this.defaultStrictness = 'standard'});
+  final Json? rawStatement;
+  const ContactResult({required this.status, this.contact, this.someHidden = false, this.defaultStrictness = 'standard', this.rawStatement});
+}
+
+class MyContactResult {
+  final ContactData? contact;
+  final Json? rawStatement;
+  const MyContactResult({this.contact, this.rawStatement});
 }
 
 Map<String, dynamic> _authPayload() {
@@ -48,7 +55,7 @@ void resetChannels() => _channels.clear();
 
 // ── Read operations (unchanged) ──────────────────────────────────────────────
 
-Future<ContactData?> getMyContact(bool emulator) async {
+Future<MyContactResult> getMyContact(bool emulator) async {
   final url = Uri.parse(habloGetMyContactUrl(emulator));
   debugPrint('getMyContact: $url');
   final response = await http.post(
@@ -56,12 +63,15 @@ Future<ContactData?> getMyContact(bool emulator) async {
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(_authPayload()),
   );
-  if (response.statusCode == 404) return null;
+  if (response.statusCode == 404) return const MyContactResult();
   if (response.statusCode != 200) {
     throw Exception('getMyContact failed: ${response.statusCode} ${response.body}');
   }
   final json = jsonDecode(response.body) as Map<String, dynamic>;
-  return ContactData.fromJson(json);
+  return MyContactResult(
+    contact: ContactData.fromJson(json),
+    rawStatement: json['latestStatement'] as Json?,
+  );
 }
 
 Future<ContactData?> getContact(String targetToken, bool emulator) async {
@@ -105,7 +115,8 @@ Future<Map<String, ContactResult>> getBatchContacts(List<String> targetTokens, b
         : null;
     final someHidden = v['someHidden'] == true;
     final defaultStrictness = v['defaultStrictness'] as String? ?? 'standard';
-    return MapEntry(token, ContactResult(status: status, contact: contact, someHidden: someHidden, defaultStrictness: defaultStrictness));
+    final rawStatement = v['rawStatement'] as Json?;
+    return MapEntry(token, ContactResult(status: status, contact: contact, someHidden: someHidden, defaultStrictness: defaultStrictness, rawStatement: rawStatement));
   });
 }
 

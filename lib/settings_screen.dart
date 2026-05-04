@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'contact_service.dart';
 import 'settings_state.dart';
+import 'sign_in_state.dart';
 import 'visibility_picker.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -64,49 +65,63 @@ class _SettingsScreenState extends State<SettingsScreen> {
               title: const Text('Show empty cards'),
               subtitle: const Text('Include contacts who have no card in the system'),
               value: settingsState.showEmptyCards,
-              onChanged: (v) => settingsState.setShowEmptyCards(v ?? false, widget.emulator),
+              onChanged: (v) => settingsState.setShowEmptyCards(v ?? false),
             ),
             CheckboxListTile(
               title: const Text('Show hidden cards'),
               subtitle: const Text('Include contacts who have restricted access to their card'),
               value: settingsState.showHiddenCards,
-              onChanged: (v) => settingsState.setShowHiddenCards(v ?? false, widget.emulator),
+              onChanged: (v) => settingsState.setShowHiddenCards(v ?? false),
+            ),
+            CheckboxListTile(
+              title: const Text('Show crypto'),
+              subtitle: const Text('Show signed statement on contact cards for auditing'),
+              value: settingsState.showCrypto,
+              onChanged: (v) => settingsState.setShowCrypto(v ?? false),
             ),
             const Divider(),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Text('Default visibility', style: Theme.of(context).textTheme.titleSmall),
-                      const SizedBox(width: 6),
-                      const VisibilityHelpButton(),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Who can see your contact entries by default',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                  const SizedBox(height: 12),
-                  VisibilityPicker(
-                    value: settingsState.defaultStrictness,
-                    onChanged: (v) => settingsState.setDefaultStrictness(v, widget.emulator),
-                  ),
-                ],
+              child: Opacity(
+                opacity: signInState.hasDelegate ? 1.0 : 0.38,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text('Default visibility', style: Theme.of(context).textTheme.titleSmall),
+                        const SizedBox(width: 6),
+                        const VisibilityHelpButton(),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Who can see your contact entries by default',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                    const SizedBox(height: 12),
+                    AbsorbPointer(
+                      absorbing: !signInState.hasDelegate,
+                      child: VisibilityPicker(
+                        value: settingsState.defaultStrictness,
+                        onChanged: (v) => settingsState.setDefaultStrictness(v, widget.emulator),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-            const Divider(),
-            ListTile(
-              leading: _deleting
-                  ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))
-                  : const Icon(Icons.delete_forever, color: Colors.red),
-              title: const Text('Delete account', style: TextStyle(color: Colors.red)),
-              subtitle: const Text('Remove your contact card and settings from the server'),
-              onTap: _deleting ? null : _confirmDelete,
-            ),
+            if (signInState.hasDelegate) ...[
+              const Divider(),
+              ListTile(
+                leading: _deleting
+                    ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Icon(Icons.delete_forever, color: Colors.red),
+                title: const Text('Delete account', style: TextStyle(color: Colors.red)),
+                subtitle: const Text('Remove your contact card and settings from the server'),
+                onTap: _deleting ? null : _confirmDelete,
+              ),
+            ],
           ],
         ),
       ),

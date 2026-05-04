@@ -232,7 +232,7 @@ class _SignedInScreenState extends State<_SignedInScreen> {
                   )
                 : IconButton(icon: const Icon(Icons.refresh), onPressed: () => _contactsKey.currentState?.reload()),
           ),
-          if (signInState.hasDelegate)
+          if (signInState.hasIdentity)
             IconButton(icon: const Icon(Icons.settings), onPressed: () => _openSettings(context)),
           IconButton(icon: const Icon(Icons.person), onPressed: () => _openMyCard(context)),
           TextButton(onPressed: widget.onSignOut, child: const Text('Sign out')),

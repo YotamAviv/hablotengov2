@@ -1,6 +1,8 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:nerdster_common/delegates.dart';
+import 'package:nerdster_common/labeler.dart';
 import 'package:nerdster_common/trust_graph.dart';
 import 'package:nerdster_common/trust_pipeline.dart';
 import 'package:oneofus_common/cloud_functions_source.dart';
@@ -11,7 +13,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import 'constants.dart';
 import 'contact_service.dart';
-import 'labeler.dart';
+import 'crypto_shield_button.dart';
 import 'my_contact_screen.dart' show ContactEntryViewRow, MyContactSheet;
 import 'settings_state.dart';
 import 'sign_in_state.dart';
@@ -43,6 +45,7 @@ class ContactsScreen extends StatefulWidget {
 class ContactsScreenState extends State<ContactsScreen> {
   List<_ContactEntry>? _contacts;
   Map<String, ContactResult>? _results;
+  Labeler? _labeler;
   String? _error;
   final TextEditingController _searchCtrl = TextEditingController();
   late final ValueNotifier<bool> _loadingNotifier;
@@ -98,7 +101,12 @@ class ContactsScreenState extends State<ContactsScreen> {
         }
       }
 
-      final labeler = Labeler(graph);
+      final delegateResolver = DelegateResolver(graph);
+      for (final key in graph.orderedKeys) {
+        delegateResolver.resolveForIdentity(graph.resolveIdentity(key));
+      }
+      final labeler = Labeler(graph, delegateResolver: delegateResolver);
+      if (mounted) setState(() => _labeler = labeler);
 
       final seen = <IdentityKey>{};
       final contacts = <_ContactEntry>[];
@@ -167,7 +175,7 @@ class ContactsScreenState extends State<ContactsScreen> {
       showModalBottomSheet(
         context: context,
         isScrollControlled: true,
-        builder: (_) => MyContactSheet(emulator: widget.emulator, monikers: contact.monikers),
+        builder: (_) => MyContactSheet(emulator: widget.emulator, monikers: contact.monikers, labeler: _labeler),
       );
       return;
     }
@@ -179,6 +187,7 @@ class ContactsScreenState extends State<ContactsScreen> {
         contact: contact,
         result: result,
         emulator: widget.emulator,
+        labeler: _labeler,
       ),
     );
   }
@@ -301,7 +310,8 @@ class _ContactDetailSheet extends StatelessWidget {
   final _ContactEntry contact;
   final ContactResult? result;
   final bool emulator;
-  const _ContactDetailSheet({required this.contact, required this.result, required this.emulator});
+  final Labeler? labeler;
+  const _ContactDetailSheet({required this.contact, required this.result, required this.emulator, this.labeler});
 
   Uri _nerdsterUri({
     required String povPayload,
@@ -360,6 +370,10 @@ class _ContactDetailSheet extends StatelessWidget {
                   style: TextStyle(fontSize: 12, color: Colors.grey, fontStyle: FontStyle.italic),
                 ),
               ],
+              if (settingsState.showCrypto && result!.rawStatement != null) ...[
+                const SizedBox(height: 8),
+                CryptoShieldButton(statement: result!.rawStatement!, labeler: labeler),
+              ],
             ],
             ...[
               const SizedBox(height: 16),
@@ -400,3 +414,4 @@ class _ContactDetailSheet extends StatelessWidget {
     );
   }
 }
+

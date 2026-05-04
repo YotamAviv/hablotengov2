@@ -22,13 +22,11 @@ async function batchContacts(requesterJwk, targetTokens) {
   return JSON.parse(body);
 }
 
-const lisaJwk = SIMPSONS_KEYS['lisa'];
-const homerJwk = SIMPSONS_KEYS['homer'];
+const lisaJwk  = SIMPSONS_KEYS['lisa'];
 const margeJwk = SIMPSONS_KEYS['marge'];
 
-const lisaToken           = keyToken(lisaJwk);
-const homerToken          = keyToken(homerJwk);
-const margeToken          = keyToken(margeJwk);
+const lisaToken  = keyToken(lisaJwk);
+const margeToken = keyToken(margeJwk);
 const sideshowJwk         = SIMPSONS_KEYS['sideshow'];
 // Homer replaced his old key; the canonical token is homer2.
 const homerCanonicalToken = keyToken(SIMPSONS_KEYS['homer2']);

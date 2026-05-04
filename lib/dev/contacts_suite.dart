@@ -6,7 +6,7 @@ import 'package:oneofus_common/oou_verifier.dart';
 import 'package:oneofus_common/trust_statement.dart';
 
 import 'package:hablotengo/constants.dart';
-import 'package:hablotengo/labeler.dart';
+import 'package:nerdster_common/labeler.dart';
 import 'package:hablotengo/sign_in_state.dart';
 import 'package:hablotengo/dev/simpsons_public_keys.dart';
 

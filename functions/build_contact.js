@@ -119,10 +119,9 @@ async function buildContact(db, identityToken) {
 function _replayStatements(statements) {
   let name = '';
   let notes = null;
-  let showEmptyCards = false;
-  let showHiddenCards = false;
   let defaultStrictness = 'standard';
   let snapshotEntries = null; // set by contact snapshot statements
+  let latestSnapshot = null;  // the last statement that set entries — the signable proof
   const entries = {};         // built by legacy enter/clear statements
 
   for (const stmt of statements) {
@@ -142,9 +141,7 @@ function _replayStatements(statements) {
     } else if (set && typeof set === 'object') {
       if ('name' in set) name = set.name ?? '';
       if ('notes' in set) notes = set.notes ?? null;
-      if ('entries' in set) snapshotEntries = set.entries ?? [];
-      if ('showEmptyCards' in set) showEmptyCards = set.showEmptyCards ?? false;
-      if ('showHiddenCards' in set) showHiddenCards = set.showHiddenCards ?? false;
+      if ('entries' in set) { snapshotEntries = set.entries ?? []; latestSnapshot = stmt; }
       if ('defaultStrictness' in set) defaultStrictness = set.defaultStrictness ?? 'standard';
     } else if (typeof clear === 'string') {
       delete entries[clear];
@@ -154,8 +151,9 @@ function _replayStatements(statements) {
   const entriesArray = snapshotEntries !== null
     ? snapshotEntries
     : Object.values(entries).sort((a, b) => parseFloat(a.order) - parseFloat(b.order));
-  const contact = { name, entries: entriesArray, showEmptyCards, showHiddenCards, defaultStrictness };
+  const contact = { name, entries: entriesArray, defaultStrictness };
   if (notes !== null) contact.notes = notes;
+  if (latestSnapshot !== null) contact.latestStatement = latestSnapshot;
   return contact;
 }
 

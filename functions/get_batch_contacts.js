@@ -83,7 +83,8 @@ async function handleGetBatchContacts(req, res) {
       const distance = graph.distances.get(auth.identityToken);
       const pathCount = graph.paths.get(auth.identityToken)?.length ?? 0;
       const { contact: filtered, someHidden } = _filterEntries(contact, defaultStrictness, distance, pathCount);
-      result[targetToken] = { status: 'found', contact: filtered, defaultStrictness, ...(someHidden && { someHidden: true }) };
+      const latestStatement = !someHidden ? contact.latestStatement : undefined;
+      result[targetToken] = { status: 'found', contact: filtered, defaultStrictness, ...(someHidden && { someHidden: true }), ...(latestStatement && { rawStatement: latestStatement }) };
     }));
 
     console.log(`[get_batch_contacts] ${auth.identityToken} batch=${targetTokens.length} trusted=${trustedTargets.length}`);

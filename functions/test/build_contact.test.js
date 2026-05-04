@@ -12,8 +12,6 @@ describe('_replayStatements: empty', () => {
     const c = _replayStatements([]);
     assert.strictEqual(c.name, '');
     assert.deepStrictEqual(c.entries, []);
-    assert.strictEqual(c.showEmptyCards, false);
-    assert.strictEqual(c.showHiddenCards, false);
     assert.strictEqual(c.defaultStrictness, 'standard');
     assert.ok(!('notes' in c));
   });
@@ -58,14 +56,6 @@ describe('_replayStatements: snapshot', () => {
 });
 
 describe('_replayStatements: settings accumulate alongside snapshots', () => {
-  test('showEmptyCards set after snapshot is picked up', () => {
-    const c = _replayStatements([
-      stmt({ name: 'A', entries: [] }, '2024-01-01T00:00:00.000Z'),
-      stmt({ showEmptyCards: true }, '2024-01-02T00:00:00.000Z'),
-    ]);
-    assert.strictEqual(c.showEmptyCards, true);
-  });
-
   test('defaultStrictness updated independently of contact snapshot', () => {
     const c = _replayStatements([
       stmt({ name: 'B', entries: [{ tech: 'email', value: 'b@b.com' }] }, '2024-01-01T00:00:00.000Z'),
@@ -75,12 +65,12 @@ describe('_replayStatements: settings accumulate alongside snapshots', () => {
     assert.deepStrictEqual(c.entries, [{ tech: 'email', value: 'b@b.com' }]);
   });
 
-  test('latest setting wins when set multiple times', () => {
+  test('latest defaultStrictness wins when set multiple times', () => {
     const c = _replayStatements([
-      stmt({ showHiddenCards: true }, '2024-01-01T00:00:00.000Z'),
-      stmt({ showHiddenCards: false }, '2024-01-02T00:00:00.000Z'),
+      stmt({ defaultStrictness: 'strict' }, '2024-01-01T00:00:00.000Z'),
+      stmt({ defaultStrictness: 'permissive' }, '2024-01-02T00:00:00.000Z'),
     ]);
-    assert.strictEqual(c.showHiddenCards, false);
+    assert.strictEqual(c.defaultStrictness, 'permissive');
   });
 });
 
