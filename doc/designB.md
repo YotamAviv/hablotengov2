@@ -2,9 +2,9 @@
 
 ## Overview
 
-Contact data is stored as a chain of signed statements in Firestore. There is no
-materialized contacts cache. Every read replays the statement chain. Trust gating
-uses ONE-OF-US.NET's public trust graph (the same graph the Nerdster uses).
+Contact data is stored as a chain of signed statements in Firestore. 
+There is no materialized contacts cache. Every read replays the statement chain. 
+Trust gating uses ONE-OF-US.NET's public trust graph (the same graph the Nerdster uses).
 Key replacement and delegate revocation are expressed entirely through ONE-OF-US.NET
 statements — no server-side state for these concerns.
 
@@ -30,7 +30,7 @@ sessions/
 ### Stream key design
 
 The stream document key is `{delegateToken}_{identityToken}`. Both SHA1 tokens are
-40-char lowercase hex — no underscores — so the separator is unambiguous.
+40-char lowercase hex.
 
 **Ownership enforcement**: because the identity token comes from the
 session-verified credential, not from the statement body, there is no way for a
@@ -111,7 +111,7 @@ The sign-in flow uses the same `SignInSession` / Firestore-polling mechanism as 
 The key difference: Hablo's `/signIn` server verifies a cryptographic signature from the
 phone before writing. Nerdster's `/signIn` does not verify a signature server-side.
 
-### Real sign-in (QR code flow)
+### Real sign-in (QR code flow, keymeid://, https://one-of-us.net)
 
 1. The Flutter web app calls `SignInSession.create(domain: 'hablotengo.com', signInUrl: ...)`.
    This generates an ephemeral PKE key pair. `session = SHA1(pkePubKey)` — effectively
@@ -119,8 +119,10 @@ phone before writing. Nerdster's `/signIn` does not verify a signature server-si
 2. The ONE-OF-US.NET phone app scans the QR. It derives `session = SHA1(encryptionPk)`,
    signs `"hablotengo.com-{identityToken}-{sessionTime}"` with the user's Ed25519 identity
    key, then POSTs `{session, identity, sessionTime, sessionSignature}` to `/signIn`.
-3. The `/signIn` CF checks: `sessionTime` is within 5 minutes; signature over
-   `"hablotengo.com-{identityToken}-{sessionTime}"` verifies against `identity`.
+3. The `/signIn` CF checks: 
+  - `sessionTime` is within 5 minutes
+  - signature over `"hablotengo.com-{identityToken}-{sessionTime}"`
+  - verifies against `identity`
    On success it writes the body to `sessions/doc/{session}/`.
 4. The web app's `SignInSession` is polling `sessions/doc/{session}`. On receipt it calls
    `onData` with `{identity, sessionTime, sessionSignature}`.
@@ -328,28 +330,8 @@ attacker's writes are accepted but immediately discarded on replay.
 
 ## The Trust Algorithm: Greedy BFS
 
-### Dart implementation (nerdster_common)
-
-In nerdster_common, already implemented, same as Nerdster.
-
-AI: I see this in trust_algorithm.js:
-
- * Trust Algorithm — JavaScript port of trust_logic.dart + trust_pipeline.dart
- *
- * Implements the same greedy BFS as the Dart Nerdster.
-
-Suggest filenames so that it looks like a port.
-
-
-### JavaScript port (functions/trust_algorithm.js)
-
-A direct port of the Dart. Uses the same BFS structure, same stage ordering, same
-`defaultPathRequirement` / `strictPathRequirement` / `permissivePathRequirement` functions,
-same node-disjoint path algorithm, same 6-degree limit.
-
-**Is it the same?** The `trust_algorithm.test.js` golden test verifies that the JS port
-produces identical `orderedKeys` for all 19 Simpsons characters compared to a pre-generated
-Dart golden. This is a strong behavioral equivalence check.
+The Dart implementation is from nerdster_common, already implemented.
+THe JavaScript is a direct port of the Dart (tested to produce the identical results).
 
 One difference in infrastructure: `MultiTargetTrustPipeline` (JS) builds all requested
 graphs sharing fetched OOU data across PoVs. There is no Dart equivalent; the Dart builds

@@ -2,7 +2,7 @@ const admin = require('firebase-admin');
 const { verifyAuth } = require('./auth_util');
 const { MultiTargetTrustPipeline } = require('./multi_target_trust_pipeline');
 const { oneofusSource } = require('./oneofus_source');
-const { permissivePathRequirement } = require('./trust_algorithm');
+const { permissivePathRequirement } = require('./trust_logic');
 const { getToken } = require('./jsonish_util');
 
 function _resolveCanonical(equivalent2canonical, token) {

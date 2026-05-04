@@ -6,7 +6,7 @@ const {
   defaultPathRequirement,
   strictPathRequirement,
   reduceTrustGraph,
-} = require('../trust_algorithm');
+} = require('../trust_logic');
 
 const { _meetsStrictness, _filterEntries } = require('../get_batch_contacts');
 

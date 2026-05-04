@@ -8,7 +8,7 @@
 
 const { test, describe } = require('node:test');
 const assert = require('node:assert');
-const { TrustPipeline } = require('../trust_algorithm');
+const { TrustPipeline } = require('../trust_pipeline');
 const { MultiTargetTrustPipeline } = require('../multi_target_trust_pipeline');
 const { keyToken } = require('../verify_util');
 const SIMPSONS_KEYS = require('../simpsons_keys.json');

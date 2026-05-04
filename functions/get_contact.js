@@ -1,6 +1,6 @@
 const admin = require('firebase-admin');
 const { verifyAuth } = require('./auth_util');
-const { TrustPipeline } = require('./trust_algorithm');
+const { TrustPipeline } = require('./trust_pipeline');
 const { oneofusSource } = require('./oneofus_source');
 const { buildContact } = require('./build_contact');
 

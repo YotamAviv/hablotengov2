@@ -2,7 +2,7 @@ const admin = require('firebase-admin');
 const { verifyAuth } = require('./auth_util');
 const { MultiTargetTrustPipeline } = require('./multi_target_trust_pipeline');
 const { oneofusSource } = require('./oneofus_source');
-const { permissivePathRequirement, defaultPathRequirement, strictPathRequirement } = require('./trust_algorithm');
+const { permissivePathRequirement, defaultPathRequirement, strictPathRequirement } = require('./trust_logic');
 const { buildContact } = require('./build_contact');
 
 function _meetsStrictness(level, distance, pathCount) {
