@@ -1,0 +1,89 @@
+import 'dart:convert';
+
+import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+import 'constants.dart';
+import 'sign_in_state.dart';
+
+class ExportKeysButton extends StatelessWidget {
+  final String targetToken;
+  final bool emulator;
+  const ExportKeysButton({super.key, required this.targetToken, required this.emulator});
+
+  Uri _buildUrl() {
+    final params = <String, String>{
+      'targetToken': targetToken,
+      'identity': jsonEncode(signInState.identityJson!),
+    };
+    if (signInState.isDemo) {
+      params['demo'] = 'true';
+    } else {
+      params['sessionTime'] = signInState.sessionTime!;
+      params['sessionSignature'] = signInState.sessionSignature!;
+    }
+    return Uri.parse(habloExportContactUrl(emulator)).replace(queryParameters: params);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Builder(builder: (ctx) {
+      Offset tapPosition = Offset.zero;
+      return GestureDetector(
+        onTapDown: (d) => tapPosition = d.globalPosition,
+        onTap: () {
+          final uri = _buildUrl();
+          final screenSize = MediaQuery.of(ctx).size;
+          const dialogH = 60.0;
+          final dialogW = (screenSize.width - 16).clamp(0.0, 420.0);
+          double left = tapPosition.dx;
+          double top = tapPosition.dy;
+          if (left + dialogW > screenSize.width) left = tapPosition.dx - dialogW;
+          if (top + dialogH > screenSize.height) top = tapPosition.dy - dialogH;
+          if (left < 0) left = 0;
+          if (top < 0) top = 0;
+          showGeneralDialog<void>(
+            context: ctx,
+            barrierDismissible: true,
+            barrierLabel: '',
+            barrierColor: Colors.black12,
+            transitionDuration: Duration.zero,
+            pageBuilder: (context, a1, a2) => Stack(
+              children: [
+                Positioned(
+                  left: left,
+                  top: top,
+                  child: Material(
+                    elevation: 12,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: SizedBox(
+                        width: dialogW,
+                        child: InkWell(
+                          onTap: () => launchUrl(uri, mode: LaunchMode.externalApplication),
+                          child: Text(
+                            'Private signed statements',
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: Colors.blue,
+                              decoration: TextDecoration.underline,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+        child: const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 4),
+          child: Icon(Icons.key_outlined, size: 18, color: Colors.blue),
+        ),
+      );
+    });
+  }
+}

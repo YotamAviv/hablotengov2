@@ -68,6 +68,12 @@ exports.getStreamHead = onRequest({ cors: true }, async (req, res) => {
   await handleGetStreamHead(req, res);
 });
 
+const { handleExportContact } = require('./export_contact');
+
+exports.exportContact = onRequest({ cors: true }, async (req, res) => {
+  await handleExportContact(req, res);
+});
+
 const { fetchStatements } = require('./statement_fetcher');
 const { parseIrevoke } = require('./jsonish_util');
 

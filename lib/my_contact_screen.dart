@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import 'contact_service.dart';
 import 'crypto_shield_button.dart';
+import 'export_keys_button.dart';
 import 'models/contact_statement.dart';
 import 'settings_state.dart';
 import 'sign_in_state.dart';
@@ -257,7 +258,12 @@ class _MyContactSheetState extends State<MyContactSheet> {
               ],
               if (settingsState.showCrypto && _rawStatement != null) ...[
                 const SizedBox(height: 8),
-                CryptoShieldButton(statement: _rawStatement, labeler: widget.labeler),
+                Row(
+                  children: [
+                    CryptoShieldButton(statement: _rawStatement, labeler: widget.labeler),
+                    ExportKeysButton(targetToken: signInState.identityToken!, emulator: widget.emulator),
+                  ],
+                ),
               ],
             ],
           ],

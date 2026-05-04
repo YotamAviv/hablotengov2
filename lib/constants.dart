@@ -52,3 +52,7 @@ String habloDeleteAccountUrl(bool emulator) => emulator
 String habloFunctionsBaseUrl(bool emulator) => emulator
     ? 'http://127.0.0.1:$kHabloFunctionsEmulatorPort/$kHabloEmulatorProject/us-central1'
     : 'https://us-central1-hablotengo.cloudfunctions.net';
+
+String habloExportContactUrl(bool emulator) => emulator
+    ? 'http://127.0.0.1:$kHabloFunctionsEmulatorPort/$kHabloEmulatorProject/us-central1/exportContact'
+    : 'https://export.hablotengo.com/exportContact';
