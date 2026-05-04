@@ -341,22 +341,32 @@ one graph at a time. This is an optimization, not a behavioral difference.
 
 ## Test Coverage
 
+### Testing philosophy
+
+Nerdster was developed primarily against FakeFirebase and relies heavily on unit tests that write data in-process without spinning up a real backend. Hablo's Cloud Functions require a Firebase emulator for any read or write test. Restarting the emulator is slow, so the bias is toward fewer, broader emulator tests (which do more per test run) and more pure unit tests where the logic can be extracted.
+
 ### Covered
 
 | Area | Test file | Type |
 |---|---|---|
 | Session signature: accept, reject wrong domain/key/time | `sign_in.test.js` | unit |
-| Trust algorithm JS vs Dart golden (19 characters, orderedKeys) | `trust_algorithm.test.js` | unit (fixture) |
+| Trust algorithm JS vs Dart golden (19 characters, orderedKeys) | `trust_pipeline.test.js` | unit (fixture) |
 | Path requirement functions (permissive/standard/strict) | `visibility_filter.test.js` | unit |
 | `_meetsStrictness` for all three levels | `visibility_filter.test.js` | unit |
 | `_filterEntries` with various strictness/distance/path combos | `visibility_filter.test.js` | unit |
 | BFS path counting accuracy (2 node-disjoint paths stored at d=3) | `visibility_filter.test.js` | unit |
+| `_replayStatements`: snapshot, settings, legacy enter/clear, ordering | `build_contact.test.js` | unit |
 | MultiTargetTrustPipeline matches single-target (Lisa, Homer, Marge, Bart, Sideshow) | `multi_target_trust.test.js` | emulator |
-| `getMyContact` returns data for Lisa | `contact_auth.test.js` | emulator |
+| `getMyContact`: Lisa name, email, phone | `contact_auth.test.js` | emulator |
+| `getMyContact`: Homer name, notes, phone, email | `contact_auth.test.js` | emulator |
 | `getContact`: Homer reads Lisa (trust-gated) | `contact_auth.test.js` | emulator |
 | `getContact`: Lisa reads Homer by canonical token (predecessor merge) | `contact_auth.test.js` | emulator |
 | `getContact`: Sideshow Bob (not trusted) denied | `contact_auth.test.js` | emulator |
 | Real auth: bad signature, wrong identity, expired session | `contact_auth.test.js` | emulator |
+| `getBatchContacts`: Lisa reads Homer+Marge (found with names), Sideshow denied | `batch_contacts.test.js` | emulator |
+| `getBatchContacts`: mixed batch returns found and denied in one response | `batch_contacts.test.js` | emulator |
+| `getBatchContacts`: self-reference returns full contact without filtering | `batch_contacts.test.js` | emulator |
+| `getBatchContacts`: Homer at distance 1, all entries visible, no `someHidden` | `batch_contacts.test.js` | emulator |
 | Flutter: Lisa's trust graph resolves correct names; Homer deduplicated | `contacts_web_test.dart` | Chrome/emulator |
 
 ### Not covered (gaps)
@@ -365,7 +375,8 @@ one graph at a time. This is an optimization, not a behavioral difference.
 |---|---|
 | `/write` endpoint | No tests: valid write, chain enforcement (409 on concurrent write), signature verification, identity binding check |
 | `/getStreamHead` | Not tested at all |
-| `/getBatchContacts` | Not tested: entry filtering, `someHidden` flag, self-reference detection, old-key canonical resolution |
+| `/getBatchContacts`: `someHidden` flag | Needs a seeded contact with strict-visibility entries at distance > 2 |
+| `/getBatchContacts`: old-key canonical resolution as self | Would require a seeded predecessor key for the requester |
 | `/deleteAccount` | Not tested |
 | `/getSettings` | Not tested (delegates to `buildContact`; indirectly covered via `getMyContact`) |
 | `revokeAt` filtering in `buildContact` | Not seeded or tested; the predecessor merge IS tested via the canonical token test, but revocation time filtering is not |

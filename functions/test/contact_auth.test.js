@@ -39,12 +39,29 @@ const lisaToken = keyToken(lisaJwk);
 const homerToken = keyToken(homerJwk);
 
 describe('getMyContact — seeded demo data', () => {
-  test('getMyContact returns data for Lisa', async () => {
+  test('Lisa: name, email, phone', async () => {
     const res = await post('getMyContact', { identity: lisaJwk, demo: true });
     const body = await res.text();
     assert.strictEqual(res.status, 200, `getMyContact failed: ${body}`);
     const data = JSON.parse(body);
-    assert.ok(data.name, `Expected contact data with a name, got: ${body}`);
+    assert.strictEqual(data.name, 'Lisa Simpson', `Expected "Lisa Simpson", got: ${data.name}`);
+    const email = data.entries?.find(e => e.tech === 'email');
+    assert.ok(email, `Expected email entry, got: ${JSON.stringify(data.entries)}`);
+    const phone = data.entries?.find(e => e.tech === 'phone');
+    assert.ok(phone, `Expected phone entry, got: ${JSON.stringify(data.entries)}`);
+  });
+
+  test('Homer: name, notes, phone, email', async () => {
+    const res = await post('getMyContact', { identity: homerJwk, demo: true });
+    const body = await res.text();
+    assert.strictEqual(res.status, 200, `getMyContact failed: ${body}`);
+    const data = JSON.parse(body);
+    assert.strictEqual(data.name, 'Homer Simpson', `Expected "Homer Simpson", got: ${data.name}`);
+    assert.strictEqual(data.notes, 'Never call me', `Expected notes "Never call me", got: ${data.notes}`);
+    const phone = data.entries?.find(e => e.tech === 'phone');
+    assert.ok(phone, `Expected phone entry, got: ${JSON.stringify(data.entries)}`);
+    const email = data.entries?.find(e => e.tech === 'email');
+    assert.ok(email, `Expected email entry, got: ${JSON.stringify(data.entries)}`);
   });
 });
 

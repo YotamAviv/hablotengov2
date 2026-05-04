@@ -106,13 +106,17 @@ async function buildContact(db, identityToken) {
 
   if (allStatements.length === 0) return null;
 
-  // 4. Sort by time and replay set/clear operations.
+  // 4. Sort by time and replay.
   allStatements.sort((a, b) => {
     const ta = a.time ?? '';
     const tb = b.time ?? '';
     return ta < tb ? -1 : ta > tb ? 1 : 0;
   });
 
+  return _replayStatements(allStatements);
+}
+
+function _replayStatements(statements) {
   let name = '';
   let notes = null;
   let showEmptyCards = false;
@@ -121,7 +125,7 @@ async function buildContact(db, identityToken) {
   let snapshotEntries = null; // set by contact snapshot statements
   const entries = {};         // built by legacy enter/clear statements
 
-  for (const stmt of allStatements) {
+  for (const stmt of statements) {
     const enter = stmt.enter;
     const set = stmt.set;
     const clear = stmt.clear;
@@ -155,4 +159,4 @@ async function buildContact(db, identityToken) {
   return contact;
 }
 
-module.exports = { buildContact };
+module.exports = { buildContact, _replayStatements };
