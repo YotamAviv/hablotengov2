@@ -6,6 +6,12 @@ Your contact card is private. Only people in your trusted network can read it �
 you can write to it. This is enforced cryptographically: your data is gated by your
 ONE-OF-US.NET identity key.
 
+## What an attacker with your key can do
+
+1. **Read your contact card** — your data is gated by your key, so they have full access.
+2. **Read your contacts' data** — anyone who trusts you has shared their card with you; the attacker inherits that access.
+3. **Write as you** — they can publish false contact information that your network will accept as coming from you.
+
 ## If your phone is stolen or your key is compromised
 
 Act quickly. Someone holding your key can read your contact data and the contact data of
@@ -14,19 +20,13 @@ will see as coming from you.
 
 **Steps to recover:**
 
-1. **Create a new identity key** using the ONE-OF-US.NET phone app.
+1. **Rotate your identity key** using the ONE-OF-US.NET phone app.
 
-2. **Publish a replace statement** naming your old key. This tells your network that your
-   new key represents you going forward.
+Tell at least a few of those who've previously vouched for your formerly recognized identity.
 
-3. **Revoke your Hablotengo delegate key** using your new identity. Set the revocation time
-   to when you believe the compromise occurred. Any contact data written after that point
+3. **Claim and revoke your Hablotengo delegate key** using your new identity. Set the revocation time
+   to when you believe the compromise occurred (or since always if you're not sure, or if it's too complicated). Any contact data written after that point
    by the attacker will be ignored.
-
-4. **Re-state your trust** — use your new key to re-trust the people your old key trusted.
-
-5. **Tell a few people who vouched for your old key** so they can vouch for your new one.
-   Their endorsement is what gets your new key accepted by the wider network.
 
 ## What this fixes
 
