@@ -25,109 +25,105 @@ sessions/
   doc/
     {sessionId}/
       {auto-id}/                          ← sign-in payload from phone app
-
-settings/
-  {identityToken}/                        ← plain (unsigned) UI preferences
 ```
 
 ### Stream key design
 
 The stream document key is `{delegateToken}_{identityToken}`. Both SHA1 tokens are
-40-char lowercase hex — no underscores — so splitting on `_` is unambiguous.
+40-char lowercase hex — no underscores — so the separator is unambiguous.
 
-AI: Why would we care about splitting these?
+**Ownership enforcement**: because the identity token comes from the
+session-verified credential, not from the statement body, there is no way for a
+client to write to another identity's stream — it cannot forge `auth.identityToken`.
 
+### `head` field and transactional writes
 
-**Why delegate first**: a write knows the delegate token first (it is `keyToken(statement.I)`).
-Putting it first means the server can construct the full key from what it already has
-(delegate token from the statement, identity token from the session). There is no ambiguity
-about which identity owns a stream: the identity is baked into the key, not inferred from
-a stored field.
+The `head` field on the stream document holds the token of the most recent
+statement. On every write, the server runs a Firestore transaction: reads `head`,
+checks that `statement.previous` matches (or both are null), writes the new
+statement, and updates `head` atomically. A mismatch returns 409.
 
-AI: Does the above paragraph help in any way?
+Nerdster and ONE-OF-US.NET do not use a `head` field. They find the chain tip by
+querying `orderBy('time','desc').limit(1)`, which has a TOCTOU race between
+concurrent writers. Hablo's transactional approach eliminates that race.
 
+### `sessions/doc/{sessionId}/{auto-id}/`
 
-
-
-**Ownership enforcement**: on write, the server constructs
-`${delegateToken}_${auth.identityToken}`. The session-verified identity is part of the key.
-There is no way to write to another identity's stream — the key won't match.
-
-### Other collections
-
-**`sessions/doc/{sessionId}/{auto-id}/`**  
 Written by the phone app via `/signIn`. Contains
-`{session, identity, sessionTime, sessionSignature}`. The web app polls this to complete
-sign-in. Documents are not cleaned up automatically.
-
-**`settings/{identityToken}/`**  
-Plain Firestore document. Fields: `showEmptyCards`, `showHiddenCards`, `defaultStrictness`.
-Not signed — UI preferences only. Written by `/setSettings`, read by `/getSettings` and
-`/getBatchContacts`.
+`{session, identity, sessionTime, sessionSignature}`. The web app polls this path
+to complete sign-in. Documents are not cleaned up automatically.
 
 ### What does NOT exist
 
 There is no `contacts/` collection or any other materialized view of contact data.
 `buildContact` replays stream statements on every read.
 
+There is no `settings/` collection. Settings (`showEmptyCards`, `showHiddenCards`,
+`defaultStrictness`) are stored as signed statements in the same stream as contact
+data. They use the `set` verb with a flat shape: `{ "set": { "showEmptyCards": true } }`.
+They are signed by the delegate key, inherit the same revocation semantics, and can
+be audited or shared like any other statement.
+
 ---
 
 ## Statement Format
 
 Statement type: `"com.hablotengo"`. Signed by the delegate key (`I` field).
+The signing convention — identical to ONE-OF-US.NET statements.
 
+Two verbs:
+
+**`set` (contact snapshot)** — the full contact card in one statement:
 ```json
 {
   "statement": "com.hablotengo",
   "time": "<ISO8601>",
   "I": { "crv": "Ed25519", "kty": "OKP", "x": "<base64url>" },
-  "set": { "order": 2.0, "tech": "email", "value": "alice@example.com",
-           "preferred": true, "visibility": "default" },
+  "set": {
+    "name": "Alice",
+    "notes": "Call after 6pm",
+    "entries": [
+      { "tech": "email", "value": "alice@example.com", "preferred": true },
+      { "tech": "phone", "value": "+1-555-0100", "visibility": "standard" }
+    ]
+  },
   "with": { "verifiedIdentity": "<identityToken>" },
-  "previous": "<prevStatementToken | null>",
+  "previous": "<prevStatementToken>",
   "signature": "<ed25519_hex>"
 }
 ```
 
-`set` alternatives:
-- Entry: `{ "order": <float>, "tech": "...", "value": "...", "preferred": bool, "visibility": "permissive|standard|strict|default" }`
-- Name: `{ "field": "name", "value": "..." }`
-- Notes: `{ "field": "notes", "value": "..." }`
+Every contact save emits exactly one statement. Position in `entries` array is display order. Entry fields: `tech` (string), `value` (string), optional `preferred` (bool), optional `visibility` (`"permissive"|"standard"|"strict"`). The latest `set.entries` seen during replay replaces all earlier entries.
 
-Deletion: `"clear": <order>` instead of `"set"`.
+**`set` (settings)** — a single settings field, flat shape:
+```json
+{ "set": { "showEmptyCards": true } }
+{ "set": { "defaultStrictness": "strict" } }
+```
 
-**Merge rule**: latest statement per `order` wins (sort by `time`, lexicographic ISO8601).
-`clear` removes the slot. Display order: sort entries by `order` (float).
-
-
-
-
-**Signing**: The cleartext is the canonical pretty-printed JSON of the statement without
-the `signature` field (keys in `jsonish_util.js` order). Ed25519 signature in lowercase hex.
-The statement token is SHA1 of the canonical pretty-printed full statement (with signature).
-
-AI: If it's the same as the other projects, then say that it's the same. Explaining it from scratch makes me have to figure out if it's the same or different.
-
+Settings changes are infrequent and stay as individual statements accumulated alongside contact snapshots during replay. Latest value per field key wins.
 
 ---
 
 ## Signing In
 
+The sign-in flow uses the same `SignInSession` / Firestore-polling mechanism as Nerdster.
+The key difference: Hablo's `/signIn` server verifies a cryptographic signature from the
+phone before writing. Nerdster's `/signIn` does not verify a signature server-side.
+
 ### Real sign-in (QR code flow)
 
 1. The Flutter web app calls `SignInSession.create(domain: 'hablotengo.com', signInUrl: ...)`.
-   This generates a random `sessionId` and a QR code URL.
-
-AI: Is the sessionId random?
-AI: If it's the same as Nerdster, the see my earlier comment. Ideally, highlight the differences.
-
-2. The ONE-OF-US.NET phone app scans the QR. It signs
-   `"hablotengo.com-{identityToken}-{sessionTime}"` with the user's Ed25519 identity key,
-   then POSTs `{session, identity, sessionTime, sessionSignature}` to `/signIn`.
-3. The `/signIn` CF verifies: sessionTime is within the last 5 minutes; signature is valid.
-   On success it writes the body to `sessions/doc/{sessionId}/`.
-4. The web app's `SignInSession` is polling that Firestore path. On receipt it calls the
-   app's `onData` callback with `{identity, sessionTime, sessionSignature}`.
+   This generates an ephemeral PKE key pair. `session = SHA1(pkePubKey)` — effectively
+   random. The QR code payload is `{ domain, url, encryptionPk }`.
+2. The ONE-OF-US.NET phone app scans the QR. It derives `session = SHA1(encryptionPk)`,
+   signs `"hablotengo.com-{identityToken}-{sessionTime}"` with the user's Ed25519 identity
+   key, then POSTs `{session, identity, sessionTime, sessionSignature}` to `/signIn`.
+3. The `/signIn` CF checks: `sessionTime` is within 5 minutes; signature over
+   `"hablotengo.com-{identityToken}-{sessionTime}"` verifies against `identity`.
+   On success it writes the body to `sessions/doc/{session}/`.
+4. The web app's `SignInSession` is polling `sessions/doc/{session}`. On receipt it calls
+   `onData` with `{identity, sessionTime, sessionSignature}`.
 5. `SignInState.onData` stores these as the session credential.
 
 **Session credential** (sent on every subsequent CF request):
@@ -136,13 +132,14 @@ AI: If it's the same as Nerdster, the see my earlier comment. Ideally, highlight
 ```
 Session window for API calls: 1 week. The 5-minute freshness check only applies at sign-in.
 
-### Demo sign-in (emulator only)
-
-AI: What about demo on PROD?
+### Demo sign-in
 
 `/demoSignIn` accepts `{identity}`, validates it against the hardcoded `simpsons_keys.json`,
 returns `{identityToken}`. No session is created. Demo requests send `{identity, demo: true}`
-instead of session fields. Writes in production are rejected for demo users.
+instead of session fields.
+
+The endpoint is deployed to production but writes are rejected for demo users. Demo users
+can read contacts in production but cannot write.
 
 ### Key storage (Flutter)
 
@@ -177,14 +174,8 @@ Server checks, in order:
 7. **Chain** — in a Firestore transaction: reads `streams/{delegateToken}_{identityToken}.head`;
    `statement.previous` must equal `head` (or both null). On mismatch → 409.
 
-On success: writes `streams/{delegateToken}/statements/{token}` and updates
-`streams/{delegateToken}.head` and `.identityToken` atomically.
-
-**Gap**: The server does not currently verify that `statement.I` is a currently trusted,
-non-revoked delegate of `verifiedIdentity` in ONE-OF-US.NET. A client with a revoked
-delegate key can still write. This is planned but not implemented.
-
-AI: I don't think this is planned or necessary or really a gap.
+On success: writes `statements/{token}` into `streams/{delegateToken}_{identityToken}` and
+updates `head` atomically in the same transaction.
 
 ---
 
@@ -215,8 +206,8 @@ Batch version for the contacts list screen. Request: `{targetTokens: [...]}`.
    - If the target's graph resolves `auth.identityToken` as canonical (self-reference) → status `found`, full contact.
    - If `auth.identityToken` is in the target's graph → trusted; calls `buildContact`.
    - Otherwise → `{status: "denied"}`.
-3. For trusted non-self targets: reads `settings/{canonicalToken}.defaultStrictness`;
-   applies `_filterEntries(contact, defaultStrictness, distance, pathCount)`.
+3. For trusted non-self targets: reads `contact.defaultStrictness` from the `buildContact`
+   result; applies `_filterEntries(contact, defaultStrictness, distance, pathCount)`.
 4. Returns `{[token]: {status, contact?, defaultStrictness?, someHidden?}}`.
 
 ### Entry visibility filtering (`_filterEntries`)
@@ -253,25 +244,30 @@ so strict-entry checks on far nodes are accurate even when the node was admitted
    - Canonical identity's `revokeAt` entries override predecessors' for the same delegate token.
 
 6. **Collect Hablo statements** for each identity token (current + predecessors):
-   - Query `streams` where `identityToken == token`.
-   - For each stream: if delegate is in `delegateRevocations`:
+   - Extract delegate tokens from OOU `delegate` verb statements for that identity.
+   - Construct stream key as `{delegateToken}_{idToken}` and look up directly.
+   - If delegate is in `delegateRevocations`:
      - `null` → skip stream
-     - timestamp → query `statements` where `time <= revocationTime`
+     - timestamp → fetch only statements with `time <= revocationTime`
    - Else → all statements
 
 7. **Sort** all collected statements by `time` (lexicographic; ISO8601 is safe).
 
-8. **Replay**: accumulate `set`/`clear` operations. `set.field = "name"` → name;
-   `set.field = "notes"` → notes; `set.order` → entries map keyed by order; `clear` → delete key.
+8. **Replay**: accumulate `enter`/`set`/`clear` operations:
+   - `enter` (string slot ID) → entries map keyed by slot ID; payload from `with`
+   - `set.name` → name; `set.notes` → notes
+   - `set.showEmptyCards`, `set.showHiddenCards`, `set.defaultStrictness` → settings
+   - `clear` (string slot ID) → delete entry slot
 
-9. Return `{name, entries: [...sorted by order], notes?}` or `null` if no statements.
+9. Return `{name, entries: [...sorted by parseFloat(order)], showEmptyCards, showHiddenCards, defaultStrictness, notes?}`
+   or `null` if no statements.
 
 ---
 
 ## Identity Equivalence (Key Replacement)
 
 When a user generates a new ONE-OF-US.NET identity key, they sign a `replace` statement
-naming their old key: `"Homer replaces homer2"`.
+naming their old key.
 
 **Trust graph side**: `TrustPipeline` (both Dart and JS) processes `replace` verbs.
 The old key is added to `equivalent2canonical` mapping to the new canonical key.
@@ -280,8 +276,8 @@ The Flutter `ContactsScreen` deduplicates by canonical key.
 
 **Contact assembly side**: `buildContact` reads the same `replace` verbs from OOU statements
 to discover predecessor identity tokens. It fetches streams for all epochs (current + all
-predecessors) and merges them into one contact replay. This means contact data written under
-any past identity key survives key replacement transparently.
+predecessors) and merges them into one contact replay. Contact data written under any past
+identity key survives key replacement transparently.
 
 **getBatchContacts**: `_resolveCanonical(equivalent2canonical, token)` maps any old token
 to the canonical to detect self-references correctly.
@@ -322,9 +318,11 @@ be trusted.
 **Why statements before the revocation time are kept**: the user signed those statements
 with a key they controlled at the time. Only post-compromise writes are suspect.
 
-**Write-side gap**: the server does not check `revokeAt` on writes. A compromised delegate
-key can still submit new statements until the client or server is updated to enforce this.
-Reads are protected; writes are not.
+**Write-side**: the server does not check `revokeAt` on writes. A compromised delegate
+key can still write statements until revoked. Those statements will be excluded by
+`buildContact` on reads once `revokeAt` is published. This is not a security breach —
+reads are the only thing that matters for what other people see. The waste is that the
+attacker's writes are accepted but immediately discarded on replay.
 
 ---
 
@@ -332,17 +330,16 @@ Reads are protected; writes are not.
 
 ### Dart implementation (nerdster_common)
 
-`trust_logic.dart` + `trust_pipeline.dart`. The algorithm:
-- BFS layer by layer, max 6 degrees.
-- **Stage 1 (equivalents)**: before processing trusts in a layer, process all `replace` verbs.
-  Old keys become equivalents of the canonical. Statements from old keys are ignored in BFS.
-- **Stage 2 (trusts)**: for each trust statement from a layer member, resolve the subject to
-  canonical, check not blocked. Compute node-disjoint paths from PoV to subject.
-  Admit if `pathCount >= pathRequirement(distance)`.
-- Path requirement (default): 1 at d≤3, 2 at d=4, 3 at d≥5.
-- Path counting uses node-disjoint BFS (Suurballe-style iterative exclusion of intermediate nodes).
-- Paths are stored up to `max(required, strictPathRequirement)` so that per-entry strict
-  visibility checks are accurate even when admission needed fewer.
+In nerdster_common, already implemented, same as Nerdster.
+
+AI: I see this in trust_algorithm.js:
+
+ * Trust Algorithm — JavaScript port of trust_logic.dart + trust_pipeline.dart
+ *
+ * Implements the same greedy BFS as the Dart Nerdster.
+
+Suggest filenames so that it looks like a port.
+
 
 ### JavaScript port (functions/trust_algorithm.js)
 
@@ -388,8 +385,7 @@ one graph at a time. This is an optimization, not a behavioral difference.
 | `/getStreamHead` | Not tested at all |
 | `/getBatchContacts` | Not tested: entry filtering, `someHidden` flag, self-reference detection, old-key canonical resolution |
 | `/deleteAccount` | Not tested |
-| `/getSettings`, `/setSettings` | Not tested |
+| `/getSettings` | Not tested (delegates to `buildContact`; indirectly covered via `getMyContact`) |
 | `revokeAt` filtering in `buildContact` | Not seeded or tested; the predecessor merge IS tested via the canonical token test, but revocation time filtering is not |
 | Demo write rejection in production | Not tested |
 | `/demoSignIn` endpoint itself | Not tested |
-| `write.js` delegate trust verification (planned but absent) | Not tested because not implemented |

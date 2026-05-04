@@ -1,3 +1,16 @@
+/**
+ * hablo_write.js — Hablo-specific write endpoint.
+ *
+ * Differs from nerdster14/oneofusv22 write.js in three ways:
+ *   1. Session auth: each write must include {identity, sessionTime, sessionSignature},
+ *      tying the delegate-signed statement to an authenticated ONE-OF-US.NET identity.
+ *   2. Atomic chain enforcement: uses a Firestore transaction + a `head` field on the
+ *      stream doc, rather than a non-transactional orderBy query. This eliminates the
+ *      TOCTOU race where two concurrent writers both read the same latestToken and
+ *      both succeed, forking the chain.
+ *   3. Stream key: {delegateToken}_{identityToken} instead of just {issuerToken}.
+ */
+
 const admin = require('firebase-admin');
 const { verifyAuth } = require('./auth_util');
 const { verifyStatementSignature, statementToken, keyToken } = require('./verify_util');
@@ -47,7 +60,7 @@ async function handleWrite(req, res) {
   const clientPrevious = statement.previous ?? null;
 
   const db = admin.firestore();
-  const streamRef = db.collection('streams').doc(delegateToken);
+  const streamRef = db.collection('streams').doc(`${delegateToken}_${auth.identityToken}`);
 
   try {
     await db.runTransaction(async (tx) => {
@@ -61,7 +74,7 @@ async function handleWrite(req, res) {
       }
 
       tx.set(streamRef.collection('statements').doc(token), statement);
-      tx.set(streamRef, { head: token, identityToken: auth.identityToken }, { merge: true });
+      tx.set(streamRef, { head: token }, { merge: true });
     });
   } catch (e) {
     if (e.code === 409) {

@@ -44,9 +44,6 @@ String habloGetSettingsUrl(bool emulator) => emulator
     ? 'http://127.0.0.1:$kHabloFunctionsEmulatorPort/$kHabloEmulatorProject/us-central1/getSettings'
     : 'https://us-central1-hablotengo.cloudfunctions.net/getSettings';
 
-String habloSetSettingsUrl(bool emulator) => emulator
-    ? 'http://127.0.0.1:$kHabloFunctionsEmulatorPort/$kHabloEmulatorProject/us-central1/setSettings'
-    : 'https://us-central1-hablotengo.cloudfunctions.net/setSettings';
 
 String habloDeleteAccountUrl(bool emulator) => emulator
     ? 'http://127.0.0.1:$kHabloFunctionsEmulatorPort/$kHabloEmulatorProject/us-central1/deleteAccount'

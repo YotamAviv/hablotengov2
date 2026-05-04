@@ -14,7 +14,7 @@ const admin = require('firebase-admin');
 
 admin.initializeApp();
 
-const { handleSignIn } = require('./sign_in');
+const { handleSignIn } = require('./hablo_sign_in');
 
 exports.signIn = onRequest({ cors: true, invoker: 'public' }, async (req, res) => {
   await handleSignIn(req, res);
@@ -50,19 +50,13 @@ exports.getSettings = onRequest({ cors: true }, async (req, res) => {
   await handleGetSettings(req, res);
 });
 
-const { handleSetSettings } = require('./set_settings');
-
-exports.setSettings = onRequest({ cors: true }, async (req, res) => {
-  await handleSetSettings(req, res);
-});
-
 const { handleDeleteAccount } = require('./delete_account');
 
 exports.deleteAccount = onRequest({ cors: true }, async (req, res) => {
   await handleDeleteAccount(req, res);
 });
 
-const { handleWrite } = require('./write');
+const { handleWrite } = require('./hablo_write');
 
 exports.write = onRequest({ cors: true }, async (req, res) => {
   await handleWrite(req, res);

@@ -8,7 +8,7 @@ const { test, describe, before } = require('node:test');
 const assert = require('node:assert');
 const crypto = require('crypto');
 const { keyToken } = require('../verify_util');
-const { DOMAIN } = require('../sign_in');
+const { DOMAIN } = require('../hablo_sign_in');
 const SIMPSONS_KEYS = require('../simpsons_keys.json');
 
 const BASE_URL = 'http://127.0.0.1:5003/hablotengo/us-central1';

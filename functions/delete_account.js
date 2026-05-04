@@ -3,6 +3,7 @@ const { verifyAuth } = require('./auth_util');
 const { MultiTargetTrustPipeline } = require('./multi_target_trust_pipeline');
 const { oneofusSource } = require('./oneofus_source');
 const { permissivePathRequirement } = require('./trust_algorithm');
+const { getToken } = require('./jsonish_util');
 
 function _resolveCanonical(equivalent2canonical, token) {
   let cur = token;
@@ -16,14 +17,18 @@ function _resolveCanonical(equivalent2canonical, token) {
 }
 
 async function _deleteStreamsForIdentity(db, identityToken) {
-  const streamsSnap = await db.collection('streams')
-    .where('identityToken', '==', identityToken)
-    .get();
-  for (const streamDoc of streamsSnap.docs) {
-    const stmtsSnap = await streamDoc.ref.collection('statements').get();
+  const oouData = await oneofusSource.fetchWithIds({ [identityToken]: null });
+  const stmts = oouData[identityToken] || [];
+  const delegateTokens = new Set();
+  for (const stmt of stmts) {
+    if (stmt.delegate) delegateTokens.add(await getToken(stmt.delegate));
+  }
+  for (const delegateToken of delegateTokens) {
+    const streamRef = db.collection('streams').doc(`${delegateToken}_${identityToken}`);
+    const stmtsSnap = await streamRef.collection('statements').get();
     const batch = db.batch();
     for (const stmtDoc of stmtsSnap.docs) batch.delete(stmtDoc.ref);
-    batch.delete(streamDoc.ref);
+    batch.delete(streamRef);
     await batch.commit();
   }
 }
@@ -53,14 +58,7 @@ async function handleDeleteAccount(req, res) {
       : [];
     const allOldTokens = myOldKeys;
 
-    // Delete all delegate streams (statements + stream doc) for each identity token.
     await Promise.all([auth.identityToken, ...allOldTokens].map(tok => _deleteStreamsForIdentity(db, tok)));
-
-    // Delete settings docs.
-    await Promise.all([
-      db.collection('settings').doc(auth.identityToken).delete(),
-      ...allOldTokens.map(tok => db.collection('settings').doc(tok).delete()),
-    ]);
 
     console.log(`[delete_account] deleted account for ${auth.identityToken} oldKeys=${allOldTokens.length}`);
     res.status(200).json({});

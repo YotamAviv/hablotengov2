@@ -3,35 +3,32 @@ import 'package:oneofus_common/jsonish.dart';
 const String kHabloStatementType = 'com.hablotengo';
 
 /// Contact info entry: a single tech/value pair with optional flags.
+/// Position in the entries list is the display order — no order field needed.
 class ContactEntry {
-  final String tech;   // e.g. "email", "phone", "whatsapp", "instagram"
+  final String tech;       // e.g. "email", "phone", "whatsapp", "instagram"
   final String value;
   final bool preferred;
   final String visibility; // "default", "permissive", "standard", "strict"
-  final double order;      // fractional index: stable identity + display order
 
   const ContactEntry({
     required this.tech,
     required this.value,
     this.preferred = false,
     this.visibility = 'default',
-    this.order = 0.0,
   });
 
   Json toJson() => {
-    'order': order,
     'tech': tech,
     'value': value,
     if (preferred) 'preferred': true,
     if (visibility != 'default') 'visibility': visibility,
   };
 
-  factory ContactEntry.fromJson(Json j, {double defaultOrder = 0.0}) => ContactEntry(
+  factory ContactEntry.fromJson(Json j) => ContactEntry(
     tech: j['tech'],
     value: j['value'],
     preferred: j['preferred'] ?? false,
     visibility: j['visibility'] ?? 'default',
-    order: (j['order'] as num?)?.toDouble() ?? defaultOrder,
   );
 
   ContactEntry copyWith({
@@ -39,13 +36,11 @@ class ContactEntry {
     String? value,
     bool? preferred,
     String? visibility,
-    double? order,
   }) => ContactEntry(
     tech: tech ?? this.tech,
     value: value ?? this.value,
     preferred: preferred ?? this.preferred,
     visibility: visibility ?? this.visibility,
-    order: order ?? this.order,
   );
 }
 
@@ -57,17 +52,9 @@ class ContactData {
 
   const ContactData({required this.name, this.notes, this.entries = const []});
 
-  Json toJson() => {
-    'name': name,
-    if (notes != null) 'notes': notes,
-    'entries': entries.map((e) => e.toJson()).toList(),
-  };
-
   factory ContactData.fromJson(Json j) {
     final rawEntries = (j['entries'] as List? ?? []);
-    final entries = rawEntries.asMap().entries.map((e) =>
-      ContactEntry.fromJson(e.value as Json, defaultOrder: (e.key + 1).toDouble())
-    ).toList();
+    final entries = rawEntries.map((e) => ContactEntry.fromJson(e as Json)).toList();
     return ContactData(
       name: j['name'] ?? '',
       notes: j['notes'] as String?,
@@ -78,33 +65,27 @@ class ContactData {
 
 // ── Statement JSON builders ──────────────────────────────────────────────────
 
-/// Builds a "set entry" statement JSON (unsigned).
-Json buildSetEntryJson({
-  required ContactEntry entry,
+/// Builds a snapshot statement: the full contact card (name, notes, entries) in one `set`.
+/// One statement per save — no per-field diffing, no per-entry statements.
+Json buildContactSnapshot({
+  required ContactData contact,
   required Json delegatePublicKeyJson,
   required String identityToken,
 }) => {
   'statement': kHabloStatementType,
   'time': DateTime.now().toUtc().toIso8601String(),
   'I': delegatePublicKeyJson,
-  'set': entry.toJson(),
+  'set': {
+    'name': contact.name,
+    if (contact.notes != null) 'notes': contact.notes,
+    'entries': contact.entries.map((e) => e.toJson()).toList(),
+  },
   'with': {'verifiedIdentity': identityToken},
 };
 
-/// Builds a "clear entry" statement JSON (unsigned).
-Json buildClearEntryJson({
-  required double order,
-  required Json delegatePublicKeyJson,
-  required String identityToken,
-}) => {
-  'statement': kHabloStatementType,
-  'time': DateTime.now().toUtc().toIso8601String(),
-  'I': delegatePublicKeyJson,
-  'clear': order,
-  'with': {'verifiedIdentity': identityToken},
-};
-
-/// Builds a "set field" statement JSON for name, notes, or preferences (unsigned).
+/// Builds a "set" statement for a single settings field (showEmptyCards, defaultStrictness, etc.).
+/// Settings changes are infrequent and stay as individual statements — they are accumulated
+/// alongside contact snapshots during replay.
 Json buildSetFieldJson({
   required String field,
   required dynamic value,
@@ -114,6 +95,6 @@ Json buildSetFieldJson({
   'statement': kHabloStatementType,
   'time': DateTime.now().toUtc().toIso8601String(),
   'I': delegatePublicKeyJson,
-  'set': {'field': field, 'value': value},
+  'set': {field: value},
   'with': {'verifiedIdentity': identityToken},
 };

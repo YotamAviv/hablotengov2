@@ -111,67 +111,26 @@ Future<Map<String, ContactResult>> getBatchContacts(List<String> targetTokens, b
 
 // ── Write operations ─────────────────────────────────────────────────────────
 
-/// Saves [newContact], diffing against [oldContact] to emit only changed statements.
-Future<void> setMyContact(ContactData newContact, bool emulator, {ContactData? oldContact}) async {
-  await _setMyContactSigned(oldContact, newContact, emulator);
-}
-
-Future<void> _setMyContactSigned(
-    ContactData? oldContact, ContactData newContact, bool emulator) async {
+Future<void> setMyContact(ContactData contact, bool emulator) async {
   final channel = _getChannel(emulator);
   final signer = signInState.signer!;
   final delegatePk = signInState.delegatePublicKeyJson!;
   final identityToken = signInState.identityToken!;
+  await channel.push(
+    buildContactSnapshot(contact: contact, delegatePublicKeyJson: delegatePk, identityToken: identityToken),
+    signer,
+  );
+}
 
-  // Name
-  if (oldContact?.name != newContact.name) {
-    await channel.push(
-      buildSetFieldJson(field: 'name', value: newContact.name, delegatePublicKeyJson: delegatePk, identityToken: identityToken),
-      signer,
-    );
-  }
-
-  // Notes
-  if (oldContact?.notes != newContact.notes) {
-    await channel.push(
-      buildSetFieldJson(field: 'notes', value: newContact.notes, delegatePublicKeyJson: delegatePk, identityToken: identityToken),
-      signer,
-    );
-  }
-
-  final Map<double, ContactEntry> oldByOrder = {
-    for (final e in oldContact?.entries ?? []) e.order: e,
-  };
-  final Map<double, ContactEntry> newByOrder = {
-    for (final e in newContact.entries) e.order: e,
-  };
-
-  // Deleted entries
-  for (final order in oldByOrder.keys) {
-    if (!newByOrder.containsKey(order)) {
-      await channel.push(
-        buildClearEntryJson(order: order, delegatePublicKeyJson: delegatePk, identityToken: identityToken),
-        signer,
-      );
-    }
-  }
-
-  // New or changed entries
-  for (final entry in newContact.entries) {
-    final old = oldByOrder[entry.order];
-    if (old == null ||
-        old.tech != entry.tech ||
-        old.value != entry.value ||
-        old.preferred != entry.preferred ||
-        old.visibility != entry.visibility) {
-      await channel.push(
-        buildSetEntryJson(entry: entry, delegatePublicKeyJson: delegatePk, identityToken: identityToken),
-        signer,
-      );
-    }
-  }
-
-  debugPrint('_setMyContactSigned: done');
+Future<void> setSettingsField(String field, dynamic value, bool emulator) async {
+  final channel = _getChannel(emulator);
+  final signer = signInState.signer!;
+  final delegatePk = signInState.delegatePublicKeyJson!;
+  final identityToken = signInState.identityToken!;
+  await channel.push(
+    buildSetFieldJson(field: field, value: value, delegatePublicKeyJson: delegatePk, identityToken: identityToken),
+    signer,
+  );
 }
 
 Future<void> deleteAccount(bool emulator) async {

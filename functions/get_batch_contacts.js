@@ -79,9 +79,7 @@ async function handleGetBatchContacts(req, res) {
         result[targetToken] = { status: 'found', contact };
         return;
       }
-      let defaultStrictness = 'standard';
-      const settingsDoc = await db.collection('settings').doc(canonicalToken).get();
-      if (settingsDoc.exists) defaultStrictness = settingsDoc.data().defaultStrictness ?? 'standard';
+      const defaultStrictness = contact.defaultStrictness ?? 'standard';
       const distance = graph.distances.get(auth.identityToken);
       const pathCount = graph.paths.get(auth.identityToken)?.length ?? 0;
       const { contact: filtered, someHidden } = _filterEntries(contact, defaultStrictness, distance, pathCount);

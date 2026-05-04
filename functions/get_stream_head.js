@@ -14,16 +14,12 @@ async function handleGetStreamHead(req, res) {
   }
 
   try {
-    const doc = await admin.firestore().collection('streams').doc(delegateToken).get();
+    const doc = await admin.firestore().collection('streams').doc(`${delegateToken}_${auth.identityToken}`).get();
     if (!doc.exists) {
       res.status(200).json({ token: null });
       return;
     }
     const data = doc.data();
-    if (data.identityToken && data.identityToken !== auth.identityToken) {
-      res.status(403).send('Stream does not belong to this identity');
-      return;
-    }
     console.log(`[get_stream_head] delegate=${delegateToken} head=${data.head ?? null}`);
     res.status(200).json({ token: data.head ?? null });
   } catch (e) {

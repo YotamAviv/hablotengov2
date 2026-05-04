@@ -1,5 +1,6 @@
 const admin = require('firebase-admin');
 const { verifyAuth } = require('./auth_util');
+const { buildContact } = require('./build_contact');
 
 async function handleGetSettings(req, res) {
   res.setHeader('Content-Type', 'application/json');
@@ -8,12 +9,11 @@ async function handleGetSettings(req, res) {
   if (!auth) return;
 
   try {
-    const doc = await admin.firestore().collection('settings').doc(auth.identityToken).get();
-    const data = doc.exists ? doc.data() : {};
+    const contact = await buildContact(admin.firestore(), auth.identityToken);
     res.status(200).json({
-      showEmptyCards: data.showEmptyCards ?? false,
-      showHiddenCards: data.showHiddenCards ?? false,
-      defaultStrictness: data.defaultStrictness ?? 'standard',
+      showEmptyCards: contact?.showEmptyCards ?? false,
+      showHiddenCards: contact?.showHiddenCards ?? false,
+      defaultStrictness: contact?.defaultStrictness ?? 'standard',
     });
   } catch (e) {
     console.error('[get_settings] error:', e.message);

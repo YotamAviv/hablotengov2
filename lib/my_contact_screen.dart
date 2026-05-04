@@ -73,7 +73,7 @@ class _MyContactSheetState extends State<MyContactSheet> {
         notes: _notesCtrl.text.trim().isEmpty ? null : _notesCtrl.text.trim(),
         entries: _editEntries.map((e) => e.entry).where((e) => e.value.isNotEmpty).toList(),
       );
-      await setMyContact(contact, widget.emulator, oldContact: _contact);
+      await setMyContact(contact, widget.emulator);
       if (mounted) setState(() { _contact = contact; _editing = false; _saving = false; });
     } catch (e, st) {
       debugPrint('MyContactSheet save error: $e\n$st');
@@ -87,11 +87,7 @@ class _MyContactSheetState extends State<MyContactSheet> {
       builder: (_) => const _TechPickerDialog(),
     );
     if (tech != null && tech.isNotEmpty) {
-      final nextOrder = _editEntries.isEmpty
-          ? 1.0
-          : _editEntries.map((e) => e.entry.order).reduce((a, b) => a > b ? a : b) + 1.0;
-      setState(() => _editEntries.add(
-          _EditableEntry(_nextEntryId++, ContactEntry(tech: tech, value: '', order: nextOrder))));
+      setState(() => _editEntries.add(_EditableEntry(_nextEntryId++, ContactEntry(tech: tech, value: ''))));
     }
   }
 
@@ -158,16 +154,6 @@ class _MyContactSheetState extends State<MyContactSheet> {
                               if (newIndex > oldIndex) newIndex--;
                               final item = _editEntries.removeAt(oldIndex);
                               _editEntries.insert(newIndex, item);
-                              final before = newIndex > 0 ? _editEntries[newIndex - 1].entry.order : null;
-                              final after = newIndex < _editEntries.length - 1 ? _editEntries[newIndex + 1].entry.order : null;
-                              final newOrder = before == null && after == null
-                                  ? item.entry.order
-                                  : before == null
-                                      ? after! - 1.0
-                                      : after == null
-                                          ? before + 1.0
-                                          : (before + after) / 2;
-                              _editEntries[newIndex] = _EditableEntry(item.id, item.entry.copyWith(order: newOrder));
                             });
                           },
                           children: [

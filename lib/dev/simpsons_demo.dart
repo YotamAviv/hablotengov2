@@ -114,28 +114,11 @@ class HabloIdentityKey {
       signer: _delegateSigner!,
     );
 
-    await channel.push(buildSetFieldJson(
-      field: 'name',
-      value: c.displayName,
+    await channel.push(buildContactSnapshot(
+      contact: ContactData(name: c.displayName, notes: c.notes, entries: c.entries),
       delegatePublicKeyJson: _delegatePubKeyJson!,
       identityToken: token,
     ));
-    if (c.notes != null) {
-      await channel.push(buildSetFieldJson(
-        field: 'notes',
-        value: c.notes!,
-        delegatePublicKeyJson: _delegatePubKeyJson!,
-        identityToken: token,
-      ));
-    }
-    for (int i = 0; i < c.entries.length; i++) {
-      final entry = c.entries[i].copyWith(order: (i + 1).toDouble());
-      await channel.push(buildSetEntryJson(
-        entry: entry,
-        delegatePublicKeyJson: _delegatePubKeyJson!,
-        identityToken: token,
-      ));
-    }
     // ignore: avoid_print
     print('$name: contact OK');
   }

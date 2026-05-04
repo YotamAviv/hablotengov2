@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import 'constants.dart';
+import 'contact_service.dart' show setSettingsField;
 import 'sign_in_state.dart';
 
 final SettingsState settingsState = SettingsState();
@@ -43,36 +44,24 @@ class SettingsState extends ChangeNotifier {
   Future<void> setShowEmptyCards(bool value, bool emulator) async {
     showEmptyCards = value;
     notifyListeners();
-    await _save(emulator);
+    await _saveField('showEmptyCards', value, emulator);
   }
 
   Future<void> setShowHiddenCards(bool value, bool emulator) async {
     showHiddenCards = value;
     notifyListeners();
-    await _save(emulator);
+    await _saveField('showHiddenCards', value, emulator);
   }
 
   Future<void> setDefaultStrictness(String value, bool emulator) async {
     defaultStrictness = value;
     notifyListeners();
-    await _save(emulator);
+    await _saveField('defaultStrictness', value, emulator);
   }
 
-  Future<void> _save(bool emulator) async {
+  Future<void> _saveField(String field, dynamic value, bool emulator) async {
     try {
-      final response = await http.post(
-        Uri.parse(habloSetSettingsUrl(emulator)),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          ..._authPayload(),
-          'showEmptyCards': showEmptyCards,
-          'showHiddenCards': showHiddenCards,
-          'defaultStrictness': defaultStrictness,
-        }),
-      );
-      if (response.statusCode != 200) {
-        debugPrint('SettingsState.save error: ${response.statusCode} ${response.body}');
-      }
+      await setSettingsField(field, value, emulator);
     } catch (e) {
       debugPrint('SettingsState.save error: $e');
     }
