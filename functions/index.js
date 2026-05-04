@@ -16,7 +16,7 @@ admin.initializeApp();
 
 const { handleSignIn } = require('./hablo_sign_in');
 
-exports.signIn = onRequest({ cors: true, invoker: 'public' }, async (req, res) => {
+exports.signIn = onRequest({ cors: true, invoker: 'public', minInstances: 1 }, async (req, res) => {
   await handleSignIn(req, res);
 });
 
@@ -34,7 +34,7 @@ exports.getContact = onRequest({ cors: true }, async (req, res) => {
 
 const { handleGetBatchContacts } = require('./get_batch_contacts');
 
-exports.getBatchContacts = onRequest({ cors: true }, async (req, res) => {
+exports.getBatchContacts = onRequest({ cors: true, minInstances: 1 }, async (req, res) => {
   await handleGetBatchContacts(req, res);
 });
 

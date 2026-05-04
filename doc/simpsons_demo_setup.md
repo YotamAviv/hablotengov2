@@ -70,21 +70,9 @@ bin/createSimpsonsDemoData_prod.sh
 
 Writes `../simpsonsPublicKeys.json`, `../simpsonsPrivateKeys.json`, `web/common/data/demoData.js`.
 
-### 2. Generate Hablo key files
+### 2. Temporarily disable the demo write guard and deploy
 
-```
-cd ~/src/github/hablotengo
-python3 bin/gen_simpsons_public_keys_dart.py
-python3 bin/gen_simpsons_private_keys_dart.py
-python3 bin/gen_simpsons_server_keys.py
-```
-
-Generates `lib/dev/simpsons_public_keys.dart`, `lib/dev/simpsons_private_keys.dart` (gitignored),
-and `functions/simpsons_keys.json`.
-
-### 3. Temporarily disable the demo write guard and deploy
-
-In `functions/set_my_contact.js`, comment out the block:
+In `functions/hablo_write.js`, comment out the block:
 ```js
 // if (auth.isDemo && process.env.FUNCTIONS_EMULATOR !== 'true') {
 //   res.status(403).send('Demo users cannot write in production');
@@ -92,29 +80,30 @@ In `functions/set_my_contact.js`, comment out the block:
 // }
 ```
 
-Then deploy:
+Then deploy all functions (each Gen 2 function bundles its own copy of `simpsons_keys.json`):
 ```
 cd ~/src/github/hablotengo
-firebase deploy --only functions:setMyContact,functions:demoSignIn
+firebase deploy --only functions
 ```
 
-`demoSignIn` needs redeployment because `simpsons_keys.json` was regenerated in step 2.
-
-### 4. Create Hablo contact data
+### 3. Create Hablo contact data
 
 ```
 cd ~/src/github/hablotengo
 bin/createSimpsonsContactData_prod.sh
 ```
 
-### 5. Re-enable the demo write guard and redeploy
+This also generates the key files (`lib/dev/simpsons_public_keys.dart`,
+`lib/dev/simpsons_private_keys.dart`, `functions/simpsons_keys.json`) internally.
 
-Restore `functions/set_my_contact.js` and redeploy:
+### 4. Re-enable the demo write guard and redeploy
+
+Restore `functions/hablo_write.js` and redeploy:
 ```
-firebase deploy --only functions:setMyContact
+firebase deploy --only functions:write
 ```
 
-### 6. Deploy hablotengo web app  (critical for demo)
+### 5. Deploy hablotengo web app (critical for demo)
 
 ```
 cd ~/src/github/hablotengo
@@ -123,10 +112,14 @@ bin/deploy_web.sh
 
 Required because `simpsons_public_keys.dart` (compiled into the web app) contains the new identities.
 
-### 7. Commit and deploy nerdster and oneofus (less critical)
+### 6. Commit and deploy nerdster and oneofus (less critical)
 
 Commit `web/common/data/demoData.js` in nerdster and deploy:
+```
 bin/deploy_web.sh
+```
 
-Commit  `web/common/data/demoData.js` in oneofus and deploy:
+Commit `web/common/data/demoData.js` in oneofus and deploy:
+```
 firebase --project=one-of-us-net deploy --only hosting
+```
