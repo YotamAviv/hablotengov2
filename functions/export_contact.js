@@ -56,10 +56,10 @@ async function handleExportContact(req, res) {
     }
 
     const contact = await buildContact(db, targetToken);
-    if (!contact) { res.status(404).json(null); return; }
+    if (!contact?.latestStatement) { res.status(404).json(null); return; }
 
     console.log(`[export_contact] ${viewerToken} exporting contact of ${targetToken}`);
-    res.status(200).json(contact);
+    res.status(200).json([contact.latestStatement]);
   } catch (e) {
     console.error('[export_contact] error:', e.message);
     res.status(500).send(e.message);

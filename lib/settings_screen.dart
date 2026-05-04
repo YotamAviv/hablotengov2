@@ -15,6 +15,46 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _deleting = false;
+  bool _saving = false;
+
+  late bool _showEmptyCards;
+  late bool _showHiddenCards;
+  late bool _showCrypto;
+  late String _strictness;
+
+  @override
+  void initState() {
+    super.initState();
+    _showEmptyCards  = settingsState.showEmptyCards;
+    _showHiddenCards = settingsState.showHiddenCards;
+    _showCrypto      = settingsState.showCrypto;
+    _strictness      = settingsState.defaultStrictness;
+  }
+
+  bool get _dirty =>
+      _showEmptyCards  != settingsState.showEmptyCards  ||
+      _showHiddenCards != settingsState.showHiddenCards ||
+      _showCrypto      != settingsState.showCrypto      ||
+      _strictness      != settingsState.defaultStrictness;
+
+  void _cancel() => setState(() {
+    _showEmptyCards  = settingsState.showEmptyCards;
+    _showHiddenCards = settingsState.showHiddenCards;
+    _showCrypto      = settingsState.showCrypto;
+    _strictness      = settingsState.defaultStrictness;
+  });
+
+  Future<void> _save() async {
+    setState(() => _saving = true);
+    try {
+      if (_showEmptyCards  != settingsState.showEmptyCards)  await settingsState.setShowEmptyCards(_showEmptyCards);
+      if (_showHiddenCards != settingsState.showHiddenCards) await settingsState.setShowHiddenCards(_showHiddenCards);
+      if (_showCrypto      != settingsState.showCrypto)      await settingsState.setShowCrypto(_showCrypto);
+      if (_strictness      != settingsState.defaultStrictness) await settingsState.setDefaultStrictness(_strictness, widget.emulator);
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
 
   Future<void> _confirmDelete() async {
     final confirmed = await showDialog<bool>(
@@ -55,29 +95,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Settings')),
-      body: ListenableBuilder(
-        listenable: settingsState,
-        builder: (context, _) => ListView(
+    return PopScope(
+      canPop: !_dirty,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Settings'),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: _dirty ? null : () => Navigator.of(context).pop(),
+          ),
+        ),
+        body: ListView(
           children: [
             CheckboxListTile(
               title: const Text('Show empty cards'),
               subtitle: const Text('Include contacts who have no card in the system'),
-              value: settingsState.showEmptyCards,
-              onChanged: (v) => settingsState.setShowEmptyCards(v ?? false),
+              value: _showEmptyCards,
+              onChanged: (v) => setState(() => _showEmptyCards = v ?? false),
             ),
             CheckboxListTile(
               title: const Text('Show hidden cards'),
               subtitle: const Text('Include contacts who have restricted access to their card'),
-              value: settingsState.showHiddenCards,
-              onChanged: (v) => settingsState.setShowHiddenCards(v ?? false),
+              value: _showHiddenCards,
+              onChanged: (v) => setState(() => _showHiddenCards = v ?? false),
             ),
             CheckboxListTile(
               title: const Text('Show crypto'),
               subtitle: const Text('Show signed statement on contact cards for auditing'),
-              value: settingsState.showCrypto,
-              onChanged: (v) => settingsState.setShowCrypto(v ?? false),
+              value: _showCrypto,
+              onChanged: (v) => setState(() => _showCrypto = v ?? false),
             ),
             const Divider(),
             Padding(
@@ -103,8 +149,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     AbsorbPointer(
                       absorbing: !signInState.hasDelegate,
                       child: VisibilityPicker(
-                        value: settingsState.defaultStrictness,
-                        onChanged: (v) => settingsState.setDefaultStrictness(v, widget.emulator),
+                        value: _strictness,
+                        onChanged: (v) => setState(() => _strictness = v),
                       ),
                     ),
                   ],
@@ -124,6 +170,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ],
           ],
         ),
+        bottomNavigationBar: _dirty
+            ? SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(onPressed: _saving ? null : _cancel, child: const Text('Cancel')),
+                      const SizedBox(width: 8),
+                      FilledButton(
+                        onPressed: _saving ? null : _save,
+                        child: _saving
+                            ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                            : const Text('Save'),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            : null,
       ),
     );
   }
