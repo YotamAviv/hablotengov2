@@ -156,6 +156,27 @@
       text-decoration: none;
     }
     footer a:hover { color: #333; }
+
+    details { margin-top: 1.5rem; }
+    details summary {
+      cursor: pointer;
+      font-size: 0.95rem;
+      color: #555;
+    }
+    details > div {
+      margin-top: 0.75rem;
+      font-size: 0.95rem;
+      line-height: 1.7;
+      color: #444;
+    }
+    details ul { margin: 0.5rem 0 0 1.25rem; }
+    details blockquote {
+      margin: 0.5rem 0 0 0.5rem;
+      padding: 0.5rem 1rem;
+      border-left: 3px solid #ccc;
+      color: #666;
+      font-style: italic;
+    }
   </style>
 </head>
 <body>
@@ -209,16 +230,16 @@
       </div>
     </div>
 
-    <details style="margin-top:1.5rem;">
-      <summary style="cursor:pointer;font-size:0.95rem;color:#555;">AI: The terrifying reality</summary>
-      <div style="margin-top:0.75rem;font-size:0.95rem;line-height:1.7;color:#444;">
+    <details>
+      <summary>AI: The terrifying reality</summary>
+      <div>
         Another difference between Hablo and Nerdster is that
-        <ul style="margin:0.5rem 0 0 1.25rem;">
+        <ul>
           <li>I (not a robot) wrote the original Nerdster (and ONE-OF-US.NET) by typing code.</li>
           <li>Nerdster V2 development leveraged AI.</li>
           <li>Hablo is 100% Clacker; I typed no code.</li>
           <li>The above description was created by my telling it (nicely):
-            <blockquote style="margin:0.5rem 0 0 0.5rem;padding:0.5rem 1rem;border-left:3px solid #ccc;color:#666;font-style:italic;">
+            <blockquote>
               In your own words and in 3 sentences or less describe HabloTengo with a minor effort on contrasting it to the Nerdster.
               Now translate that into Spanish and Spanglish.
               Put the results in a tabbed view under the demo with the Spanglish titled HabloTengo.
@@ -226,13 +247,19 @@
           </li>
         </ul>
         Recognize: a robot wrote the code that will help us discern one-of-them from ONE-OF-US.
+        <br />
+        Rent your own clacker, build services that leverage and grow our decentralized identity net.
       </div>
     </details>
 
-    <details style="margin-top:1.5rem;">
-      <summary style="cursor:pointer;font-size:0.95rem;color:#555;">Not a silo</summary>
-      <div style="margin-top:0.75rem;font-size:0.95rem;line-height:1.7;color:#444;">
-        TODO: Sign authorization for other services, some state your phone number, some your email.. 
+    <details>
+      <summary>Not a silo</summary>
+      <div>
+        - It's already using your/our decentralized identity network (federated keys, etc..)
+        - The data is signed by your own delegate key (which you signed with your own identity key)
+        - Exporting data you have access to requires authentication: a signature that only your identity private key can create.
+        Your data is locked to your key, not to us. We do software, not silo.
+        Any service is invited to add to leverage, improve, evolve...
       </div>
     </details>
 
