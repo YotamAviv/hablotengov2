@@ -8,6 +8,7 @@ import 'package:oneofus_common/ui/json_display.dart';
 
 import 'app.dart';
 import 'constants.dart';
+import 'sign_in_state.dart';
 import 'firebase_options.dart'; // gitignored; regenerate with: flutterfire configure
 import 'key_store.dart';
 
@@ -36,6 +37,7 @@ Future<void> main() async {
 
   startKeyStorageCoordinator();
   await tryRestoreKeys();
+  if (!demoMode && signInState.isDemo) signInState.signOut();
 
   runApp(HabloApp(firestore: firestore, emulator: emulator, demoMode: demoMode, startupTarget: startupTarget));
 }

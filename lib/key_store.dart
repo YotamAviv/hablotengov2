@@ -25,7 +25,7 @@ void startKeyStorageCoordinator() {
 void _enforce() => _enforceAsync();
 
 Future<void> _enforceAsync() async {
-  if (storeKeys.value && signInState.hasIdentity) {
+  if (storeKeys.value && signInState.hasIdentity && !signInState.isDemo) {
     try {
       await _storage.write(key: _kIdentityKey, value: jsonEncode(signInState.identityJson));
       await _storage.write(key: _kSessionTimeKey, value: signInState.sessionTime ?? '');

@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:nerdster_common/sign_in_session.dart';
 import 'package:nerdster_common/ui/sign_in_dialog.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'constants.dart';
 import 'contacts_screen.dart';
@@ -100,29 +101,11 @@ class _HabloHomeState extends State<_HabloHome> {
       listenable: signInState,
       builder: (context, _) {
         if (!signInState.hasIdentity) {
-          if (widget.demoMode) {
-            return Scaffold(
-              body: Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    ElevatedButton(
-                      onPressed: _demoSigningIn ? null : _doDemoSignIn,
-                      child: const Text('Sign in as Demo User'),
-                    ),
-                    const SizedBox(height: 8),
-                    DropdownButton<String>(
-                      value: _selectedCharacter,
-                      items: kSimpsonsKeyNames
-                          .map((k) => DropdownMenuItem(value: k, child: Text(k)))
-                          .toList(),
-                      onChanged: (v) => setState(() => _selectedCharacter = v!),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          }
+          if (widget.demoMode) return _DemoLanding(
+            selectedCharacter: _selectedCharacter,
+            onCharacterChanged: (v) => setState(() => _selectedCharacter = v),
+            onSignIn: _demoSigningIn ? null : _doDemoSignIn,
+          );
           return const Scaffold(body: SizedBox.shrink());
         }
         settingsState.load(widget.emulator);
@@ -132,6 +115,7 @@ class _HabloHomeState extends State<_HabloHome> {
             signInState.signOut();
           },
           emulator: widget.emulator,
+          demoMode: widget.demoMode,
           startupTarget: widget.startupTarget,
         );
       },
@@ -178,15 +162,97 @@ class _HabloHomeState extends State<_HabloHome> {
       ),
     );
   }
-
 }
+
+// ---------------------------------------------------------------------------
+
+class _DemoLanding extends StatelessWidget {
+  final String selectedCharacter;
+  final ValueChanged<String> onCharacterChanged;
+  final VoidCallback? onSignIn;
+
+  const _DemoLanding({
+    required this.selectedCharacter,
+    required this.onCharacterChanged,
+    required this.onSignIn,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final tt = Theme.of(context).textTheme;
+    final cs = Theme.of(context).colorScheme;
+    return Scaffold(
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 400),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('HabloTengo Demo', style: tt.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 12),
+                  Text.rich(TextSpan(children: [
+                    const TextSpan(text: 'Uses the Simpsons Bot Farm from '),
+                    WidgetSpan(child: InkWell(
+                      onTap: () => launchUrl(Uri.parse('https://nerdster.org'), mode: LaunchMode.externalApplication),
+                      child: Text('nerdster.org', style: TextStyle(color: cs.primary, decoration: TextDecoration.underline)),
+                    )),
+                    const TextSpan(text: '.'),
+                  ])),
+                  const SizedBox(height: 6),
+                  const Text('Data is read only. No authorization required.'),
+                  const SizedBox(height: 28),
+                  Text('Sign in as', style: tt.labelLarge),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      DropdownButton<String>(
+                        value: selectedCharacter,
+                        items: kSimpsonsKeyNames
+                            .map((k) => DropdownMenuItem(value: k, child: Text(k)))
+                            .toList(),
+                        onChanged: (v) => onCharacterChanged(v!),
+                      ),
+                      const SizedBox(width: 16),
+                      FilledButton(
+                        onPressed: onSignIn,
+                        child: const Text('Go'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 36),
+                  const Divider(),
+                  const SizedBox(height: 16),
+                  Text('Sign in to your HabloTengo', style: tt.labelLarge),
+                  const SizedBox(height: 6),
+                  InkWell(
+                    onTap: () => launchUrl(Uri.parse('https://hablotengo.com/app'), mode: LaunchMode.externalApplication),
+                    child: Text(
+                      'hablotengo.com/app',
+                      style: TextStyle(color: cs.primary, decoration: TextDecoration.underline),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
 
 class _SignedInScreen extends StatefulWidget {
   final VoidCallback onSignOut;
   final bool emulator;
+  final bool demoMode;
   final String? startupTarget;
 
-  const _SignedInScreen({required this.onSignOut, required this.emulator, this.startupTarget});
+  const _SignedInScreen({required this.onSignOut, required this.emulator, required this.demoMode, this.startupTarget});
 
   @override
   State<_SignedInScreen> createState() => _SignedInScreenState();
@@ -220,7 +286,7 @@ class _SignedInScreenState extends State<_SignedInScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('HabloTengo'),
+        title: Text(widget.demoMode ? 'HabloTengo Demo' : 'HabloTengo'),
         actions: [
           ValueListenableBuilder<bool>(
             valueListenable: _isLoading,
@@ -232,7 +298,7 @@ class _SignedInScreenState extends State<_SignedInScreen> {
                   )
                 : IconButton(icon: const Icon(Icons.refresh), onPressed: () => _contactsKey.currentState?.reload()),
           ),
-          if (signInState.hasIdentity)
+          if (signInState.hasIdentity && !widget.demoMode)
             IconButton(icon: const Icon(Icons.settings), onPressed: () => _openSettings(context)),
           IconButton(icon: const Icon(Icons.person), onPressed: () => _openMyCard(context)),
           TextButton(onPressed: widget.onSignOut, child: const Text('Sign out')),
