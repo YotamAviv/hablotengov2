@@ -164,7 +164,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))
                     : const Icon(Icons.delete_forever, color: Colors.red),
                 title: const Text('Delete account', style: TextStyle(color: Colors.red)),
-                subtitle: const Text('Remove your contact card and settings from the server'),
+                subtitle: const Text('Delete my data'),
                 onTap: _deleting ? null : _confirmDelete,
               ),
             ],
