@@ -45,7 +45,7 @@ Future<void> main() async {
     firestore.useFirestoreEmulator('localhost', kHabloFirestoreEmulatorPort);
   }
 
-  JsonDisplay.highlightKeys = const {'I', 'set', 'with', 'name', 'entries', 'tech', 'value', 'preferred', 'verifiedIdentity'};
+  JsonDisplay.highlightKeys = const {'I', 'verifiedIdentity'};
 
   startKeyStorageCoordinator();
   await tryRestoreKeys();

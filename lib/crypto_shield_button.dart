@@ -1,26 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:nerdster_common/labeler.dart';
-import 'package:oneofus_common/jsonish.dart' show getToken;
-import 'package:oneofus_common/keys.dart';
+import 'package:nerdster_common/ui/json_interpreter.dart';
 import 'package:oneofus_common/ui/json_display.dart';
-
-class _HabloInterpreter implements Interpreter {
-  final Labeler? labeler;
-  const _HabloInterpreter({this.labeler});
-
-  @override
-  dynamic interpret(dynamic d) {
-    if (d is! Map) return d;
-    final result = Map<String, dynamic>.from(d as Map<String, dynamic>);
-    if (result['I'] is Map) {
-      final token = getToken(result['I']);
-      result['I'] = labeler != null
-          ? labeler!.getDelegateLabel(DelegateKey(token))
-          : token;
-    }
-    return result;
-  }
-}
 
 class CryptoShieldButton extends StatelessWidget {
   final dynamic statement;
@@ -64,8 +45,8 @@ class CryptoShieldButton extends StatelessWidget {
                         height: dialogH,
                         child: JsonDisplay(
                           statement,
-                          interpret: ValueNotifier(false),
-                          interpreter: _HabloInterpreter(labeler: labeler),
+                          interpret: ValueNotifier(true),
+                          interpreter: labeler != null ? JsonInterpreter(labeler!) : null,
                         ),
                       ),
                     ),
