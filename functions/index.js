@@ -22,13 +22,13 @@ exports.signIn = onRequest({ cors: true, invoker: 'public', minInstances: 1 }, a
 
 const { handleDemoSignIn } = require('./demo_sign_in');
 
-exports.demoSignIn = onRequest({ cors: true }, async (req, res) => {
+exports.demoSignIn = onRequest({ cors: true, minInstances: 1 }, async (req, res) => {
   await handleDemoSignIn(req, res);
 });
 
 const { handleGetContact } = require('./get_contact');
 
-exports.getContact = onRequest({ cors: true }, async (req, res) => {
+exports.getContact = onRequest({ cors: true, minInstances: 1 }, async (req, res) => {
   await handleGetContact(req, res);
 });
 
@@ -40,13 +40,13 @@ exports.getBatchContacts = onRequest({ cors: true, minInstances: 1 }, async (req
 
 const { handleGetMyContact } = require('./get_my_contact');
 
-exports.getMyContact = onRequest({ cors: true }, async (req, res) => {
+exports.getMyContact = onRequest({ cors: true, minInstances: 1 }, async (req, res) => {
   await handleGetMyContact(req, res);
 });
 
 const { handleGetSettings } = require('./get_settings');
 
-exports.getSettings = onRequest({ cors: true }, async (req, res) => {
+exports.getSettings = onRequest({ cors: true, minInstances: 1 }, async (req, res) => {
   await handleGetSettings(req, res);
 });
 
@@ -58,26 +58,26 @@ exports.deleteAccount = onRequest({ cors: true }, async (req, res) => {
 
 const { handleWrite } = require('./hablo_write');
 
-exports.write = onRequest({ cors: true }, async (req, res) => {
+exports.write = onRequest({ cors: true, minInstances: 1 }, async (req, res) => {
   await handleWrite(req, res);
 });
 
 const { handleGetStreamHead } = require('./get_stream_head');
 
-exports.getStreamHead = onRequest({ cors: true }, async (req, res) => {
+exports.getStreamHead = onRequest({ cors: true, minInstances: 1 }, async (req, res) => {
   await handleGetStreamHead(req, res);
 });
 
 const { handleExportContact } = require('./export_contact');
 
-exports.exportContact = onRequest({ cors: true }, async (req, res) => {
+exports.exportContact = onRequest({ cors: true, minInstances: 1 }, async (req, res) => {
   await handleExportContact(req, res);
 });
 
 const { fetchStatements } = require('./statement_fetcher');
 const { parseIrevoke } = require('./jsonish_util');
 
-exports.export = onRequest({ cors: true }, async (req, res) => {
+exports.export = onRequest({ cors: true, minInstances: 1 }, async (req, res) => {
   res.setHeader('Content-Type', 'application/json');
   res.setHeader('Cache-Control', 'no-cache');
 
