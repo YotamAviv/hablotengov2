@@ -245,7 +245,7 @@ class _MyContactSheetState extends State<MyContactSheet> {
             else if (_contact == null)
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 16),
-                child: Text('No contact card yet.', style: TextStyle(color: Colors.grey)),
+                child: Text('No contact card yet.', style: TextStyle(color: Colors.red)),
               )
             else ...[
               if (_contact!.notes != null) ...[

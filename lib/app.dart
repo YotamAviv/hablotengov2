@@ -8,6 +8,7 @@ import 'constants.dart';
 import 'contacts_screen.dart';
 import 'demo_sign_in_service.dart';
 import 'key_store.dart';
+import 'contact_service.dart';
 import 'my_contact_screen.dart';
 import 'settings_screen.dart';
 import 'settings_state.dart';
@@ -258,14 +259,36 @@ class _SignedInScreen extends StatefulWidget {
   State<_SignedInScreen> createState() => _SignedInScreenState();
 }
 
-class _SignedInScreenState extends State<_SignedInScreen> {
+class _SignedInScreenState extends State<_SignedInScreen> with SingleTickerProviderStateMixin {
   final _contactsKey = GlobalKey<ContactsScreenState>();
   final ValueNotifier<bool> _isLoading = ValueNotifier(true);
+  late AnimationController _pulseController;
+  late Animation<double> _pulseAnimation;
+  bool? _hasContactCard; // null = loading, true = has card, false = no card
+
+  @override
+  void initState() {
+    super.initState();
+    _pulseController = AnimationController(vsync: this, duration: const Duration(seconds: 2))
+      ..repeat(reverse: true);
+    _pulseAnimation = CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut);
+    _checkContactCard();
+  }
 
   @override
   void dispose() {
+    _pulseController.dispose();
     _isLoading.dispose();
     super.dispose();
+  }
+
+  Future<void> _checkContactCard() async {
+    try {
+      final result = await getMyContact(widget.emulator);
+      if (mounted) setState(() => _hasContactCard = result.contact != null);
+    } catch (_) {
+      if (mounted) setState(() => _hasContactCard = true); // on error, don't pulse
+    }
   }
 
   void _openMyCard(BuildContext context) {
@@ -273,7 +296,10 @@ class _SignedInScreenState extends State<_SignedInScreen> {
       context: context,
       isScrollControlled: true,
       builder: (_) => MyContactSheet(emulator: widget.emulator, monikers: _contactsKey.currentState?.myMonikers ?? []),
-    ).then((_) => _contactsKey.currentState?.reload());
+    ).then((_) {
+      _contactsKey.currentState?.reload();
+      _checkContactCard();
+    });
   }
 
   void _openSettings(BuildContext context) {
@@ -300,7 +326,21 @@ class _SignedInScreenState extends State<_SignedInScreen> {
           ),
           if (signInState.hasIdentity)
             IconButton(icon: const Icon(Icons.settings), onPressed: () => _openSettings(context)),
-          IconButton(icon: const Icon(Icons.person), onPressed: () => _openMyCard(context)),
+          AnimatedBuilder(
+            animation: _pulseAnimation,
+            builder: (context, _) {
+              final pulse = _hasContactCard == false;
+              return IconButton(
+                icon: Icon(
+                  Icons.person,
+                  color: pulse
+                      ? Colors.red.withValues(alpha: 0.3 + 0.7 * _pulseAnimation.value)
+                      : null,
+                ),
+                onPressed: () => _openMyCard(context),
+              );
+            },
+          ),
           TextButton(onPressed: widget.onSignOut, child: const Text('Sign out')),
         ],
       ),
