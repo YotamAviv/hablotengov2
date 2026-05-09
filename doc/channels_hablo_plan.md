@@ -10,7 +10,7 @@
 
 - writes are transactional
 
-The work that Hablo introduced to make this transactional has already been carrier over to Nerdster and Oneofus.
+The work that Hablo introduced to make this transactional has already been carried over to Nerdster and Oneofus.
 
 The work to make those upgraded files work with Hablo again will probably need customization as Hablo has different requirements:
 - read auth access
@@ -18,7 +18,7 @@ The work to make those upgraded files work with Hablo again will probably need c
 - different existing schema
 
 Elegance:
-Do not have code just know or guess that a stream key is $delegate_$identity. Instead have the business logic code, most likely in Dart, pass in and assmeble streamKey. 
+Do not have code just know or guess that a stream key is $delegate_$identity. Instead have the business logic code, most likely in Dart, pass in and assemble streamKey. 
 Files like write2.js should be as close as possible to general purpose and not look like they'll exactly only work for Nerdster, Oneofus, and Hablo.
 
 AI: Yes. Here's how each goal maps to the plan:
@@ -36,7 +36,7 @@ of hardcoding the path. The customization files are:
 
 This also means renaming `auth_nerdster.js` → `write_auth.js` and `auth_oneofus.js` →
 `write_auth.js` to match the naming convention. `read_auth.js` is new in all three projects
-(no-op for nerdster/oneofus; hablo's logic already exists in `export_contact.js`).
+(no-op for nerdster/oneofus; hablo's logic already exists in `export_statement.js`).
 
 **Writes are transactional**
 
@@ -137,8 +137,8 @@ The path difference is isolated in a per-project `schema.js` module.
 ### CF side
 
 Each project gets a `schema.js` that exports `streamRef` (for writes) and `statementsRef`
-(for reads). `write2.js` and `export.js` are identical across all three projects and just
-`require('./schema')`.
+(for reads). `write2.js` and `export.js` are identical across nerdster and oneofus and just
+`require('./schema')`. Hablo does not use the shared `export.js` — see `export_statement.js` below.
 
 **`nerdster/functions/schema.js`** and **`oneofus/functions/schema.js`** (identical):
 ```javascript
@@ -186,7 +186,7 @@ const statementsRef = ref.collection('statements');
 No parameter added to `makeWrite2Handler`. No default path logic in `write2.js` or `export.js`.
 Schema and auth are module-level dependencies, entirely separate from each other.
 
-**`auth_hablo.js`** — new file, like `auth_nerdster.js` but with session verification:
+**`hablotengo/functions/write_auth.js`** — like `auth_nerdster.js` but with session verification:
 - Calls `verifyAuth(req, res)` from `auth_util.js` to get `{ identityToken, isDemo }`
 - Validates that `streamName` ends with `_${identityToken}`, preventing a user from
   writing to another identity's stream
@@ -238,18 +238,14 @@ Diff `nerdster_common` too and copy any changes.
 - Update `write2.js` to `require('./schema')` and call `streamRef()` — identical across all three
 - Update `export.js` to `require('./schema')` and call `statementsRef()`, and `require('./read_auth')`
 - `export_contact.js` → already renamed to `export_statement.js` (hablo-specific; not replaceable by shared `export.js` — see Plan section above)
-- `build_contact.js` → already replaced by `resolve_statement.js`
-
-Note: `build_contact.js` has already been replaced by `resolve_statement.js` as a precursor
-step (see Completed section below). When `export.js` is in place, `resolve_statement.js`
-can be deleted entirely.
+- `build_contact.js` → already replaced by `resolve_statement.js` (see Completed section); when `export.js` is in place `resolve_statement.js` can be deleted entirely
 
 ### 3. Write `write_auth.js` and `read_auth.js` for all three projects; delete `hablo_write.js`
 
 - Rename `auth_nerdster.js` → `write_auth.js`, `auth_oneofus.js` → `write_auth.js`
 - Write `hablotengo/functions/write_auth.js` (session verification; replaces `auth_hablo.js` plan above)
 - Write trivial `read_auth.js` for nerdster and oneofus (always true)
-- Write `hablotengo/functions/read_auth.js` (session verification + trust graph; logic from `export_contact.js`)
+- Write `hablotengo/functions/read_auth.js` (session verification + trust graph; logic from `export_statement.js`)
 - Wire `exports.write` in hablo's `index.js` to `makeWrite2Handler(writeAuth)`
 
 ### 4. Add auth hooks to `ChannelFactory`
@@ -300,13 +296,20 @@ resolves all contacts in parallel server-side.
 full chain. That is intentional: Hablo streams are length 1 by design. A general
 `resolveStatements` would return the full chain merged across streams.
 
-All callers updated: `get_my_contact.js`, `get_batch_contacts.js`, `get_settings.js`,
-`export_contact.js`. `get_contact.js` deleted (dead — no Dart caller).
+All callers updated: `get_my_contact.js`, `get_batch_contacts.js`, `export_statement.js`.
+`get_contact.js` deleted (dead — no Dart caller). `get_settings.js` deleted (see below).
 
 ### `contact_service.dart` — removed dead code
 
 Removed `getContact()` (never called from Dart), `ContactAccessDeniedException` (orphaned),
 and `habloGetContactUrl()` constant.
+
+### `getSettings` CF deleted
+
+`SettingsState.load` previously made a separate round-trip to `getSettings` to fetch
+`defaultStrictness`. Since `getMyContact` now returns the raw signed statement,
+`defaultStrictness` is already in `stmt.set.defaultStrictness`. `SettingsState.load` now
+calls `getMyContact` instead — one less CF endpoint, one less round-trip at startup.
 
 ### `write2.js` — renamed `collection` → `streamName`
 
@@ -318,7 +321,7 @@ nerdster and oneofus (the variable referred to a Firestore document name, not a 
 
 ## Open Questions
 
-### Q1: Stream key — what does the hablo caller pass to `getChannel()`?
+### Q1: Stream key — RESOLVED
 
 In nerdster, `getChannel(domain, "statements")` — static, known at call-site.
 
@@ -332,7 +335,7 @@ Both tokens are available from `signInState` at call-site. The factory sends thi
 string as `streamName` to the CF. `schema.js` uses it directly as the Firestore document
 name under `streams/`.
 
-`auth_hablo.js` validates that `streamName` ends with `_${identityToken}` (from session
+`write_auth.js` validates that `streamName` ends with `_${identityToken}` (from session
 auth), preventing writes to another identity's stream. The delegate portion is implicitly
 validated by the statement signature check in `write2.js`.
 
@@ -341,7 +344,7 @@ validated by the statement signature check in `write2.js`.
 In Hablo, each identity's card is a single statement; updates publish a new one but only
 the latest is ever relevant. The chain is always length 1 by design.
 
-`CloudFunctionsSource` pointed at the shared `export.js` gets the full chain (one statement)
+`CloudFunctionsSource` pointed at `export_statement.js` gets the statement (chain length 1)
 and its token becomes `previous` for the next write. `CachedSource` handles everything from
 there. `get_stream_head.js` can be deleted once `HabloChannel` is gone.
 
@@ -364,8 +367,8 @@ Check for lingering old names:
 
 ## Suggested Order
 
-1. Resolve Q1 (likely a non-issue — see above).
-2. Create `schema.js` for all three projects; update `write2.js` and `export.js`; write `write_auth.js` and `read_auth.js`; deploy; delete `hablo_write.js` and `export_contact.js`.
+1. ~~Resolve Q1~~ — resolved (see above).
+2. Create `schema.js` for all three projects; update `write2.js` and `export.js`; write `write_auth.js` and `read_auth.js`; deploy; delete `hablo_write.js`.
 3. Sync `oneofus_common` and `nerdster_common` packages.
 4. Add auth hooks to `ChannelFactory`; initialize in `main.dart`.
 5. Replace direct source instantiations (work item 6).
