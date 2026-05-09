@@ -13,44 +13,42 @@ Hablotengo is next. This document is the plan + open questions.
 
 ### Nerdster / OneOfUS (`write2.js`)
 
-`CloudFunctionsWriter` sends `{ statement, collection: streamId }` where `streamId` is a
-stream-type name like `"statements"` or `"dis"`.
+`CloudFunctionsWriter` sends `{ statement, streamName }` where `streamName` is the stream
+identifier — e.g. `"statements"` or `"dis"`.
 
 `write2.js` constructs the path as:
 
 ```
-db.collection(iToken).doc(collection).collection('statements').doc(token)
+db.collection(issuerToken).doc(streamName).collection('statements').doc(token)
 ```
 
-Literal Firestore path for a trust statement (`collection = "statements"`):
+Literal Firestore path for a trust statement (`streamName = "statements"`):
 
 ```
-{issuerToken}/              ← root collection, named after the issuer's key token
-  statements/               ← document named "statements" — this IS {collection}
+{issuerToken}/              ← root collection, one per user, named after their key token
+  statements/               ← document, named after the stream
     statements/             ← sub-collection, always literally named "statements"
-      {statementToken}      ← statement document
+      {statementToken}      ← document
 ```
 
-And for a dis statement (`collection = "dis"`):
+And for a dis statement (`streamName = "dis"`):
 
 ```
 {issuerToken}/
-  dis/                      ← document named "dis"
+  dis/                      ← document, named after the stream
     statements/             ← sub-collection, always "statements"
       {statementToken}
 ```
 
-So `{collection}` is the **stream type string** sent by the client — e.g. `"statements"` or
-`"dis"`. It is used as the document name. The sub-collection under it is always literally
-`"statements"` (hardcoded in `write2.js`). Yes, for trust statements the path has
-`statements/statements/` — the document and sub-collection happen to share the same name.
+Note: for trust statements the path has `statements/statements/` — the stream document and
+the sub-collection happen to share the name. Artifact of the naming, not a design choice.
 
-The **stream doc** (at `{issuerToken}/{collection}`) holds `{ head, headTime }`.
+The **stream doc** (at `{issuerToken}/{streamName}`) holds `{ head, headTime }`.
 
 ### Current Hablo (`hablo_write.js`)
 
-`hablo_write.js` derives everything from the statement + session auth. The client sends no
-`collection` field. The path is:
+`hablo_write.js` derives the path from the statement + session auth. The client sends no
+`streamName`. The path is:
 
 ```
 db.collection('streams').doc(`${delegateToken}_${identityToken}`).collection('statements').doc(token)
@@ -59,10 +57,10 @@ db.collection('streams').doc(`${delegateToken}_${identityToken}`).collection('st
 Literal Firestore path:
 
 ```
-streams/                            ← root collection, literally named "streams"
+streams/                            ← root collection, one fixed name for all users
   {delegateToken}_{identityToken}/  ← document (underscore-joined composite key)
     statements/                     ← sub-collection, literally "statements"
-      {statementToken}              ← statement document
+      {statementToken}              ← document
 ```
 
 The **stream doc** (at `streams/{delegateToken}_{identityToken}`) holds `{ head }`.
@@ -71,62 +69,66 @@ The **stream doc** (at `streams/{delegateToken}_{identityToken}`) holds `{ head 
 
 | | Nerdster / OneOfUS | Current Hablo |
 |---|---|---|
-| Root collection | `{issuerToken}` (the key token itself) | `"streams"` (literal string) |
-| Stream document | `{collection}` (e.g. `"statements"`) | `{delegateToken}_{identityToken}` |
-| Sub-collection | `"statements"` (hardcoded) | `"statements"` (hardcoded) |
+| Root collection | one per user, named after their key token | one fixed collection named `"streams"` |
+| Stream document | named after the stream (e.g. `"statements"`) | named `{delegateToken}_{identityToken}` |
+| Sub-collection | always `"statements"` | always `"statements"` |
 | Stream doc fields | `{ head, headTime }` | `{ head }` |
-| Stream key sent by client | `collection` field in request body | none (derived server-side) |
+| Stream key sent by client | `streamName` field in request body | none (derived server-side) |
 
 ---
 
-## Plan: Replace `hablo_write.js` with `write2.js` + Path Hook
+## Plan: Replace `hablo_write.js` with shared `write2.js` + `schema.js`
 
-Decision: **no Firestore data migration**. Keep the existing `streams/{d}_{i}` layout
-and accommodate it via a path hook in `makeWrite2Handler`.
+Decision: **no Firestore data migration**. Keep the existing `streams/{d}_{i}` layout.
+The path difference is isolated in a per-project `schema.js` module.
 
 ### CF side
 
-**`write2.js`** grows an optional `pathFn` parameter:
+Each project gets a `schema.js` that exports a single `streamRef` function. `write2.js`
+is identical across all three projects and just `require()`s it.
 
+**`nerdster/functions/schema.js`** and **`oneofus/functions/schema.js`** (identical):
 ```javascript
-// Default (nerdster / oneofus):
-const defaultPathFn = (db, iToken, collection) =>
-  db.collection(iToken).doc(collection);
-
-function makeWrite2Handler(auth, pathFn = defaultPathFn) { ... }
+function streamRef(db, issuerToken, streamName) {
+  return db.collection(issuerToken).doc(streamName);
+}
+module.exports = { streamRef };
 ```
 
-Inside `handleWrite2`, replace:
+**`hablotengo/functions/schema.js`** (new):
 ```javascript
-const streamRef = db.collection(iToken).doc(collection);
+function streamRef(db, issuerToken, streamName) {
+  return db.collection('streams').doc(`${issuerToken}_${streamName}`);
+}
+module.exports = { streamRef };
 ```
-with:
+
+**`write2.js`** (shared, identical across all three) — one line changes:
 ```javascript
-const streamRef = pathFn(db, iToken, collection);
+const { streamRef } = require('./schema');
+// ...
+const ref = streamRef(db, iToken, streamName);
+const statementsRef = ref.collection('statements');
 ```
+
+No parameter added to `makeWrite2Handler`. No default path logic in `write2.js`.
+The schema is a module-level dependency, entirely separate from auth.
 
 **`auth_hablo.js`** — new file, like `auth_nerdster.js` but with session verification:
 - Calls `verifyAuth(req, res)` from `auth_util.js` to get `{ identityToken, isDemo }`
-- Validates `req.body.collection === identityToken` (prevents writing to another identity's stream)
+- Validates that `streamName` ends with `_${identityToken}`, preventing a user from
+  writing to another identity's stream
 - Returns `{ identityToken, isDemo }` on success
 
-The client sends `collection: "${delegateToken}_${identityToken}"` (the composite key).
-`habloPathFn` uses it directly as the Firestore document name — `iToken` is unused since
-both tokens are already in the composite:
-
-```javascript
-const habloPathFn = (db, _iToken, compositeKey) =>
-  db.collection('streams').doc(compositeKey);
-
-exports.write = onRequest(cors(makeWrite2Handler(habloAuth, habloPathFn)));
-```
-
-Note: `headTime` gets added to hablo stream docs as a side effect. Fine.
+The client sends `streamName: "${delegateToken}_${identityToken}"` (the composite key).
+`schema.js` uses it directly as the Firestore document name under `streams/`.
 
 **`hablo_write.js`** — deleted.
 
 **`get_stream_head.js`** — stays until `HabloChannel` is replaced on the client side,
 then deleted (see Q2, resolved).
+
+Note: `headTime` gets added to hablo stream docs on first write. Fine.
 
 ### Client side — `ChannelFactory` grows two hooks
 
@@ -134,10 +136,11 @@ then deleted (see Q2, resolved).
 per domain at `register()` time. Gets merged into every request body.
 Nerdster/OneOfUS: null. Hablo: returns `signInState.authPayload()`.
 
-**2. Collection key** — for hablo, the caller passes
+**2. Stream key** — for hablo, the caller passes
 `streamId = "${delegateToken}_${identityToken}"` to `getChannel()`. The factory sends
-it as-is as the `collection` field to the CF. The channel cache key is per
-delegate-identity pair, matching current `contact_service.dart` behavior. See Q1.
+it as `streamName` to the CF. The channel cache key is per delegate-identity pair,
+matching current `contact_service.dart` behavior. No hook needed — the caller constructs
+and passes the right string. See Q1.
 
 **`HabloChannel`** — deleted once the factory covers its responsibilities:
 - Auth payload attachment → auth write hook
@@ -156,14 +159,16 @@ Copy nerdster's updated `packages/oneofus_common` into hablotengo:
 
 Diff `nerdster_common` too and copy any changes.
 
-### 2. Add path hook to `write2.js`
+### 2. Add `schema.js` to all three projects; update `write2.js`
 
-Add optional `pathFn` parameter to `makeWrite2Handler`. Default behavior unchanged;
-nerdster and oneofus are unaffected.
+- Create `nerdster/functions/schema.js` and `oneofus/functions/schema.js` (identical, nerdster layout)
+- Create `hablotengo/functions/schema.js` (hablo layout)
+- Update `write2.js` to `require('./schema')` and call `streamRef()` — one line change,
+  identical across all three projects
 
 ### 3. Write `auth_hablo.js`, delete `hablo_write.js`
 
-Wire `exports.write` in hablo's `index.js` to `makeWrite2Handler(habloAuth, habloPathFn)`.
+Wire `exports.write` in hablo's `index.js` to `makeWrite2Handler(habloAuth)`.
 
 ### 4. Add auth hooks to `ChannelFactory`
 
@@ -188,10 +193,9 @@ reads). No fake mode needed for hablo.
 
 ## Open Questions
 
-### Q1: Collection key — what does the hablo caller pass to `getChannel()`?
+### Q1: Stream key — what does the hablo caller pass to `getChannel()`?
 
-In nerdster, `getChannel(domain, "statements")` — the stream type string is static and
-known at call-site.
+In nerdster, `getChannel(domain, "statements")` — static, known at call-site.
 
 In hablo, the stream is a delegate-identity pair. The caller passes:
 
@@ -200,21 +204,12 @@ getChannel(habloDomain, '${delegateToken}_${identityToken}')
 ```
 
 Both tokens are available from `signInState` at call-site. The factory sends this composite
-string as `collection` to the CF. `habloPathFn` receives it as the `collection` argument
-and uses it directly as the Firestore document name — the `iToken` (`pathFn`'s first arg)
-is unused since the composite key already encodes both tokens:
+string as `streamName` to the CF. `schema.js` uses it directly as the Firestore document
+name under `streams/`.
 
-```javascript
-const habloPathFn = (db, _iToken, compositeKey) =>
-  db.collection('streams').doc(compositeKey);
-```
-
-`auth_hablo.js` validates that `collection` ends with `_${identityToken}` (from session
-auth), preventing a user from writing to another identity's stream. The delegate portion
-is implicitly validated by the statement signature check in `write2.js`.
-
-No collection key hook needed on the Dart side — the caller just constructs and passes the
-right string.
+`auth_hablo.js` validates that `streamName` ends with `_${identityToken}` (from session
+auth), preventing writes to another identity's stream. The delegate portion is implicitly
+validated by the statement signature check in `write2.js`.
 
 ### Q2: Head bootstrap — RESOLVED
 
@@ -236,7 +231,7 @@ Check for lingering old names:
 
 ## What Does NOT Need to Change
 
-- **Firestore data** — no migration; path hook preserves the existing `streams/` layout
+- **Firestore data** — no migration; `schema.js` preserves the existing `streams/` layout
 - **`auth_util.js`** — `verifyAuth` is reused as-is by `auth_hablo.js`
 - **Backfill** — not needed; hablo streams have always had `head`
 - **All other hablo CFs** — `get_contact.js`, `get_my_contact.js`, etc. untouched
@@ -246,7 +241,7 @@ Check for lingering old names:
 ## Suggested Order
 
 1. Resolve Q1 (likely a non-issue — see above).
-2. Add `pathFn` hook to `write2.js`; write `auth_hablo.js`; deploy; delete `hablo_write.js`.
+2. Create `schema.js` for all three projects; update `write2.js`; write `auth_hablo.js`; deploy; delete `hablo_write.js`.
 3. Sync `oneofus_common` and `nerdster_common` packages.
 4. Add auth hooks to `ChannelFactory`; initialize in `main.dart`.
 5. Replace direct source instantiations (work item 6).
