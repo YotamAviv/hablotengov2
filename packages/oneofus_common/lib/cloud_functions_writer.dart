@@ -4,15 +4,16 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:oneofus_common/jsonish.dart';
 import 'package:oneofus_common/statement.dart';
-import 'package:oneofus_common/statement_writer.dart';
+import 'package:oneofus_common/statement_source.dart';
 
 class CloudFunctionsWriter<T extends Statement> implements StatementWriter<T> {
-  final String baseUrl;
+  final String writeUrl;
   final String streamId;
+  final Map<String, dynamic> Function()? authHook;
 
   final Map<String, Future<void>> _writeQueues = {};
 
-  CloudFunctionsWriter(this.baseUrl, this.streamId);
+  CloudFunctionsWriter(this.writeUrl, this.streamId, {this.authHook});
 
   @override
   Future<T> push(Json json, StatementSigner signer,
@@ -22,6 +23,7 @@ class CloudFunctionsWriter<T extends Statement> implements StatementWriter<T> {
     final String issuerToken = getToken(json['I']);
 
     if (optimisticConcurrencyFailed != null) {
+      // Optimistic path: sign immediately with caller-supplied previous, queue the CF call.
       if (previous != null && previous.token != null) {
         json['previous'] = previous.token!;
       }
@@ -37,6 +39,7 @@ class CloudFunctionsWriter<T extends Statement> implements StatementWriter<T> {
       return Statement.make(jsonish) as T;
     }
 
+    // Serialized path: sign and send inside the queue so 'previous' is always accurate.
     final completer = Completer<T>();
     final Future<void> prev = _writeQueues[issuerToken] ?? Future.value();
     _writeQueues[issuerToken] = prev.catchError((_) {}).then((_) async {
@@ -55,9 +58,13 @@ class CloudFunctionsWriter<T extends Statement> implements StatementWriter<T> {
 
   Future<void> _callCF(Jsonish jsonish) async {
     final response = await http.post(
-      Uri.parse('$baseUrl/write'),
+      Uri.parse(writeUrl),
       headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'data': {'statement': jsonish.json, 'collection': streamId}}),
+      body: jsonEncode({
+        'statement': jsonish.json,
+        'streamName': streamId,
+        if (authHook != null) ...authHook!(),
+      }),
     );
     if (response.statusCode != 200) {
       debugPrint('CloudFunctionsWriter._callCF: ${response.statusCode} ${response.body}');
