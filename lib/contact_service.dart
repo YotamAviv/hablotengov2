@@ -1,11 +1,13 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:oneofus_common/channel_factory.dart';
 import 'package:oneofus_common/jsonish.dart';
+import 'package:oneofus_common/statement_source.dart';
 
 import 'constants.dart';
-import 'hablo_channel.dart';
 import 'models/contact_statement.dart';
+import 'models/hablo_statement.dart';
 import 'sign_in_state.dart';
 
 enum ContactStatus { found, denied, notFound }
@@ -36,18 +38,13 @@ Map<String, dynamic> _authPayload() {
   };
 }
 
-// Per-delegate channel cache. Key: delegateToken.
-final Map<String, HabloChannel> _channels = {};
-
-HabloChannel _getChannel(bool emulator) {
+Future<StatementChannel<HabloStatement>> _channel() async {
   final delegateToken = getToken(signInState.delegatePublicKeyJson!);
-  return _channels.putIfAbsent(
-    delegateToken,
-    () => HabloChannel(habloFunctionsBaseUrl(emulator), signInState),
-  );
+  final streamId = '${delegateToken}_${signInState.identityToken!}';
+  final channel = channelFactory.getChannel<HabloStatement>(kHabloDomain, streamId);
+  await channel.fetch({delegateToken: null});
+  return channel;
 }
-
-void resetChannels() => _channels.clear();
 
 // ── Read operations (unchanged) ──────────────────────────────────────────────
 
@@ -103,24 +100,22 @@ Future<Map<String, ContactResult>> getBatchContacts(List<String> targetTokens, b
 // ── Write operations ─────────────────────────────────────────────────────────
 
 Future<void> setMyContact(ContactData contact, bool emulator) async {
-  final channel = _getChannel(emulator);
-  final signer = signInState.signer!;
+  final channel = await _channel();
   final delegatePk = signInState.delegatePublicKeyJson!;
   final identityToken = signInState.identityToken!;
   await channel.push(
     buildContactSnapshot(contact: contact, delegatePublicKeyJson: delegatePk, identityToken: identityToken),
-    signer,
+    signInState.signer!,
   );
 }
 
 Future<void> setSettingsField(String field, dynamic value, bool emulator) async {
-  final channel = _getChannel(emulator);
-  final signer = signInState.signer!;
+  final channel = await _channel();
   final delegatePk = signInState.delegatePublicKeyJson!;
   final identityToken = signInState.identityToken!;
   await channel.push(
     buildSetFieldJson(field: field, value: value, delegatePublicKeyJson: delegatePk, identityToken: identityToken),
-    signer,
+    signInState.signer!,
   );
 }
 

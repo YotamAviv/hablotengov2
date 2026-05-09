@@ -165,32 +165,45 @@ class _DemoHabloChannel {
   Future<void> _fetchHead() async {
     try {
       final delegateToken = getToken(_delegatePubKeyJson);
-      final response = await http.post(
-        Uri.parse('$_baseUrl/getStreamHead'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({..._authPayload, 'delegateToken': delegateToken}),
+      final params = <String, String>{
+        'spec': jsonEncode([delegateToken]),
+        for (final entry in _authPayload.entries)
+          entry.key: entry.value is String ? entry.value as String : jsonEncode(entry.value),
+      };
+      final response = await http.get(
+        Uri.parse('$_baseUrl/export').replace(queryParameters: params),
       );
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body) as Map<String, dynamic>;
-        _head = data['token'] as String?;
+        for (final line in const LineSplitter().convert(response.body)) {
+          if (line.trim().isEmpty) continue;
+          final data = jsonDecode(line) as Map<String, dynamic>;
+          final stmts = data[delegateToken] as List?;
+          if (stmts != null && stmts.isNotEmpty) {
+            _head = (stmts.first as Map<String, dynamic>)['id'] as String?;
+          }
+          break;
+        }
       } else {
         // ignore: avoid_print
-        print('_DemoHabloChannel: getStreamHead ${response.statusCode} ${response.body}');
+        print('_DemoHabloChannel: export ${response.statusCode} ${response.body}');
       }
     } catch (e) {
       // ignore: avoid_print
-      print('_DemoHabloChannel: getStreamHead error: $e');
+      print('_DemoHabloChannel: export error: $e');
     } finally {
       _headLoaded = true;
     }
   }
 
   Future<void> _callWrite(Jsonish jsonish) async {
+    final delegateToken = getToken(_delegatePubKeyJson);
+    final identityToken = getToken(_identityJson);
     final response = await http.post(
       Uri.parse('$_baseUrl/write'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'statement': jsonish.json,
+        'streamName': '${delegateToken}_$identityToken',
         ..._authPayload,
       }),
     );

@@ -9,6 +9,7 @@ import 'package:oneofus_common/ui/json_display.dart';
 
 import 'app.dart';
 import 'constants.dart';
+import 'models/hablo_statement.dart';
 import 'sign_in_state.dart';
 import 'firebase_options.dart'; // gitignored; regenerate with: flutterfire configure
 import 'key_store.dart';
@@ -28,6 +29,7 @@ void _signOutIfSessionExpiringSoon() {
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   TrustStatement.init();
+  HabloStatement.init();
 
   final String? fireParam = kIsWeb ? Uri.base.queryParameters['fire'] : null;
   final bool emulator = kIsWeb && Uri.base.host == 'localhost' && fireParam != 'prod';
@@ -60,15 +62,13 @@ Future<void> main() async {
     emulatorFunctionsUrl: oneofusWriteUrl(true),
   );
 
-  // Hablo domain: session-authenticated writes (contact card saves).
-  // exportUrl points to exportContact; response format update for CachedSource
-  // head-bootstrap is deferred to work item 6.
   channelFactory.register(
     kHabloDomain,
-    exportUrl: habloExportContactUrl(false),
+    exportUrl: habloExportUrl(false),
     functionsUrl: habloFunctionsBaseUrl(false),
-    emulatorExportUrl: habloExportContactUrl(true),
+    emulatorExportUrl: habloExportUrl(true),
     emulatorFunctionsUrl: habloFunctionsBaseUrl(true),
+    writeEndpoint: 'write',
     writeAuthHook: () => signInState.authPayload()!,
     readAuthHook: () => signInState.authPayload()!,
   );

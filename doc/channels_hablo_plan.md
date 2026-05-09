@@ -3,10 +3,14 @@
 ## High level goals
 
 - files with the same name across the 3 projects are identical.
-  - exceptions for files that are customizations like
+  - `functions/` exceptions (per-project customizations):
     - schema.js
     - read_auth.js
     - write_auth.js
+    - jsonish_util.js (hablotengo uses sync `crypto.createHash`; nerdster/oneofus use async Web Crypto `crypto.subtle.digest`)
+  - `bin/` exceptions (same logic, project-specific names/ports):
+    - start_emulator.sh
+    - stop_emulator.sh
 
 - writes are transactional
 
@@ -347,12 +351,6 @@ the latest is ever relevant. The chain is always length 1 by design.
 `CloudFunctionsSource` pointed at `export_statement.js` gets the statement (chain length 1)
 and its token becomes `previous` for the next write. `CachedSource` handles everything from
 there. `get_stream_head.js` can be deleted once `HabloChannel` is gone.
-
-### Q3: Repo rename artifacts
-
-Check for lingering old names:
-- `pubspec.yaml` `repository:` points to `hablotengov2` — update to `hablotengo`?
-- Any hardcoded CF endpoint strings referencing old project IDs
 
 ---
 

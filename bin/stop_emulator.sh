@@ -7,7 +7,7 @@ if [ -f "$PIDFILE" ]; then
     PID=$(cat "$PIDFILE")
     if kill -0 "$PID" 2>/dev/null; then
         echo "Stopping hablotengo emulator (PID $PID)..."
-        kill "$PID"
+        kill -- -$(ps -o pgid= -p "$PID" 2>/dev/null | tr -d ' ') 2>/dev/null || kill "$PID"
         for i in {1..5}; do
             if ! kill -0 "$PID" 2>/dev/null; then break; fi
             sleep 1
