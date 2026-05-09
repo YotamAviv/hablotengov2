@@ -8,7 +8,24 @@ const { resolveStatement } = require('./resolve_statement');
 
 const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
-async function handleExportContact(req, res) {
+/**
+ * Exports the single latest signed statement for a given identity token.
+ *
+ * This is structurally different from nerdster/oneofus export.js, which takes
+ * an (issuerToken, streamName) pair identifying one specific delegate stream and
+ * returns its full statement chain.
+ *
+ * Here the caller provides only an identity token. The server runs delegate
+ * resolution — the same OOU walk (predecessors, revocations) that the Dart
+ * client does for nerdster/oneofus — because the viewer only knows the identity
+ * key of the person they are looking at, not which delegate key that person is
+ * currently using. resolveStatement finds the right stream(s) and returns the
+ * single latest snapshot statement.
+ *
+ * Auth: session verification (or demo) + trust graph check confirming the viewer
+ * is within the target's ONE-OF-US trust network.
+ */
+async function handleExportStatement(req, res) {
   res.setHeader('Content-Type', 'application/json');
 
   const { targetToken, identity: identityStr, sessionTime, sessionSignature, demo } = req.query;
@@ -58,12 +75,12 @@ async function handleExportContact(req, res) {
     const stmt = await resolveStatement(db, targetToken);
     if (!stmt) { res.status(404).json(null); return; }
 
-    console.log(`[export_contact] ${viewerToken} exporting contact of ${targetToken}`);
+    console.log(`[export_statement] ${viewerToken} exporting statement of ${targetToken}`);
     res.status(200).json([stmt]);
   } catch (e) {
-    console.error('[export_contact] error:', e.message);
+    console.error('[export_statement] error:', e.message);
     res.status(500).send(e.message);
   }
 }
 
-module.exports = { handleExportContact };
+module.exports = { handleExportStatement };

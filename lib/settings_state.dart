@@ -1,11 +1,7 @@
-import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:http/http.dart' as http;
 
-import 'constants.dart';
-import 'contact_service.dart' show setSettingsField;
-import 'sign_in_state.dart';
+import 'contact_service.dart' show getMyContact, setSettingsField;
 
 const FlutterSecureStorage _storage = FlutterSecureStorage();
 const String _kShowEmptyCards  = 'hablo_pref_show_empty_cards';
@@ -26,20 +22,10 @@ class SettingsState extends ChangeNotifier {
     showHiddenCards = (await _storage.read(key: _kShowHiddenCards)) == '1';
     showCrypto      = (await _storage.read(key: _kShowCrypto))      == '1';
 
-    // defaultStrictness is a signed setting — fetch from server.
+    // defaultStrictness is a signed setting — fetch from server via getMyContact.
     try {
-      final response = await http.post(
-        Uri.parse(habloGetSettingsUrl(emulator)),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(_authPayload()),
-      );
-      if (response.statusCode != 200) {
-        debugPrint('SettingsState.load error: ${response.statusCode} ${response.body}');
-        notifyListeners();
-        return;
-      }
-      final data = jsonDecode(response.body) as Map<String, dynamic>;
-      defaultStrictness = data['defaultStrictness'] as String? ?? 'standard';
+      final result = await getMyContact(emulator);
+      defaultStrictness = result.rawStatement?['set']?['defaultStrictness'] as String? ?? 'standard';
     } catch (e) {
       debugPrint('SettingsState.load error: $e');
     }
@@ -94,14 +80,4 @@ class SettingsState extends ChangeNotifier {
     }
   }
 
-  Map<String, dynamic> _authPayload() {
-    if (signInState.isDemo) {
-      return {'identity': signInState.identityJson!, 'demo': true};
-    }
-    return {
-      'identity': signInState.identityJson!,
-      'sessionTime': signInState.sessionTime!,
-      'sessionSignature': signInState.sessionSignature!,
-    };
-  }
 }

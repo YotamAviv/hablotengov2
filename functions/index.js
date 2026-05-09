@@ -38,12 +38,6 @@ exports.getMyContact = onRequest({ cors: true, minInstances: 1 }, async (req, re
   await handleGetMyContact(req, res);
 });
 
-const { handleGetSettings } = require('./get_settings');
-
-exports.getSettings = onRequest({ cors: true, minInstances: 1 }, async (req, res) => {
-  await handleGetSettings(req, res);
-});
-
 const { handleDeleteAccount } = require('./delete_account');
 
 exports.deleteAccount = onRequest({ cors: true }, async (req, res) => {
@@ -62,10 +56,10 @@ exports.getStreamHead = onRequest({ cors: true, minInstances: 1 }, async (req, r
   await handleGetStreamHead(req, res);
 });
 
-const { handleExportContact } = require('./export_contact');
+const { handleExportStatement } = require('./export_statement');
 
 exports.exportContact = onRequest({ cors: true, minInstances: 1 }, async (req, res) => {
-  await handleExportContact(req, res);
+  await handleExportStatement(req, res);
 });
 
 const { fetchStatements } = require('./statement_fetcher');

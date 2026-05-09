@@ -170,12 +170,18 @@ const ref = streamRef(db, iToken, streamName);
 const statementsRef = ref.collection('statements');
 ```
 
-**`export.js`** (shared, identical across all three) — replaces `export_contact.js` in hablo:
+**`export.js`** (shared, identical across nerdster and oneofus):
 - `require('./schema')` for path, `require('./read_auth')` for auth
-- All three projects export signed statements for a key; hablo just always returns one
-  (chain length 1 by design, and naturally distinct+latest)
-- `export_contact.js` and its `buildContact` intermediary are deleted; `export.js` reads
-  `statementsRef` directly
+- Takes `(issuerToken, streamName)` — one specific delegate stream — and returns its full
+  statement chain.
+
+**`export_statement.js`** (hablo-specific, cannot be unified with `export.js`):
+- Takes only an `identityToken`. Runs server-side delegate resolution (OOU walk, predecessors,
+  revocations) because the viewer only knows the target's identity key, not their current
+  delegate key. Returns the single latest snapshot statement from across all resolved streams.
+- Renamed from `export_contact.js`; auth (session + trust graph) stays in this file rather
+  than moving to `read_auth.js`, because the trust check requires both viewer and target tokens
+  and is inseparable from the handler logic.
 
 No parameter added to `makeWrite2Handler`. No default path logic in `write2.js` or `export.js`.
 Schema and auth are module-level dependencies, entirely separate from each other.
@@ -231,7 +237,8 @@ Diff `nerdster_common` too and copy any changes.
 - Create `hablotengo/functions/schema.js` (hablo layout)
 - Update `write2.js` to `require('./schema')` and call `streamRef()` — identical across all three
 - Update `export.js` to `require('./schema')` and call `statementsRef()`, and `require('./read_auth')`
-- Delete `export_contact.js` and `build_contact.js` from hablotengo (superseded by shared `export.js`)
+- `export_contact.js` → already renamed to `export_statement.js` (hablo-specific; not replaceable by shared `export.js` — see Plan section above)
+- `build_contact.js` → already replaced by `resolve_statement.js`
 
 Note: `build_contact.js` has already been replaced by `resolve_statement.js` as a precursor
 step (see Completed section below). When `export.js` is in place, `resolve_statement.js`
