@@ -1,9 +1,11 @@
+import 'dart:async';
+
+import 'package:oneofus_common/distincter.dart' as d;
 import 'package:oneofus_common/statement.dart';
 import 'package:flutter/foundation.dart';
 import 'package:oneofus_common/jsonish.dart';
 import 'package:oneofus_common/source_error.dart';
 import 'package:oneofus_common/statement_source.dart';
-import 'package:oneofus_common/statement_writer.dart';
 
 /// A caching decorator for [StatementSource].
 /// Stores fetched statements in memory to avoid redundant network calls.
@@ -14,7 +16,7 @@ import 'package:oneofus_common/statement_writer.dart';
 /// is greedy and deterministic; once a key is fetched, its statements are filtered
 /// in memory by the logic layer.
 class CachedSource<T extends Statement> implements StatementChannel<T> {
-  final StatementSource<T> _delegate;
+  final StatementSource<T> _source;
   final StatementWriter<T>? _writer;
 
   // Full histories: Map<Token, List<Statement>>
@@ -25,9 +27,12 @@ class CachedSource<T extends Statement> implements StatementChannel<T> {
 
   final Map<String, SourceError> _errorCache = {};
 
+  // Serializes concurrent pushes per issuer so each reads the correct cache head.
+  final Map<String, Future<void>> _pushQueues = {};
+
   final VoidCallback? optimisticConcurrencyFunc;
 
-  CachedSource(this._delegate, [this._writer, this.optimisticConcurrencyFunc]);
+  CachedSource(this._source, [this._writer, this.optimisticConcurrencyFunc]);
 
   @override
   List<SourceError> get errors => List.unmodifiable(_errorCache.values);
@@ -39,8 +44,6 @@ class CachedSource<T extends Statement> implements StatementChannel<T> {
     _errorCache.clear();
   }
 
-  /// Clears all cached partial histories.
-  /// Full histories remain valid across PoV changes.
   @override
   void resetRevokeAt() {
     _partialCache.clear();
@@ -52,31 +55,29 @@ class CachedSource<T extends Statement> implements StatementChannel<T> {
   /// Verifies that `statement.previous` matches the current head of the history (if any).
   @override
   Future<T> push(Json json, StatementSigner signer,
-      {ExpectedPrevious? previous, VoidCallback? optimisticConcurrencyFailed}) async {
+      {ExpectedPrevious? previous, VoidCallback? optimisticConcurrencyFailed}) {
     if (_writer == null) throw UnimplementedError('No writer');
     if (previous != null) throw StateError('CachedSource.push, no previous parameter');
 
     final String issuerId = getToken(json['I']);
-
-    if (_fullCache.containsKey(issuerId)) {
-      if (_fullCache[issuerId]!.isEmpty) {
-        previous = const ExpectedPrevious(null);
-      } else {
-        previous = ExpectedPrevious(_fullCache[issuerId]!.first.token);
+    final completer = Completer<T>();
+    final Future<void> prev = _pushQueues[issuerId] ?? Future.value();
+    _pushQueues[issuerId] = prev.catchError((_) {}).then((_) async {
+      try {
+        assert(_fullCache.containsKey(issuerId), 'fetch before push');
+        final ExpectedPrevious head = _fullCache[issuerId]!.isEmpty
+            ? const ExpectedPrevious(null)
+            : ExpectedPrevious(_fullCache[issuerId]!.first.token);
+        final T statement = await _writer.push(json, signer,
+            previous: head,
+            optimisticConcurrencyFailed: optimisticConcurrencyFailed ?? optimisticConcurrencyFunc);
+        _inject(statement);
+        completer.complete(statement);
+      } catch (e, stack) {
+        completer.completeError(e, stack);
       }
-    }
-
-    // 1. Write through to persistence
-    // If a previous token is provided (from the cache head), pass it to the writer
-    // to enforce optimistic concurrency control.
-    final T statement = await _writer.push(json, signer,
-        previous: previous,
-        optimisticConcurrencyFailed: optimisticConcurrencyFailed ?? this.optimisticConcurrencyFunc);
-
-    // 2. Update cache
-    _inject(statement);
-
-    return statement;
+    });
+    return completer.future;
   }
 
   void _inject(T statement) {
@@ -100,7 +101,7 @@ class CachedSource<T extends Statement> implements StatementChannel<T> {
     }
 
     history.insert(0, statement);
-    _fullCache[token] = history;
+    _fullCache[token] = d.distinct(history).toList();
   }
 
   @override
@@ -122,8 +123,22 @@ class CachedSource<T extends Statement> implements StatementChannel<T> {
       }
 
       if (_fullCache.containsKey(token)) {
-        // Full history is always safe to use; logic layer will filter if needed.
-        results[token] = List.unmodifiable(_fullCache[token]!);
+        if (revokeAt == null) {
+          results[token] = List.unmodifiable(_fullCache[token]!);
+        } else {
+          // Apply revokeAt filter in-memory when the revokeAt token is present in this
+          // stream's cache. Statements are newest-first, so sublist(idx) returns
+          // everything at and before the revokeAt position.
+          // If the token is not found (e.g. it lives in a different stream like 'dis'),
+          // fall through to the underlying source which searches allStreams by time.
+          final List<T> full = _fullCache[token]!;
+          final int idx = full.indexWhere((T s) => s.token == revokeAt);
+          if (idx >= 0) {
+            results[token] = List.unmodifiable(full.sublist(idx));
+          } else {
+            missing[token] = revokeAt;
+          }
+        }
       } else if (revokeAt != null &&
           _partialCache.containsKey(token) &&
           _partialCache[token]!.$1 == revokeAt) {
@@ -144,13 +159,13 @@ class CachedSource<T extends Statement> implements StatementChannel<T> {
 
     // 2. Fetch missing
     if (missing.isNotEmpty) {
-      final Map<String, List<T>> fetched = await _delegate.fetch(missing);
+      final Map<String, List<T>> fetched = await _source.fetch(missing);
 
       // 3. Update cache and results
       for (final String token in missing.keys) {
         // If delegate reported an error for this token, cache it
         final SourceError? error =
-            _delegate.errors.where((SourceError e) => e.token == token).firstOrNull;
+            _source.errors.where((SourceError e) => e.token == token).firstOrNull;
         if (error != null) {
           _errorCache[token] = error;
           continue; // Do not process statements for this token

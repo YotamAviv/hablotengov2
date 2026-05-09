@@ -3,7 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:oneofus_common/jsonish.dart';
 import 'package:oneofus_common/statement.dart';
-import 'package:oneofus_common/statement_writer.dart';
+import 'package:oneofus_common/statement_source.dart';
 
 /// A brief history of how we got here
 ///
@@ -134,6 +134,11 @@ class DirectFirestoreWriter<T extends Statement> implements StatementWriter<T> {
         }
 
         transaction.set(docRef, jsonish.json);
+        transaction.set(
+          fireStatements.parent!,
+          {'head': jsonish.token, 'headTime': json['time']},
+          SetOptions(merge: true),
+        );
       });
 
       return statement;
@@ -173,6 +178,11 @@ class DirectFirestoreWriter<T extends Statement> implements StatementWriter<T> {
       }
 
       transaction.set(docRef, jsonish.json);
+      transaction.set(
+        fireStatements.parent!,
+        {'head': jsonish.token, 'headTime': timeString},
+        SetOptions(merge: true),
+      );
     });
   }
 }
