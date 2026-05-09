@@ -4,9 +4,9 @@
  * Deploy:
  *   firebase --project=hablotengo deploy --only functions
  *
- * Code duplication: statement_fetcher.js and jsonish_util.js are copied across
- * nerdster14/, oneofusv22/, and hablotengo/functions/. Changes must be applied
- * to all three manually until a shared library is introduced.
+ * Shared files (keep identical across nerdster, oneofus, hablotengo):
+ *   write2.js, verify_util.js
+ * Per-project customization: schema.js, write_auth.js, read_auth.js
  */
 
 const { onRequest } = require('firebase-functions/v2/https');
@@ -44,10 +44,12 @@ exports.deleteAccount = onRequest({ cors: true }, async (req, res) => {
   await handleDeleteAccount(req, res);
 });
 
-const { handleWrite } = require('./hablo_write');
+const { makeWrite2Handler } = require('./write2');
+const { auth: writeAuth } = require('./write_auth');
+const handleWrite2 = makeWrite2Handler(writeAuth);
 
 exports.write = onRequest({ cors: true, minInstances: 1 }, async (req, res) => {
-  await handleWrite(req, res);
+  await handleWrite2(req, res);
 });
 
 const { handleGetStreamHead } = require('./get_stream_head');

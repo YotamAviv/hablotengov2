@@ -80,11 +80,14 @@ class HabloChannel {
   }
 
   Future<void> _callWrite(Jsonish jsonish) async {
+    final delegateToken = getToken(_state.delegatePublicKeyJson!);
+    final streamName = '${delegateToken}_${_state.identityToken!}';
     final response = await http.post(
       Uri.parse('$_baseUrl/write'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'statement': jsonish.json,
+        'streamName': streamName,
         ..._authPayload(),
       }),
     );

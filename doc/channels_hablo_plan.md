@@ -368,8 +368,12 @@ Check for lingering old names:
 ## Suggested Order
 
 1. ~~Resolve Q1~~ — resolved (see above).
-2. Create `schema.js` for all three projects; update `write2.js` and `export.js`; write `write_auth.js` and `read_auth.js`; deploy; delete `hablo_write.js`.
-3. Sync `oneofus_common` and `nerdster_common` packages.
+2. ~~Create `schema.js` for all three projects; update `write2.js`; write `write_auth.js`; deploy; delete `hablo_write.js`.~~ — done.
+   Note: `export.js` update deferred (hablo doesn't use it; nerdster/oneofus `statement_fetcher.js` already
+   hardcodes the correct path). `read_auth.js` deferred (auth stays in `export_statement.js` for hablo;
+   nerdster/oneofus reads are public and no `export.js` caller needs it yet).
+   `HabloChannel` updated to send `streamName` as a bridge until work item 6 replaces it.
+3. ~~Sync `oneofus_common` and `nerdster_common` packages.~~ — already done (no diff).
 4. Add auth hooks to `ChannelFactory`; initialize in `main.dart`.
 5. Replace direct source instantiations (work item 6).
 6. Delete `HabloChannel` and `get_stream_head.js`; update `contact_service.dart`.
