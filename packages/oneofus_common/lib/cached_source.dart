@@ -13,7 +13,7 @@ import 'package:oneofus_common/statement_writer.dart';
 /// It does not cache different 'revokeAt' views separately, as the trust algorithm
 /// is greedy and deterministic; once a key is fetched, its statements are filtered
 /// in memory by the logic layer.
-class CachedSource<T extends Statement> implements StatementSource<T>, StatementWriter<T> {
+class CachedSource<T extends Statement> implements StatementChannel<T> {
   final StatementSource<T> _delegate;
   final StatementWriter<T>? _writer;
 
@@ -32,6 +32,7 @@ class CachedSource<T extends Statement> implements StatementSource<T>, Statement
   @override
   List<SourceError> get errors => List.unmodifiable(_errorCache.values);
 
+  @override
   void clear() {
     _fullCache.clear();
     _partialCache.clear();
@@ -40,6 +41,7 @@ class CachedSource<T extends Statement> implements StatementSource<T>, Statement
 
   /// Clears all cached partial histories.
   /// Full histories remain valid across PoV changes.
+  @override
   void resetRevokeAt() {
     _partialCache.clear();
   }

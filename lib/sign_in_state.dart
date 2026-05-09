@@ -97,6 +97,18 @@ class SignInState with ChangeNotifier {
     notifyListeners();
   }
 
+  /// Returns the auth payload to include in CF request bodies (write) or query
+  /// params (read). Returns null if not signed in.
+  Map<String, dynamic>? authPayload() {
+    if (_identityJson == null) return null;
+    if (_isDemo) return {'identity': _identityJson!, 'demo': true};
+    return {
+      'identity': _identityJson!,
+      'sessionTime': _sessionTime!,
+      'sessionSignature': _sessionSignature!,
+    };
+  }
+
   void signOut() {
     debugPrint('SignInState.signOut: was identityToken=$identityToken');
     _identityJson = null;

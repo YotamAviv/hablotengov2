@@ -3,6 +3,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import 'package:oneofus_common/channel_factory.dart';
 import 'package:oneofus_common/trust_statement.dart';
 import 'package:oneofus_common/ui/json_display.dart';
 
@@ -46,6 +47,31 @@ Future<void> main() async {
   }
 
   JsonDisplay.highlightKeys = const {'I', 'verifiedIdentity'};
+
+  final fireChoice = emulator ? FireChoice.emulator : FireChoice.prod;
+  channelFactory = ChannelFactory(fireChoice);
+
+  // OneOfUS domain: public trust-graph reads (no auth needed).
+  channelFactory.register(
+    kOneofusDomain,
+    exportUrl: oneofusExportUrl(false),
+    functionsUrl: oneofusWriteUrl(false),
+    emulatorExportUrl: oneofusExportUrl(true),
+    emulatorFunctionsUrl: oneofusWriteUrl(true),
+  );
+
+  // Hablo domain: session-authenticated writes (contact card saves).
+  // exportUrl points to exportContact; response format update for CachedSource
+  // head-bootstrap is deferred to work item 6.
+  channelFactory.register(
+    kHabloDomain,
+    exportUrl: habloExportContactUrl(false),
+    functionsUrl: habloFunctionsBaseUrl(false),
+    emulatorExportUrl: habloExportContactUrl(true),
+    emulatorFunctionsUrl: habloFunctionsBaseUrl(true),
+    writeAuthHook: () => signInState.authPayload()!,
+    readAuthHook: () => signInState.authPayload()!,
+  );
 
   startKeyStorageCoordinator();
   await tryRestoreKeys();

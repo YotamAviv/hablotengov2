@@ -1,5 +1,6 @@
 import 'package:oneofus_common/source_error.dart';
 import 'package:oneofus_common/statement.dart';
+import 'package:oneofus_common/statement_writer.dart';
 
 /// Interface for fetching statements (Trust or Content).
 abstract class StatementSource<T extends Statement> {
@@ -11,5 +12,12 @@ abstract class StatementSource<T extends Statement> {
 
   /// Returns any notifications (e.g. corruption, warnings) generated during the last fetch.
   List<SourceError> get errors;
+}
+
+/// A paired source+writer for a single stream.
+abstract class StatementChannel<T extends Statement>
+    implements StatementSource<T>, StatementWriter<T> {
+  void clear();
+  void resetRevokeAt();
 }
 
