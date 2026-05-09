@@ -1,11 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:nerdster_common/trust_pipeline.dart';
-import 'package:oneofus_common/cloud_functions_source.dart';
+import 'package:oneofus_common/channel_factory.dart';
 import 'package:oneofus_common/keys.dart';
-import 'package:oneofus_common/oou_verifier.dart';
 import 'package:oneofus_common/trust_statement.dart';
 
-import 'package:hablotengo/constants.dart';
 import 'package:nerdster_common/labeler.dart';
 import 'package:hablotengo/sign_in_state.dart';
 import 'package:hablotengo/dev/simpsons_public_keys.dart';
@@ -20,10 +18,7 @@ Future<void> runContactsVerification() async {
   final identityToken = signInState.identityToken!;
   debugPrint('contacts_suite: signing in as Lisa ($identityToken)');
 
-  final source = CloudFunctionsSource<TrustStatement>(
-    baseUrl: oneofusExportUrl(true),
-    verifier: OouVerifier(),
-  );
+  final source = channelFactory.getChannel<TrustStatement>(kOneofusDomain, 'statements');
   final pipeline = TrustPipeline(source);
   final graph = await pipeline.build(IdentityKey(identityToken));
   debugPrint('contacts_suite: trusted tokens=${graph.orderedKeys.length}');

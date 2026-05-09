@@ -5,9 +5,8 @@ import 'package:nerdster_common/delegates.dart';
 import 'package:nerdster_common/labeler.dart';
 import 'package:nerdster_common/trust_graph.dart';
 import 'package:nerdster_common/trust_pipeline.dart';
-import 'package:oneofus_common/cloud_functions_source.dart';
+import 'package:oneofus_common/channel_factory.dart';
 import 'package:oneofus_common/keys.dart';
-import 'package:oneofus_common/oou_verifier.dart';
 import 'package:oneofus_common/trust_statement.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -82,10 +81,7 @@ class ContactsScreenState extends State<ContactsScreen> {
       final identityToken = signInState.identityToken!;
       debugPrint('ContactsScreen: building trust graph from $identityToken');
 
-      final source = CloudFunctionsSource<TrustStatement>(
-        baseUrl: oneofusExportUrl(widget.emulator),
-        verifier: OouVerifier(),
-      );
+      final source = channelFactory.getChannel<TrustStatement>(kOneofusDomain, 'statements');
       final pipeline = TrustPipeline(source);
       final TrustGraph graph = await pipeline.build(IdentityKey(identityToken));
 

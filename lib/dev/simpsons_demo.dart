@@ -15,13 +15,10 @@ import 'package:hablotengo/constants.dart';
 import 'package:hablotengo/models/contact_statement.dart';
 import 'package:hablotengo/dev/widget_runner.dart';
 import 'package:hablotengo/dev/simpsons_private_keys.dart';
-import 'package:oneofus_common/cached_source.dart';
-import 'package:oneofus_common/cloud_functions_source.dart';
-import 'package:oneofus_common/cloud_functions_writer.dart';
+import 'package:oneofus_common/channel_factory.dart';
 import 'package:oneofus_common/crypto/crypto.dart';
 import 'package:oneofus_common/crypto/crypto25519.dart';
 import 'package:oneofus_common/oou_signer.dart';
-import 'package:oneofus_common/oou_verifier.dart';
 import 'package:oneofus_common/trust_statement.dart';
 
 const bool kEmulator = bool.fromEnvironment('EMULATOR', defaultValue: true);
@@ -84,13 +81,7 @@ class HabloIdentityKey {
         TrustVerb.delegate,
         domain: kHabloDomain,
       );
-      final source = CachedSource<TrustStatement>(
-        CloudFunctionsSource<TrustStatement>(
-          baseUrl: oneofusExportUrl(kEmulator),
-          verifier: OouVerifier(),
-        ),
-        CloudFunctionsWriter<TrustStatement>(oneofusWriteUrl(kEmulator), 'statements'),
-      );
+      final source = channelFactory.getChannel<TrustStatement>(kOneofusDomain, 'statements');
       final signer = await OouSigner.make(_keyPair);
       await source.fetch({Jsonish(json['I']).token: null});
       await source.push(json, signer);

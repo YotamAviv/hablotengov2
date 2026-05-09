@@ -1,6 +1,7 @@
 import 'package:oneofus_common/source_error.dart';
 import 'package:oneofus_common/statement.dart';
 import 'package:oneofus_common/statement_writer.dart';
+export 'package:oneofus_common/statement_writer.dart';
 
 /// Interface for fetching statements (Trust or Content).
 abstract class StatementSource<T extends Statement> {

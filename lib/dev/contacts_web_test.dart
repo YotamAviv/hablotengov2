@@ -9,6 +9,10 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 
+import 'package:oneofus_common/channel_factory.dart';
+import 'package:oneofus_common/trust_statement.dart';
+
+import 'package:hablotengo/constants.dart';
 import 'package:hablotengo/firebase_options.dart';
 import 'package:hablotengo/dev/widget_runner.dart';
 import 'package:hablotengo/dev/contacts_suite.dart';
@@ -22,6 +26,14 @@ void main() async {
   }
   // OneOfUs emulator — Functions port 5002
   // (no Hablo Firebase needed; trust graph comes from OneOfUs export only)
+  channelFactory = ChannelFactory(FireChoice.emulator);
+  channelFactory.register(
+    kOneofusDomain,
+    exportUrl: oneofusExportUrl(false),
+    functionsUrl: oneofusWriteUrl(false),
+    emulatorExportUrl: oneofusExportUrl(true),
+    emulatorFunctionsUrl: oneofusWriteUrl(true),
+  );
 
   runApp(WidgetRunner(scenario: runContactsVerification));
 }
