@@ -28,9 +28,6 @@ String habloDemoSignInUrl(bool emulator) => emulator
     ? 'http://127.0.0.1:$kHabloFunctionsEmulatorPort/$kHabloEmulatorProject/us-central1/demoSignIn'
     : 'https://hablotengo.com/demoSignIn';
 
-String habloGetContactUrl(bool emulator) => emulator
-    ? 'http://127.0.0.1:$kHabloFunctionsEmulatorPort/$kHabloEmulatorProject/us-central1/getContact'
-    : 'https://us-central1-hablotengo.cloudfunctions.net/getContact';
 
 String habloGetBatchContactsUrl(bool emulator) => emulator
     ? 'http://127.0.0.1:$kHabloFunctionsEmulatorPort/$kHabloEmulatorProject/us-central1/getBatchContacts'

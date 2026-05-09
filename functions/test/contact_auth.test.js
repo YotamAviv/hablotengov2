@@ -1,5 +1,5 @@
 /**
- * Integration tests for getMyContact / getContact auth.
+ * Integration tests for getMyContact auth.
  * Requires the Hablo Firebase emulator running on port 5003
  * with Simpsons demo data seeded (createSimpsonsContactData.sh).
  */
@@ -34,9 +34,6 @@ function signSession(privateKey, identityToken, sessionTime) {
 
 const lisaJwk = SIMPSONS_KEYS['lisa'];
 const homerJwk = SIMPSONS_KEYS['homer'];
-const sideshowJwk = SIMPSONS_KEYS['sideshow'];
-const lisaToken = keyToken(lisaJwk);
-const homerToken = keyToken(homerJwk);
 
 describe('getMyContact — seeded demo data', () => {
   test('Lisa: name, email, phone', async () => {
@@ -44,11 +41,11 @@ describe('getMyContact — seeded demo data', () => {
     const body = await res.text();
     assert.strictEqual(res.status, 200, `getMyContact failed: ${body}`);
     const data = JSON.parse(body);
-    assert.strictEqual(data.name, 'Lisa Simpson', `Expected "Lisa Simpson", got: ${data.name}`);
-    const email = data.entries?.find(e => e.tech === 'email');
-    assert.ok(email, `Expected email entry, got: ${JSON.stringify(data.entries)}`);
-    const phone = data.entries?.find(e => e.tech === 'phone');
-    assert.ok(phone, `Expected phone entry, got: ${JSON.stringify(data.entries)}`);
+    assert.strictEqual(data.set?.name, 'Lisa Simpson', `Expected "Lisa Simpson", got: ${data.set?.name}`);
+    const email = data.set?.entries?.find(e => e.tech === 'email');
+    assert.ok(email, `Expected email entry, got: ${JSON.stringify(data.set?.entries)}`);
+    const phone = data.set?.entries?.find(e => e.tech === 'phone');
+    assert.ok(phone, `Expected phone entry, got: ${JSON.stringify(data.set?.entries)}`);
   });
 
   test('Homer: name, notes, phone, email', async () => {
@@ -56,54 +53,12 @@ describe('getMyContact — seeded demo data', () => {
     const body = await res.text();
     assert.strictEqual(res.status, 200, `getMyContact failed: ${body}`);
     const data = JSON.parse(body);
-    assert.strictEqual(data.name, 'Homer Simpson', `Expected "Homer Simpson", got: ${data.name}`);
-    assert.strictEqual(data.notes, 'Never call me', `Expected notes "Never call me", got: ${data.notes}`);
-    const phone = data.entries?.find(e => e.tech === 'phone');
-    assert.ok(phone, `Expected phone entry, got: ${JSON.stringify(data.entries)}`);
-    const email = data.entries?.find(e => e.tech === 'email');
-    assert.ok(email, `Expected email entry, got: ${JSON.stringify(data.entries)}`);
-  });
-});
-
-describe('getContact — trust-gated access', () => {
-  test('Homer (trusted by Lisa) can read Lisa\'s contact', async () => {
-    const res = await post('getContact', {
-      identity: homerJwk,
-      demo: true,
-      targetToken: lisaToken,
-    });
-    const body = await res.text();
-    assert.strictEqual(res.status, 200, `Expected 200, got ${res.status}: ${body}`);
-    const data = JSON.parse(body);
-    assert.ok(data.name, `Expected contact data with a name, got: ${body}`);
-  });
-
-  test('Lisa reads Homer\'s contact card by canonical token — sees name, phone, email', async () => {
-    // The canonical token for Homer as seen in Lisa's trust graph (Homer replaced his old key).
-    // The app always passes the canonical token; getContact must resolve old keys too.
-    const canonicalHomerToken = keyToken(SIMPSONS_KEYS['homer2']);
-    const res = await post('getContact', {
-      identity: lisaJwk,
-      demo: true,
-      targetToken: canonicalHomerToken,
-    });
-    const body = await res.text();
-    assert.strictEqual(res.status, 200, `Expected 200, got ${res.status}: ${body}`);
-    const data = JSON.parse(body);
-    assert.strictEqual(data.name, 'Homer Simpson', `Expected name "Homer Simpson", got: ${data.name}`);
-    const phone = data.entries?.find(e => e.tech === 'phone');
-    assert.ok(phone, `Expected a phone entry, got entries: ${JSON.stringify(data.entries)}`);
-    const email = data.entries?.find(e => e.tech === 'email');
-    assert.ok(email, `Expected an email entry, got entries: ${JSON.stringify(data.entries)}`);
-  });
-
-  test('Sideshow Bob (blocked by Marge, not in Lisa\'s network) cannot read Lisa\'s contact', async () => {
-    const res = await post('getContact', {
-      identity: sideshowJwk,
-      demo: true,
-      targetToken: lisaToken,
-    });
-    assert.strictEqual(res.status, 403, `Expected 403, got ${res.status}`);
+    assert.strictEqual(data.set?.name, 'Homer Simpson', `Expected "Homer Simpson", got: ${data.set?.name}`);
+    assert.strictEqual(data.set?.notes, 'Never call me', `Expected notes "Never call me", got: ${data.set?.notes}`);
+    const phone = data.set?.entries?.find(e => e.tech === 'phone');
+    assert.ok(phone, `Expected phone entry, got: ${JSON.stringify(data.set?.entries)}`);
+    const email = data.set?.entries?.find(e => e.tech === 'email');
+    assert.ok(email, `Expected email entry, got: ${JSON.stringify(data.set?.entries)}`);
   });
 });
 

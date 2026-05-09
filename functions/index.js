@@ -26,12 +26,6 @@ exports.demoSignIn = onRequest({ cors: true, minInstances: 1 }, async (req, res)
   await handleDemoSignIn(req, res);
 });
 
-const { handleGetContact } = require('./get_contact');
-
-exports.getContact = onRequest({ cors: true, minInstances: 1 }, async (req, res) => {
-  await handleGetContact(req, res);
-});
-
 const { handleGetBatchContacts } = require('./get_batch_contacts');
 
 exports.getBatchContacts = onRequest({ cors: true, minInstances: 1 }, async (req, res) => {

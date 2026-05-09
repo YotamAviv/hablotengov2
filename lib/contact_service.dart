@@ -8,10 +8,6 @@ import 'hablo_channel.dart';
 import 'models/contact_statement.dart';
 import 'sign_in_state.dart';
 
-class ContactAccessDeniedException implements Exception {
-  const ContactAccessDeniedException();
-}
-
 enum ContactStatus { found, denied, notFound }
 
 class ContactResult {
@@ -69,27 +65,11 @@ Future<MyContactResult> getMyContact(bool emulator) async {
   }
   final json = jsonDecode(response.body) as Map<String, dynamic>;
   return MyContactResult(
-    contact: ContactData.fromJson(json),
-    rawStatement: json['latestStatement'] as Json?,
+    contact: ContactData.fromJson(json['set'] as Map<String, dynamic>),
+    rawStatement: json,
   );
 }
 
-Future<ContactData?> getContact(String targetToken, bool emulator) async {
-  final url = Uri.parse(habloGetContactUrl(emulator));
-  debugPrint('getContact: $url targetToken=$targetToken');
-  final response = await http.post(
-    url,
-    headers: {'Content-Type': 'application/json'},
-    body: jsonEncode({..._authPayload(), 'targetToken': targetToken}),
-  );
-  if (response.statusCode == 404) return null;
-  if (response.statusCode == 403) throw const ContactAccessDeniedException();
-  if (response.statusCode != 200) {
-    throw Exception('getContact failed: ${response.statusCode} ${response.body}');
-  }
-  final json = jsonDecode(response.body) as Map<String, dynamic>;
-  return ContactData.fromJson(json);
-}
 
 Future<Map<String, ContactResult>> getBatchContacts(List<String> targetTokens, bool emulator) async {
   final url = Uri.parse(habloGetBatchContactsUrl(emulator));

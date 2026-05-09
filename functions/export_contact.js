@@ -4,7 +4,7 @@ const { verifySessionSignature, DOMAIN } = require('./hablo_sign_in');
 const { simpsonsName } = require('./demo_sign_in');
 const { TrustPipeline } = require('./trust_pipeline');
 const { oneofusSource } = require('./oneofus_source');
-const { buildContact } = require('./build_contact');
+const { resolveStatement } = require('./resolve_statement');
 
 const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -55,11 +55,11 @@ async function handleExportContact(req, res) {
       }
     }
 
-    const contact = await buildContact(db, targetToken);
-    if (!contact?.latestStatement) { res.status(404).json(null); return; }
+    const stmt = await resolveStatement(db, targetToken);
+    if (!stmt) { res.status(404).json(null); return; }
 
     console.log(`[export_contact] ${viewerToken} exporting contact of ${targetToken}`);
-    res.status(200).json([contact.latestStatement]);
+    res.status(200).json([stmt]);
   } catch (e) {
     console.error('[export_contact] error:', e.message);
     res.status(500).send(e.message);

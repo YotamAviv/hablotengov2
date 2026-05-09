@@ -3,7 +3,7 @@ const { verifyAuth } = require('./auth_util');
 const { MultiTargetTrustPipeline } = require('./multi_target_trust_pipeline');
 const { oneofusSource } = require('./oneofus_source');
 const { permissivePathRequirement, defaultPathRequirement, strictPathRequirement } = require('./trust_logic');
-const { buildContact } = require('./build_contact');
+const { resolveStatement } = require('./resolve_statement');
 
 function _meetsStrictness(level, distance, pathCount) {
   if (level === 'permissive') return true;
@@ -32,6 +32,20 @@ function _filterEntries(contact, defaultStrictness, distance, pathCount) {
   return { contact: { ...contact, entries }, someHidden: entries.length < all.length };
 }
 
+/**
+ * POST { identity, sessionTime?, sessionSignature?, demo?, targetTokens: string[] }
+ *
+ * Returns a map from targetToken → result:
+ *   { status: 'denied' }
+ *     — requester is not in the target's ONE-OF-US trust graph
+ *   { status: 'not_found' }
+ *     — target has no Hablo stream (no delegate statements or no contact written yet)
+ *   { status: 'found', contact, defaultStrictness, rawStatement? [, someHidden: true] }
+ *     — contact is stmt.set with entries filtered by visibility level and trust distance;
+ *       rawStatement (the full signed statement) is included only when no entries are hidden;
+ *       someHidden: true when at least one entry was filtered out
+ *   { status: 'found', contact, rawStatement }   (self — no filtering applied)
+ */
 async function handleGetBatchContacts(req, res) {
   res.setHeader('Content-Type', 'application/json');
 
@@ -70,21 +84,21 @@ async function handleGetBatchContacts(req, res) {
     }
 
     await Promise.all(trustedTargets.map(async ({ targetToken, canonicalToken, graph, isSelf }) => {
-      const contact = await buildContact(db, canonicalToken);
-      if (!contact) {
+      const stmt = await resolveStatement(db, canonicalToken);
+      if (!stmt) {
         result[targetToken] = { status: 'not_found' };
         return;
       }
+      const set = stmt.set ?? {};
       if (isSelf) {
-        result[targetToken] = { status: 'found', contact };
+        result[targetToken] = { status: 'found', contact: set, rawStatement: stmt };
         return;
       }
-      const defaultStrictness = contact.defaultStrictness ?? 'standard';
+      const defaultStrictness = set.defaultStrictness ?? 'standard';
       const distance = graph.distances.get(auth.identityToken);
       const pathCount = graph.paths.get(auth.identityToken)?.length ?? 0;
-      const { contact: filtered, someHidden } = _filterEntries(contact, defaultStrictness, distance, pathCount);
-      const latestStatement = !someHidden ? contact.latestStatement : undefined;
-      result[targetToken] = { status: 'found', contact: filtered, defaultStrictness, ...(someHidden && { someHidden: true }), ...(latestStatement && { rawStatement: latestStatement }) };
+      const { contact: filtered, someHidden } = _filterEntries(set, defaultStrictness, distance, pathCount);
+      result[targetToken] = { status: 'found', contact: filtered, defaultStrictness, ...(someHidden && { someHidden: true }), ...(!someHidden && { rawStatement: stmt }) };
     }));
 
     console.log(`[get_batch_contacts] ${auth.identityToken} batch=${targetTokens.length} trusted=${trustedTargets.length}`);
