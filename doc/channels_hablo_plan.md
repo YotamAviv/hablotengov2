@@ -1,5 +1,29 @@
 # Hablotengo: Channel Architecture Upgrade Plan
 
+## High level goals
+
+- files with the same name across the 3 projects are identical.
+  - exceptions for files that are customizations like
+    - schema.js
+    - read_auth.js
+    - write_auth.js
+
+- writes are transactional
+
+The work that Hablo introduced to make this transactional has already been carrier over to Nerdster and Oneofus.
+
+The work to make those upgraded files work with Hablo again will probably need customization as Hablo has different requirements:
+- read auth access
+- write auth access
+- different existing schema
+
+Elegance:
+Do not have code just know or guess that a stream key is $delegate_$identity. Instead have the business logic code, most likely in Dart, pass in and assmeble streamKey. 
+Files like write2.js should be as close as possible to general purpose and not look like they'll exactly only work for Nerdster, Oneofus, and Hablo.
+
+AI: TODO: Can you do all of this? Respond below this line.
+
+
 ## Context
 
 Nerdster and OneOfUS are done (branch `channels-refactor`, deployed 2026-05-08).
