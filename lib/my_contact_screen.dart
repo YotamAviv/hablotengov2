@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:nerdster_common/labeler.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -204,7 +205,7 @@ class _MyContactSheetState extends State<MyContactSheet> {
 
     // View mode
     return SafeArea(
-      child: Padding(
+      child: SingleChildScrollView(
         padding: padding,
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -293,6 +294,11 @@ Uri? _entryUri(ContactEntry entry) {
     case 'whatsapp': return Uri.parse('https://wa.me/${v.replaceAll(RegExp(r'\D'), '')}');
     case 'instagram': return Uri.parse('https://instagram.com/${v.replaceAll('@', '')}');
     case 'tiktok': return Uri.parse('https://tiktok.com/@${v.replaceAll('@', '')}');
+    case 'address':
+      final encoded = Uri.encodeComponent(v);
+      if (kIsWeb) return Uri.parse('https://maps.google.com/maps?q=$encoded');
+      if (defaultTargetPlatform == TargetPlatform.iOS) return Uri.parse('https://maps.apple.com/?q=$encoded');
+      return Uri.parse('geo:0,0?q=$encoded');
     default: if (v.startsWith('http')) return Uri.tryParse(v);
   }
   return null;
@@ -346,7 +352,7 @@ class _TechPickerDialog extends StatefulWidget {
 class _TechPickerDialogState extends State<_TechPickerDialog> {
   final _ctrl = TextEditingController();
 
-  static const _common = ['email', 'phone', 'signal', 'whatsapp', 'instagram', 'tiktok', 'fax', 'home wifi'];
+  static const _common = ['email', 'phone', 'address', 'signal', 'whatsapp', 'instagram', 'tiktok', 'fax', 'home wifi'];
 
   @override
   void dispose() { _ctrl.dispose(); super.dispose(); }

@@ -371,7 +371,7 @@ class _ContactDetailSheet extends StatelessWidget {
     final String contactPayload = jsonEncode(FedKey.find(IdentityKey(contact.token))!.toPayload());
 
     return SafeArea(
-      child: Padding(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           mainAxisSize: MainAxisSize.min,
