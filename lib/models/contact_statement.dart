@@ -65,36 +65,15 @@ class ContactData {
 
 // ── Statement JSON builders ──────────────────────────────────────────────────
 
-/// Builds a snapshot statement: the full contact card (name, notes, entries) in one `set`.
-/// One statement per save — no per-field diffing, no per-entry statements.
-Json buildContactSnapshot({
-  required ContactData contact,
-  required Json delegatePublicKeyJson,
-  required String identityToken,
-}) => {
-  'statement': kHabloStatementType,
-  'time': DateTime.now().toUtc().toIso8601String(),
-  'I': delegatePublicKeyJson,
-  'set': {
-    'name': contact.name,
-    if (contact.notes != null) 'notes': contact.notes,
-    'entries': contact.entries.map((e) => e.toJson()).toList(),
-  },
-  'with': {'verifiedIdentity': identityToken},
-};
 
-/// Builds a "set" statement for a single settings field (showEmptyCards, defaultStrictness, etc.).
-/// Settings changes are infrequent and stay as individual statements — they are accumulated
-/// alongside contact snapshots during replay.
-Json buildSetFieldJson({
-  required String field,
-  required dynamic value,
+Json buildFullSetJson({
+  required Map<String, dynamic> set,
   required Json delegatePublicKeyJson,
   required String identityToken,
 }) => {
   'statement': kHabloStatementType,
   'time': DateTime.now().toUtc().toIso8601String(),
   'I': delegatePublicKeyJson,
-  'set': {field: value},
+  'set': set,
   'with': {'verifiedIdentity': identityToken},
 };

@@ -105,8 +105,12 @@ class HabloIdentityKey {
       signer: _delegateSigner!,
     );
 
-    await channel.push(buildContactSnapshot(
-      contact: ContactData(name: c.displayName, notes: c.notes, entries: c.entries),
+    await channel.push(buildFullSetJson(
+      set: {
+        'name': c.displayName,
+        if (c.notes != null) 'notes': c.notes,
+        'entries': c.entries.map((e) => e.toJson()).toList(),
+      },
       delegatePublicKeyJson: _delegatePubKeyJson!,
       identityToken: token,
     ));

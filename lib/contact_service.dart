@@ -100,21 +100,39 @@ Future<Map<String, ContactResult>> getBatchContacts(List<String> targetTokens, b
 // ── Write operations ─────────────────────────────────────────────────────────
 
 Future<void> setMyContact(ContactData contact, bool emulator) async {
+  final current = await getMyContact(emulator);
+  final currentSet = Map<String, dynamic>.from(
+    (current.rawStatement?['set'] as Map<String, dynamic>?) ?? {},
+  );
+  currentSet['name'] = contact.name;
+  if (contact.notes != null) {
+    currentSet['notes'] = contact.notes;
+  } else {
+    currentSet.remove('notes');
+  }
+  currentSet['entries'] = contact.entries.map((e) => e.toJson()).toList();
+
   final channel = await _channel();
   final delegatePk = signInState.delegatePublicKeyJson!;
   final identityToken = signInState.identityToken!;
   await channel.push(
-    buildContactSnapshot(contact: contact, delegatePublicKeyJson: delegatePk, identityToken: identityToken),
+    buildFullSetJson(set: currentSet, delegatePublicKeyJson: delegatePk, identityToken: identityToken),
     signInState.signer!,
   );
 }
 
 Future<void> setSettingsField(String field, dynamic value, bool emulator) async {
+  final current = await getMyContact(emulator);
+  final currentSet = Map<String, dynamic>.from(
+    (current.rawStatement?['set'] as Map<String, dynamic>?) ?? {},
+  );
+  currentSet[field] = value;
+
   final channel = await _channel();
   final delegatePk = signInState.delegatePublicKeyJson!;
   final identityToken = signInState.identityToken!;
   await channel.push(
-    buildSetFieldJson(field: field, value: value, delegatePublicKeyJson: delegatePk, identityToken: identityToken),
+    buildFullSetJson(set: currentSet, delegatePublicKeyJson: delegatePk, identityToken: identityToken),
     signInState.signer!,
   );
 }
