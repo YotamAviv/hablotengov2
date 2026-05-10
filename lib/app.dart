@@ -262,6 +262,7 @@ class _SignedInScreen extends StatefulWidget {
 class _SignedInScreenState extends State<_SignedInScreen> with SingleTickerProviderStateMixin {
   final _contactsKey = GlobalKey<ContactsScreenState>();
   final ValueNotifier<bool> _isLoading = ValueNotifier(true);
+  final ValueNotifier<bool> _isDelegateError = ValueNotifier(false);
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
   bool? _hasContactCard; // null = loading, true = has card, false = no card
@@ -279,6 +280,7 @@ class _SignedInScreenState extends State<_SignedInScreen> with SingleTickerProvi
   void dispose() {
     _pulseController.dispose();
     _isLoading.dispose();
+    _isDelegateError.dispose();
     super.dispose();
   }
 
@@ -325,26 +327,35 @@ class _SignedInScreenState extends State<_SignedInScreen> with SingleTickerProvi
                 : IconButton(icon: const Icon(Icons.refresh), onPressed: () => _contactsKey.currentState?.reload()),
           ),
           if (signInState.hasIdentity)
-            IconButton(icon: const Icon(Icons.settings), onPressed: () => _openSettings(context)),
-          AnimatedBuilder(
-            animation: _pulseAnimation,
-            builder: (context, _) {
-              final pulse = _hasContactCard == false;
-              return IconButton(
-                icon: Icon(
-                  Icons.person,
-                  color: pulse
-                      ? Colors.red.withValues(alpha: 0.3 + 0.7 * _pulseAnimation.value)
-                      : null,
-                ),
-                onPressed: () => _openMyCard(context),
-              );
-            },
+            ValueListenableBuilder<bool>(
+              valueListenable: _isDelegateError,
+              builder: (_, error, _) => IconButton(
+                icon: const Icon(Icons.settings),
+                onPressed: error ? null : () => _openSettings(context),
+              ),
+            ),
+          ValueListenableBuilder<bool>(
+            valueListenable: _isDelegateError,
+            builder: (_, error, _) => AnimatedBuilder(
+              animation: _pulseAnimation,
+              builder: (context, _) {
+                final pulse = _hasContactCard == false && !error;
+                return IconButton(
+                  icon: Icon(
+                    Icons.person,
+                    color: pulse
+                        ? Colors.red.withValues(alpha: 0.3 + 0.7 * _pulseAnimation.value)
+                        : null,
+                  ),
+                  onPressed: error ? null : () => _openMyCard(context),
+                );
+              },
+            ),
           ),
           TextButton(onPressed: widget.onSignOut, child: const Text('Sign out')),
         ],
       ),
-      body: ContactsScreen(key: _contactsKey, emulator: widget.emulator, startupTarget: widget.startupTarget, isLoading: _isLoading),
+      body: ContactsScreen(key: _contactsKey, emulator: widget.emulator, startupTarget: widget.startupTarget, isLoading: _isLoading, isDelegateError: _isDelegateError),
     );
   }
 }

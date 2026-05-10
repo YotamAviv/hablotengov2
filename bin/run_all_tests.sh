@@ -24,6 +24,10 @@ curl -s --max-time 3 http://localhost:5002/ > /dev/null \
     || { echo "ERROR: OneOfUs emulator not responding on port 5002."; exit 1; }
 [ -f lib/dev/simpsons_private_keys.dart ] \
     || { echo "ERROR: lib/dev/simpsons_private_keys.dart missing. Run: python3 bin/gen_simpsons_private_keys_dart.py"; exit 1; }
+[ -f ../simpsonsHabloKeys.json ] \
+    || { echo "ERROR: simpsonsHabloKeys.json missing. Run: bin/createSimpsonsContactData.sh"; exit 1; }
+grep -q 'homer-hablo0' lib/dev/simpsons_private_keys.dart \
+    || { echo "ERROR: homer-hablo0 missing from simpsons_private_keys.dart. Run: python3 bin/gen_simpsons_private_keys_dart.py"; exit 1; }
 echo "Prerequisites OK."
 echo ""
 
@@ -53,6 +57,15 @@ if python3 bin/chrome_widget_runner.py -t lib/dev/contacts_web_test.dart; then
     PASSED_TESTS+=("contacts_web_test (chrome)")
 else
     FAILED_TESTS+=("contacts_web_test (chrome)")
+fi
+echo ""
+
+# 4. Contact write test (Chrome, sentinel-based)
+echo "=== Running Contact Write Test (Chrome) ==="
+if python3 bin/chrome_widget_runner.py -t lib/dev/contact_write_test.dart; then
+    PASSED_TESTS+=("contact_write_test (chrome)")
+else
+    FAILED_TESTS+=("contact_write_test (chrome)")
 fi
 echo ""
 

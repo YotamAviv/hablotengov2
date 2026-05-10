@@ -87,17 +87,25 @@ async function resolveStatement(db, identityToken) {
   let latestStatement = null;
 
   async function checkStream(delegateToken, idToken) {
-    const stmtsRef = db.collection('streams').doc(`${delegateToken}_${idToken}`).collection('statements');
+    const streamName = `${delegateToken}_${idToken}`;
+    const stmtsRef = db.collection('streams').doc(streamName).collection('statements');
     let snap;
     if (delegateRevocations.has(delegateToken)) {
       const revocationTime = delegateRevocations.get(delegateToken);
-      if (revocationTime === null) return;
+      if (revocationTime === null) {
+        console.log(`[resolveStatement] stream=${streamName} SKIPPED (revoked since genesis)`);
+        return;
+      }
       snap = await stmtsRef.where('time', '<=', revocationTime).orderBy('time', 'desc').limit(1).get();
     } else {
       snap = await stmtsRef.orderBy('time', 'desc').limit(1).get();
     }
-    if (snap.empty) return;
+    if (snap.empty) {
+      console.log(`[resolveStatement] stream=${streamName} EMPTY`);
+      return;
+    }
     const stmt = snap.docs[0].data();
+    console.log(`[resolveStatement] stream=${streamName} time=${stmt.time}`);
     if (!latestStatement || stmt.time > latestStatement.time) {
       latestStatement = stmt;
     }

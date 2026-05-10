@@ -36,7 +36,8 @@ class ContactsScreen extends StatefulWidget {
   final bool emulator;
   final String? startupTarget;
   final ValueNotifier<bool>? isLoading;
-  const ContactsScreen({super.key, required this.emulator, this.startupTarget, this.isLoading});
+  final ValueNotifier<bool>? isDelegateError;
+  const ContactsScreen({super.key, required this.emulator, this.startupTarget, this.isLoading, this.isDelegateError});
 
   @override
   State<ContactsScreen> createState() => ContactsScreenState();
@@ -47,13 +48,16 @@ class ContactsScreenState extends State<ContactsScreen> {
   Map<String, ContactResult>? _results;
   Labeler? _labeler;
   String? _error;
+  String? _delegateError;
   final TextEditingController _searchCtrl = TextEditingController();
   late final ValueNotifier<bool> _loadingNotifier;
+  late final ValueNotifier<bool> _delegateErrorNotifier;
 
   @override
   void initState() {
     super.initState();
     _loadingNotifier = widget.isLoading ?? ValueNotifier(true);
+    _delegateErrorNotifier = widget.isDelegateError ?? ValueNotifier(false);
     _load();
     _searchCtrl.addListener(() => setState(() {}));
   }
@@ -62,6 +66,7 @@ class ContactsScreenState extends State<ContactsScreen> {
   void dispose() {
     _searchCtrl.dispose();
     if (widget.isLoading == null) _loadingNotifier.dispose();
+    if (widget.isDelegateError == null) _delegateErrorNotifier.dispose();
     super.dispose();
   }
 
@@ -77,6 +82,8 @@ class ContactsScreenState extends State<ContactsScreen> {
 
   Future<void> _load() async {
     _loadingNotifier.value = true;
+    _delegateError = null;
+    _delegateErrorNotifier.value = false;
     try {
       final identityToken = signInState.identityToken!;
       debugPrint('ContactsScreen: building trust graph from $identityToken');
@@ -104,6 +111,25 @@ class ContactsScreenState extends State<ContactsScreen> {
       }
       final labeler = Labeler(graph, delegateResolver: delegateResolver);
       if (mounted) setState(() => _labeler = labeler);
+
+      // Verify the session delegate is registered in OOU for this identity.
+      if (signInState.hasDelegate && !signInState.isDemo) {
+        final identityKey = IdentityKey(signInState.identityToken!);
+        final delegateToken = getToken(signInState.delegatePublicKeyJson!);
+        final statements = graph.edges[identityKey] ?? [];
+        final isAssociated = statements.any(
+          (s) => s.verb == TrustVerb.delegate && s.subjectToken == delegateToken,
+        );
+        if (!isAssociated) {
+          if (mounted) {
+            setState(() => _delegateError =
+                'Delegate key not associated with identity.\n\n'
+                'Address this on your identity app (ONE-OF-US.NET) and refresh.');
+            _delegateErrorNotifier.value = true;
+          }
+          return;
+        }
+      }
 
       final seen = <IdentityKey>{};
       final contacts = <_ContactEntry>[];
@@ -191,6 +217,21 @@ class ContactsScreenState extends State<ContactsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_delegateError != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.error_outline, size: 64, color: Colors.red),
+              const SizedBox(height: 16),
+              Text(_delegateError!, textAlign: TextAlign.center, style: const TextStyle(fontSize: 15)),
+            ],
+          ),
+        ),
+      );
+    }
     if (_error != null) {
       return Center(child: SelectableText('Error: $_error'));
     }

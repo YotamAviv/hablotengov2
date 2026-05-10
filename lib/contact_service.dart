@@ -41,14 +41,18 @@ Map<String, dynamic> _authPayload() {
 Future<StatementChannel<HabloStatement>> _channel() async {
   final delegateToken = getToken(signInState.delegatePublicKeyJson!);
   final streamId = '${delegateToken}_${signInState.identityToken!}';
+  debugPrint('contact_service: writing to stream=$streamId');
   final channel = channelFactory.getChannel<HabloStatement>(kHabloDomain, streamId);
   await channel.fetch({delegateToken: null});
   return channel;
 }
 
-// ── Read operations (unchanged) ──────────────────────────────────────────────
+// ── Read operations ──────────────────────────────────────────────────────────
 
 Future<MyContactResult> getMyContact(bool emulator) async {
+  if (signInState.identityJson == null) {
+    throw StateError('getMyContact called without a signed-in identity');
+  }
   final url = Uri.parse(habloGetMyContactUrl(emulator));
   debugPrint('getMyContact: $url');
   final response = await http.post(
@@ -56,16 +60,21 @@ Future<MyContactResult> getMyContact(bool emulator) async {
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(_authPayload()),
   );
-  if (response.statusCode == 404) return const MyContactResult();
+  if (response.statusCode == 404) {
+    return const MyContactResult();
+  }
   if (response.statusCode != 200) {
     throw Exception('getMyContact failed: ${response.statusCode} ${response.body}');
   }
-  final json = jsonDecode(response.body) as Map<String, dynamic>;
+  final json = jsonDecode(response.body) as Map<String, dynamic>?;
+  if (json == null) return const MyContactResult();
+  final setMap = json['set'] as Map<String, dynamic>?;
   return MyContactResult(
-    contact: ContactData.fromJson(json['set'] as Map<String, dynamic>),
+    contact: setMap != null && setMap.isNotEmpty ? ContactData.fromJson(setMap) : null,
     rawStatement: json,
   );
 }
+
 
 
 Future<Map<String, ContactResult>> getBatchContacts(List<String> targetTokens, bool emulator) async {
@@ -101,6 +110,7 @@ Future<Map<String, ContactResult>> getBatchContacts(List<String> targetTokens, b
 
 Future<void> setMyContact(ContactData contact, bool emulator) async {
   final current = await getMyContact(emulator);
+  debugPrint('setMyContact: current rawStatement=${jsonEncode(current.rawStatement)}');
   final currentSet = Map<String, dynamic>.from(
     (current.rawStatement?['set'] as Map<String, dynamic>?) ?? {},
   );
@@ -115,14 +125,15 @@ Future<void> setMyContact(ContactData contact, bool emulator) async {
   final channel = await _channel();
   final delegatePk = signInState.delegatePublicKeyJson!;
   final identityToken = signInState.identityToken!;
-  await channel.push(
-    buildFullSetJson(set: currentSet, delegatePublicKeyJson: delegatePk, identityToken: identityToken),
-    signInState.signer!,
-  );
+  final stmt = buildFullSetJson(set: currentSet, delegatePublicKeyJson: delegatePk, identityToken: identityToken);
+  debugPrint('setMyContact: pushing set=${jsonEncode(currentSet)}');
+  await channel.push(stmt, signInState.signer!);
+  debugPrint('setMyContact: done');
 }
 
 Future<void> setSettingsField(String field, dynamic value, bool emulator) async {
   final current = await getMyContact(emulator);
+  debugPrint('setSettingsField: $field=$value current rawStatement=${jsonEncode(current.rawStatement)}');
   final currentSet = Map<String, dynamic>.from(
     (current.rawStatement?['set'] as Map<String, dynamic>?) ?? {},
   );
@@ -131,10 +142,10 @@ Future<void> setSettingsField(String field, dynamic value, bool emulator) async 
   final channel = await _channel();
   final delegatePk = signInState.delegatePublicKeyJson!;
   final identityToken = signInState.identityToken!;
-  await channel.push(
-    buildFullSetJson(set: currentSet, delegatePublicKeyJson: delegatePk, identityToken: identityToken),
-    signInState.signer!,
-  );
+  final stmt = buildFullSetJson(set: currentSet, delegatePublicKeyJson: delegatePk, identityToken: identityToken);
+  debugPrint('setSettingsField: pushing set=${jsonEncode(currentSet)}');
+  await channel.push(stmt, signInState.signer!);
+  debugPrint('setSettingsField: done');
 }
 
 Future<void> deleteAccount(bool emulator) async {

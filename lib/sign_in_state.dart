@@ -97,6 +97,16 @@ class SignInState with ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> signInDemoWithDelegate(Json identityJson, OouKeyPair delegateKeyPair) async {
+    _identityJson = identityJson;
+    _sessionTime = null;
+    _sessionSignature = null;
+    _isDemo = true;
+    await _setDelegate(delegateKeyPair);
+    debugPrint('SignInState.signInDemoWithDelegate: identityToken=${getToken(identityJson)} delegate=${_delegatePublicKeyJson?.toString().substring(0, 20)}...');
+    notifyListeners();
+  }
+
   /// Returns the auth payload to include in CF request bodies (write) or query
   /// params (read). Returns null if not signed in.
   Map<String, dynamic>? authPayload() {
