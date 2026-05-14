@@ -109,7 +109,7 @@ This also generates the key files (`lib/dev/simpsons_public_keys.dart`,
 
 Restore `functions/write_auth.js` and redeploy:
 ```
-firebase deploy --only functions:write2
+firebase deploy --only functions:write
 ```
 
 ### 5. Deploy hablotengo web app (critical for demo)
