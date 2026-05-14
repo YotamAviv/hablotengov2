@@ -81,11 +81,11 @@ Writes `../simpsonsPublicKeys.json`, `../simpsonsPrivateKeys.json`, `web/common/
 
 ### 2. Temporarily disable the demo write guard and deploy
 
-In `functions/hablo_write.js`, comment out the block:
+In `functions/write_auth.js`, comment out the guard block:
 ```js
-// if (auth.isDemo && process.env.FUNCTIONS_EMULATOR !== 'true') {
-//   res.status(403).send('Demo users cannot write in production');
-//   return;
+// if (isDemo && process.env.FUNCTIONS_EMULATOR !== 'true') {
+//   res.status(403).send('Demo users cannot write signed statements in production');
+//   return null;
 // }
 ```
 
@@ -107,9 +107,9 @@ This also generates the key files (`lib/dev/simpsons_public_keys.dart`,
 
 ### 4. Re-enable the demo write guard and redeploy
 
-Restore `functions/hablo_write.js` and redeploy:
+Restore `functions/write_auth.js` and redeploy:
 ```
-firebase deploy --only functions:write
+firebase deploy --only functions:write2
 ```
 
 ### 5. Deploy hablotengo web app (critical for demo)
