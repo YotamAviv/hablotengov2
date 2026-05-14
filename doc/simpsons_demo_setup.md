@@ -128,7 +128,8 @@ Commit `web/common/data/demoData.js` in nerdster and deploy:
 bin/deploy_web.sh
 ```
 
-Commit `web/common/data/demoData.js` in oneofus and deploy:
+Copy `demoData.js` from nerdster, commit, and deploy oneofus:
 ```
-firebase --project=one-of-us-net deploy --only hosting
+cp ~/src/github/nerdster/web/common/data/demoData.js web/common/data/
+bin/deploy_web.sh
 ```
