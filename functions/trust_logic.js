@@ -48,6 +48,7 @@ async function parseStatements(statements) {
       subjectToken,
       verb: vs?.verb ?? null,
       revokeAt: s.with?.revokeAt ?? null,
+      endpoint: s.with?.endpoint?.url ?? null,
       raw: s,
     };
   }));
@@ -97,13 +98,22 @@ function _findNodeDisjointPaths(root, target, graph, limit) {
 // Only current.pov is used from the current graph; everything else is recomputed.
 // ---------------------------------------------------------------------------
 
-async function reduceTrustGraph(pov, byIssuer, { pathRequirement, maxDegrees = kDefaultMaxDegrees } = {}) {
+async function reduceTrustGraph(pov, byIssuer, { pathRequirement, maxDegrees = kDefaultMaxDegrees, fedRegistry } = {}) {
   const req = pathRequirement || defaultPathRequirement;
 
   // Pre-parse all statements so BFS iteration is synchronous
   const parsed = new Map(); // issuerToken -> [parsedStatement]
   for (const [token, statements] of byIssuer) {
     parsed.set(token, await parseStatements(statements));
+  }
+
+  // Register any foreign endpoints discovered in this round of statements
+  if (fedRegistry) {
+    for (const stmtList of parsed.values()) {
+      for (const s of stmtList) {
+        if (s.endpoint && s.subjectToken) fedRegistry.set(s.subjectToken, s.endpoint);
+      }
+    }
   }
 
   const distances = new Map([[pov, 0]]);

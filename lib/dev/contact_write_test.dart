@@ -114,6 +114,19 @@ Future<void> _runTest() async {
   _assert(result.rawStatement?['set']?['defaultStrictness'] == 'strict',
       'contact save wiped settings: ${result.rawStatement?['set']}');
 
+  // 7. Restore original demo contact so other tests see clean data.
+  await setMyContact(
+    const ContactData(
+      name: 'Homer Simpson',
+      notes: 'Never call me',
+      entries: [
+        ContactEntry(tech: 'phone', value: '+1-555-HOMER', preferred: true),
+        ContactEntry(tech: 'email', value: 'homer@springfield-nuclear.gov'),
+      ],
+    ),
+    true,
+  );
+
   // ignore: avoid_print
   print('PASS');
 }

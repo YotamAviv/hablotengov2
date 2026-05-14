@@ -3,7 +3,7 @@ const { keyToken } = require('./verify_util');
 const { verifySessionSignature, DOMAIN } = require('./hablo_sign_in');
 const { simpsonsName } = require('./demo_sign_in');
 const { TrustPipeline } = require('./trust_pipeline');
-const { oneofusSource } = require('./oneofus_source');
+const { oneofusSource, federatedSourceFor } = require('./oneofus_source');
 const { resolveStatement } = require('./resolve_statement');
 
 const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
@@ -64,8 +64,14 @@ async function handleExportStatement(req, res) {
     const db = admin.firestore();
 
     if (viewerToken !== targetToken) {
-      const pipeline = new TrustPipeline(oneofusSource);
-      const graph = await pipeline.build(targetToken);
+      // Pass 1: build viewer's graph first to populate fedRegistry with foreign endpoints.
+      const fedRegistry = new Map();
+      const viewerPipeline = new TrustPipeline(oneofusSource, { sourceFor: federatedSourceFor });
+      await viewerPipeline.build(viewerToken, { fedRegistry });
+
+      // Pass 2: build target's graph with pre-populated fedRegistry.
+      const targetPipeline = new TrustPipeline(oneofusSource, { sourceFor: federatedSourceFor });
+      const graph = await targetPipeline.build(targetToken, { fedRegistry });
       if (!graph.distances.has(viewerToken)) {
         res.status(403).send('Not trusted');
         return;

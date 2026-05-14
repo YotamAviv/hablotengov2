@@ -1,7 +1,8 @@
 const admin = require('firebase-admin');
 const { verifyAuth } = require('./auth_util');
+const { TrustPipeline } = require('./trust_pipeline');
 const { MultiTargetTrustPipeline } = require('./multi_target_trust_pipeline');
-const { oneofusSource } = require('./oneofus_source');
+const { oneofusSource, federatedSourceFor } = require('./oneofus_source');
 const { permissivePathRequirement, defaultPathRequirement, strictPathRequirement } = require('./trust_logic');
 const { resolveStatement } = require('./resolve_statement');
 
@@ -60,8 +61,16 @@ async function handleGetBatchContacts(req, res) {
 
   try {
     const db = admin.firestore();
-    const pipeline = new MultiTargetTrustPipeline(oneofusSource, { pathRequirement: permissivePathRequirement });
-    const graphs = await pipeline.buildAll(targetTokens);
+    // Pass 1: build requester's graph to populate fedRegistry with foreign endpoints.
+    // Without this, the target-centric BFS (pass 2) doesn't know which targets
+    // live on foreign domains and fetches from the wrong URL.
+    const fedRegistry = new Map();
+    const requesterPipeline = new TrustPipeline(oneofusSource, { sourceFor: federatedSourceFor });
+    await requesterPipeline.build(auth.identityToken, { fedRegistry });
+
+    // Pass 2: build target graphs with pre-populated fedRegistry.
+    const pipeline = new MultiTargetTrustPipeline(oneofusSource, { pathRequirement: permissivePathRequirement, sourceFor: federatedSourceFor });
+    const graphs = await pipeline.buildAll(targetTokens, { fedRegistry });
 
     const result = {};
     const trustedTargets = []; // { targetToken, canonicalToken, graph, isSelf }

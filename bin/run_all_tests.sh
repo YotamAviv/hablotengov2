@@ -31,16 +31,7 @@ grep -q 'homer-hablo0' lib/dev/simpsons_private_keys.dart \
 echo "Prerequisites OK."
 echo ""
 
-# 1. Cloud Function tests
-echo "=== Running Cloud Function Tests ==="
-if (cd functions && npm test); then
-    PASSED_TESTS+=("Cloud Function tests")
-else
-    FAILED_TESTS+=("Cloud Function tests")
-fi
-echo ""
-
-# 2. oneofus_common package tests
+# 1. oneofus_common package tests
 # --verbose fixes exit-255 in non-TTY; grep strips Flutter tool internals (lines starting with '[')
 echo "=== Running oneofus_common Package Tests ==="
 (cd packages/oneofus_common && flutter test --verbose 2>&1) | grep -v "^\["
@@ -51,7 +42,7 @@ else
 fi
 echo ""
 
-# 3. Contacts web test (Chrome, sentinel-based)
+# 2. Contacts web test (Chrome, sentinel-based)
 echo "=== Running Contacts Web Test (Chrome) ==="
 if python3 bin/chrome_widget_runner.py -t lib/dev/contacts_web_test.dart; then
     PASSED_TESTS+=("contacts_web_test (chrome)")
@@ -60,12 +51,22 @@ else
 fi
 echo ""
 
-# 4. Contact write test (Chrome, sentinel-based)
+# 3. Contact write test (Chrome, sentinel-based).
+# Runs before CF tests because it mutates emulator data and restores it at the end.
 echo "=== Running Contact Write Test (Chrome) ==="
 if python3 bin/chrome_widget_runner.py -t lib/dev/contact_write_test.dart; then
     PASSED_TESTS+=("contact_write_test (chrome)")
 else
     FAILED_TESTS+=("contact_write_test (chrome)")
+fi
+echo ""
+
+# 4. Cloud Function tests — run last so they see emulator data restored by contact_write_test.
+echo "=== Running Cloud Function Tests ==="
+if (cd functions && npm test); then
+    PASSED_TESTS+=("Cloud Function tests")
+else
+    FAILED_TESTS+=("Cloud Function tests")
 fi
 echo ""
 

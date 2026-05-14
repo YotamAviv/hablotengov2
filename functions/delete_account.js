@@ -1,7 +1,7 @@
 const admin = require('firebase-admin');
 const { verifyAuth } = require('./auth_util');
 const { MultiTargetTrustPipeline } = require('./multi_target_trust_pipeline');
-const { oneofusSource } = require('./oneofus_source');
+const { oneofusSource, federatedSourceFor } = require('./oneofus_source');
 const { permissivePathRequirement } = require('./trust_logic');
 const { getToken } = require('./jsonish_util');
 
@@ -47,7 +47,7 @@ async function handleDeleteAccount(req, res) {
   try {
     const db = admin.firestore();
 
-    const pipeline = new MultiTargetTrustPipeline(oneofusSource, { pathRequirement: permissivePathRequirement });
+    const pipeline = new MultiTargetTrustPipeline(oneofusSource, { pathRequirement: permissivePathRequirement, sourceFor: federatedSourceFor });
     const graphs = await pipeline.buildAll([auth.identityToken]);
     const graph = graphs.get(auth.identityToken);
 

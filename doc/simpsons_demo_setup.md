@@ -23,19 +23,26 @@ Hablo's been a bigger pain because:
 ### 1. Start emulators empty
 
 ```
-cd ~/src/github/nerdster14   && bin/start_emulator.sh --empty
-cd ~/src/github/oneofusv22   && bin/start_emulator.sh --empty
-cd ~/src/github/hablotengo   && bin/start_emulator.sh --empty
+cd ~/src/github/nerdster   && bin/start_emulator.sh --empty
+cd ~/src/github/oneofus    && bin/start_emulator.sh --empty
+cd ~/src/github/hablotengo && bin/start_emulator.sh --empty
+cd ~/src/github/oneofus   && bin/start_karennet_emulator.sh
 ```
 
-### 2. Create nerdster and oneofus demo data
+Karennet (port 8083/5004) is required for Marge and Luann's trust statements.
+Verify all are up: `cd ~/src/github/nerdster && bin/emulators_status.sh`
+
+### 2. Create nerdster, oneofus, and karennet demo data
 
 ```
-cd ~/src/github/nerdster14
+cd ~/src/github/nerdster
 bin/createSimpsonsDemoData.sh
 ```
 
 Writes `../simpsonsPublicKeys.json`, `../simpsonsPrivateKeys.json`, `web/common/data/demoData.js`.
+
+After this, update the hardcoded Lisa identity in
+`integration_test/ui_test.dart` to match the new key printed in the generator output.
 
 ### 3. Generate Hablo key files
 
@@ -45,6 +52,8 @@ python3 bin/gen_simpsons_public_keys_dart.py
 python3 bin/gen_simpsons_private_keys_dart.py
 python3 bin/gen_simpsons_server_keys.py
 ```
+
+
 
 Generates `lib/dev/simpsons_public_keys.dart`, `lib/dev/simpsons_private_keys.dart` (gitignored), and `functions/simpsons_keys.json` from the JSON files produced in step 2.
 

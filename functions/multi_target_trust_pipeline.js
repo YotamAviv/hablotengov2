@@ -5,6 +5,9 @@
  * sharing a single statement cache and batching export fetches per BFS layer.
  *
  * Source interface: same as TrustPipeline — { fetch(fetchMap) => Promise<{[token]: Statement[]}> }
+ *
+ * If sourceFor(url) is provided, keys with foreign endpoints are fetched
+ * from the appropriate URL per BFS layer.
  */
 
 const { reduceTrustGraph, defaultPathRequirement, kSinceAlways } = require('./trust_logic');
@@ -12,17 +15,18 @@ const { reduceTrustGraph, defaultPathRequirement, kSinceAlways } = require('./tr
 const kDefaultMaxDegrees = 6;
 
 class MultiTargetTrustPipeline {
-  constructor(source, { maxDegrees = kDefaultMaxDegrees, pathRequirement } = {}) {
+  constructor(source, { maxDegrees = kDefaultMaxDegrees, pathRequirement, sourceFor } = {}) {
     this.source = source;
     this.maxDegrees = maxDegrees;
     this.pathRequirement = pathRequirement || defaultPathRequirement;
+    this.sourceFor = sourceFor || null; // (url: string) => source — optional
   }
 
   /**
    * @param {string[]} targets - list of identity tokens to build graphs for
    * @returns {Promise<Map<string, object>>} map of target token → TrustGraph
    */
-  async buildAll(targets) {
+  async buildAll(targets, { fedRegistry = new Map() } = {}) {
     const cache = new Map(); // token → Statement[]
 
     // Per-target state
@@ -50,12 +54,25 @@ class MultiTargetTrustPipeline {
 
       if (needed.size === 0) break;
 
-      // Batch-fetch all needed tokens in one request
-      const fetchMap = Object.fromEntries([...needed].map(k => [k, null]));
-      const fetched = await this.source.fetch(fetchMap);
-      for (const [tok, stmts] of Object.entries(fetched)) {
-        cache.set(tok, stmts);
+      // Fetch, grouped by endpoint when sourceFor is provided
+      if (this.sourceFor) {
+        const byUrl = new Map();
+        for (const tok of needed) {
+          const url = fedRegistry.get(tok) ?? null;
+          if (!byUrl.has(url)) byUrl.set(url, []);
+          byUrl.get(url).push(tok);
+        }
+        for (const [url, keys] of byUrl) {
+          const src = url ? this.sourceFor(url) : this.source;
+          const fetched = await src.fetch(Object.fromEntries(keys.map(k => [k, null])));
+          for (const [tok, stmts] of Object.entries(fetched)) cache.set(tok, stmts);
+        }
+      } else {
+        const fetchMap = Object.fromEntries([...needed].map(k => [k, null]));
+        const fetched = await this.source.fetch(fetchMap);
+        for (const [tok, stmts] of Object.entries(fetched)) cache.set(tok, stmts);
       }
+
       // Ensure every requested token has a cache entry
       for (const tok of needed) {
         if (!cache.has(tok)) cache.set(tok, []);
@@ -77,6 +94,7 @@ class MultiTargetTrustPipeline {
         state.graph = await reduceTrustGraph(state.pov, state.byIssuer, {
           pathRequirement: this.pathRequirement,
           maxDegrees: this.maxDegrees,
+          fedRegistry,
         });
 
         // New frontier: keys discovered by the graph that haven't been visited
