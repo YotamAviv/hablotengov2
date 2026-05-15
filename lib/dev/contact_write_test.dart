@@ -35,7 +35,6 @@ void main() async {
 
   channelFactory = ChannelFactory(FireChoice.emulator);
   channelFactory.register(
-    kHabloDomain,
     exportUrl: habloExportUrl(false),
     functionsUrl: habloFunctionsBaseUrl(false),
     emulatorExportUrl: habloExportUrl(true),

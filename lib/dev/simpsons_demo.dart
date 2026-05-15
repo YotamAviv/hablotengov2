@@ -39,7 +39,6 @@ void main() async {
   HabloStatement.init();
   channelFactory = ChannelFactory(kEmulator ? FireChoice.emulator : FireChoice.prod);
   channelFactory.register(
-    kOneofusDomain,
     exportUrl: oneofusExportUrl(false),
     functionsUrl: oneofusWriteUrl(false),
     emulatorExportUrl: oneofusExportUrl(true),
@@ -100,7 +99,7 @@ class HabloIdentityKey {
         TrustVerb.delegate,
         domain: kHabloDomain,
       );
-      final source = channelFactory.getChannel<TrustStatement>(kOneofusDomain, 'statements');
+      final source = channelFactory.getChannel<TrustStatement>(kNativeUrl, 'statements');
       final signer = await OouSigner.make(_keyPair);
       await source.fetch({Jsonish(json['I']).token: null});
       await source.push(json, signer);

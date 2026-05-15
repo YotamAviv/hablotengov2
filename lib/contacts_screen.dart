@@ -88,7 +88,7 @@ class ContactsScreenState extends State<ContactsScreen> {
       final identityToken = signInState.identityToken!;
       debugPrint('ContactsScreen: building trust graph from $identityToken');
 
-      final source = channelFactory.getChannel<TrustStatement>(kOneofusDomain, 'statements');
+      final source = channelFactory.getChannel<TrustStatement>(kNativeUrl, 'statements');
       final pipeline = TrustPipeline(source);
       final TrustGraph graph = await pipeline.build(IdentityKey(identityToken));
 
