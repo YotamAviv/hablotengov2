@@ -55,7 +55,6 @@ Future<void> main() async {
 
   // OneOfUS domain: public trust-graph reads (no auth needed).
   channelFactory.register(
-    kOneofusDomain,
     exportUrl: oneofusExportUrl(false),
     functionsUrl: oneofusWriteUrl(false),
     emulatorExportUrl: oneofusExportUrl(true),
@@ -63,7 +62,6 @@ Future<void> main() async {
   );
 
   channelFactory.register(
-    kHabloDomain,
     exportUrl: habloExportUrl(false),
     functionsUrl: habloFunctionsBaseUrl(false),
     emulatorExportUrl: habloExportUrl(true),

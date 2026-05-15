@@ -1,4 +1,5 @@
 const String kHabloDomain = 'hablotengo.com';
+const String kHabloExportUrl = 'https://us-central1-hablotengo.cloudfunctions.net/export';
 const String kNerdsterUrl = 'https://nerdster.org/app';
 
 String nerdsterAppUrl(bool emulator) => emulator

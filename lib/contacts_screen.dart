@@ -88,7 +88,7 @@ class ContactsScreenState extends State<ContactsScreen> {
       final identityToken = signInState.identityToken!;
       debugPrint('ContactsScreen: building trust graph from $identityToken');
 
-      final source = channelFactory.getChannel<TrustStatement>(kOneofusDomain, 'statements');
+      final source = channelFactory.getChannel<TrustStatement>(kNativeUrl, 'statements');
       final pipeline = TrustPipeline(source);
       final TrustGraph graph = await pipeline.build(IdentityKey(identityToken));
 
@@ -198,7 +198,7 @@ class ContactsScreenState extends State<ContactsScreen> {
       showModalBottomSheet(
         context: context,
         isScrollControlled: true,
-        builder: (_) => MyContactSheet(emulator: widget.emulator, monikers: contact.monikers, labeler: _labeler),
+        builder: (_) => MyContactSheet(emulator: widget.emulator, monikers: contact.monikers, labeler: _labeler!),
       );
       return;
     }
@@ -210,7 +210,7 @@ class ContactsScreenState extends State<ContactsScreen> {
         contact: contact,
         result: result,
         emulator: widget.emulator,
-        labeler: _labeler,
+        labeler: _labeler!,
       ),
     );
   }
@@ -348,8 +348,8 @@ class _ContactDetailSheet extends StatelessWidget {
   final _ContactEntry contact;
   final ContactResult? result;
   final bool emulator;
-  final Labeler? labeler;
-  const _ContactDetailSheet({required this.contact, required this.result, required this.emulator, this.labeler});
+  final Labeler labeler;
+  const _ContactDetailSheet({required this.contact, required this.result, required this.emulator, required this.labeler});
 
   Uri _nerdsterUri({
     required String povPayload,

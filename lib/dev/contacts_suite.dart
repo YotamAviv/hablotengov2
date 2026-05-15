@@ -18,7 +18,7 @@ Future<void> runContactsVerification() async {
   final identityToken = signInState.identityToken!;
   debugPrint('contacts_suite: signing in as Lisa ($identityToken)');
 
-  final source = channelFactory.getChannel<TrustStatement>(kOneofusDomain, 'statements');
+  final source = channelFactory.getChannel<TrustStatement>(kNativeUrl, 'statements');
   final pipeline = TrustPipeline(source);
   final graph = await pipeline.build(IdentityKey(identityToken));
   debugPrint('contacts_suite: trusted tokens=${graph.orderedKeys.length}');

@@ -42,7 +42,7 @@ Future<StatementChannel<HabloStatement>> _channel() async {
   final delegateToken = getToken(signInState.delegatePublicKeyJson!);
   final streamId = '${delegateToken}_${signInState.identityToken!}';
   debugPrint('contact_service: writing to stream=$streamId');
-  final channel = channelFactory.getChannel<HabloStatement>(kHabloDomain, streamId);
+  final channel = channelFactory.getChannel<HabloStatement>(kHabloExportUrl, streamId);
   await channel.fetch({delegateToken: null});
   return channel;
 }

@@ -18,6 +18,7 @@ if [ -f "$HABLO_KEYS" ]; then
   echo "Cleared simpsonsHabloKeys.json"
 fi
 python3 bin/gen_simpsons_private_keys_dart.py
+python3 bin/gen_simpsons_server_keys.py
 
 tmpfile=$(mktemp)
 python3 bin/chrome_widget_runner.py --headless -t lib/dev/simpsons_demo.dart \

@@ -257,11 +257,11 @@ class _MyContactSheetState extends State<MyContactSheet> {
                 const SizedBox(height: 12),
                 ..._contact!.entries.map((e) => ContactEntryViewRow(entry: e)),
               ],
-              if (settingsState.showCrypto && _rawStatement != null) ...[
+              if (settingsState.showCrypto && _rawStatement != null && widget.labeler != null) ...[
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    CryptoShieldButton(statement: _rawStatement, labeler: widget.labeler),
+                    CryptoShieldButton(statement: _rawStatement, labeler: widget.labeler!),
                     ExportKeysButton(targetToken: signInState.identityToken!, emulator: widget.emulator),
                   ],
                 ),
