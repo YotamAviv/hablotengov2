@@ -70,6 +70,11 @@ class SettingsState extends ChangeNotifier {
     }
   }
 
+  void updateDefaultStrictness(String value) {
+    defaultStrictness = value;
+    notifyListeners();
+  }
+
   Future<void> setDefaultStrictness(String value, bool emulator) async {
     defaultStrictness = value;
     notifyListeners();

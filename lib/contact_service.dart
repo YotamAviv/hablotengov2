@@ -108,7 +108,7 @@ Future<Map<String, ContactResult>> getBatchContacts(List<String> targetTokens, b
 
 // ── Write operations ─────────────────────────────────────────────────────────
 
-Future<void> setMyContact(ContactData contact, bool emulator) async {
+Future<void> setMyContact(ContactData contact, bool emulator, {String? defaultStrictness}) async {
   final current = await getMyContact(emulator);
   debugPrint('setMyContact: current rawStatement=${jsonEncode(current.rawStatement)}');
   final currentSet = Map<String, dynamic>.from(
@@ -121,6 +121,7 @@ Future<void> setMyContact(ContactData contact, bool emulator) async {
     currentSet.remove('notes');
   }
   currentSet['entries'] = contact.entries.map((e) => e.toJson()).toList();
+  if (defaultStrictness != null) currentSet['defaultStrictness'] = defaultStrictness;
 
   final channel = await _channel();
   final delegatePk = signInState.delegatePublicKeyJson!;

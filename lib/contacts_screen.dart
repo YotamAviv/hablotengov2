@@ -198,7 +198,7 @@ class ContactsScreenState extends State<ContactsScreen> {
       showModalBottomSheet(
         context: context,
         isScrollControlled: true,
-        builder: (_) => MyContactSheet(emulator: widget.emulator, monikers: contact.monikers, labeler: _labeler!),
+        builder: (_) => MyContactSheet(emulator: widget.emulator, monikers: contact.monikers, labeler: _labeler!, isLoading: _loadingNotifier),
       ).then((deleted) { if (deleted == true && mounted) _load(); });
       return;
     }

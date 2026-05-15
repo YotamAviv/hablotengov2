@@ -305,9 +305,11 @@ class _SignedInScreenState extends State<_SignedInScreen> with SingleTickerProvi
   }
 
   void _openSettings(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => SettingsScreen(emulator: widget.emulator)),
-    ).then((_) => _contactsKey.currentState?.reload());
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => const SettingsScreen(),
+    );
   }
 
   @override

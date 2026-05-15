@@ -15,7 +15,8 @@ class MyContactSheet extends StatefulWidget {
   final bool emulator;
   final List<String> monikers;
   final Labeler? labeler;
-  const MyContactSheet({super.key, required this.emulator, this.monikers = const [], this.labeler});
+  final ValueNotifier<bool>? isLoading;
+  const MyContactSheet({super.key, required this.emulator, this.monikers = const [], this.labeler, this.isLoading});
 
   @override
   State<MyContactSheet> createState() => _MyContactSheetState();
@@ -77,6 +78,7 @@ class _MyContactSheetState extends State<MyContactSheet> {
   void _cancelEdit() => setState(() { _editing = false; _saveError = null; });
 
   Future<void> _save() async {
+    widget.isLoading?.value = true;
     setState(() { _saving = true; _saveError = null; });
     try {
       final contact = ContactData(
@@ -84,14 +86,14 @@ class _MyContactSheetState extends State<MyContactSheet> {
         notes: _notesCtrl.text.trim().isEmpty ? null : _notesCtrl.text.trim(),
         entries: _editEntries.map((e) => e.entry).where((e) => e.value.isNotEmpty).toList(),
       );
-      await setMyContact(contact, widget.emulator);
-      if (_strictness != settingsState.defaultStrictness) {
-        await settingsState.setDefaultStrictness(_strictness, widget.emulator);
-      }
+      await setMyContact(contact, widget.emulator, defaultStrictness: _strictness);
+      settingsState.updateDefaultStrictness(_strictness);
       if (mounted) setState(() { _contact = contact; _editing = false; _saving = false; });
     } catch (e, st) {
       debugPrint('MyContactSheet save error: $e\n$st');
       if (mounted) setState(() { _saveError = e.toString(); _saving = false; });
+    } finally {
+      widget.isLoading?.value = false;
     }
   }
 
@@ -112,6 +114,7 @@ class _MyContactSheetState extends State<MyContactSheet> {
       ),
     );
     if (confirmed != true || !mounted) return;
+    widget.isLoading?.value = true;
     setState(() => _deleting = true);
     try {
       await deleteAccount(widget.emulator);
@@ -121,6 +124,7 @@ class _MyContactSheetState extends State<MyContactSheet> {
       debugPrint('deleteAccount error: $e');
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Delete failed: $e')));
     } finally {
+      widget.isLoading?.value = false;
       if (mounted) setState(() => _deleting = false);
     }
   }
