@@ -50,8 +50,7 @@ class _State extends State<JsonDisplay> {
   @override
   void initState() {
     super.initState();
-    final hasInterpreter = (widget.interpreterParam ?? JsonDisplay.interpreter) != null;
-    _mode = (widget.interpret.value && hasInterpreter) ? _DisplayMode.interpreted : _DisplayMode.raw;
+    _mode = widget.interpret.value ? _DisplayMode.interpreted : _DisplayMode.raw;
   }
 
   void _cycle() {

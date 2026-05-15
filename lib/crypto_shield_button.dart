@@ -5,8 +5,8 @@ import 'package:oneofus_common/ui/json_display.dart';
 
 class CryptoShieldButton extends StatelessWidget {
   final dynamic statement;
-  final Labeler? labeler;
-  const CryptoShieldButton({super.key, required this.statement, this.labeler});
+  final Labeler labeler;
+  const CryptoShieldButton({super.key, required this.statement, required this.labeler});
 
   @override
   Widget build(BuildContext context) {
@@ -46,7 +46,7 @@ class CryptoShieldButton extends StatelessWidget {
                         child: JsonDisplay(
                           statement,
                           interpret: ValueNotifier(true),
-                          interpreter: labeler != null ? JsonInterpreter(labeler!) : null,
+                          interpreter: JsonInterpreter(labeler),
                         ),
                       ),
                     ),
