@@ -34,12 +34,15 @@ class _MyContactSheetState extends State<MyContactSheet> {
   int _nextEntryId = 0;
   bool _saving = false;
   String? _saveError;
+  bool _deleting = false;
+  late String _strictness;
 
   @override
   void initState() {
     super.initState();
     _nameCtrl = TextEditingController();
     _notesCtrl = TextEditingController();
+    _strictness = settingsState.defaultStrictness;
     _load();
   }
 
@@ -67,6 +70,7 @@ class _MyContactSheetState extends State<MyContactSheet> {
     _editEntries = (_contact?.entries ?? [])
         .map((e) => _EditableEntry(_nextEntryId++, e))
         .toList();
+    _strictness = settingsState.defaultStrictness;
     setState(() { _editing = true; _saveError = null; });
   }
 
@@ -81,10 +85,43 @@ class _MyContactSheetState extends State<MyContactSheet> {
         entries: _editEntries.map((e) => e.entry).where((e) => e.value.isNotEmpty).toList(),
       );
       await setMyContact(contact, widget.emulator);
+      if (_strictness != settingsState.defaultStrictness) {
+        await settingsState.setDefaultStrictness(_strictness, widget.emulator);
+      }
       if (mounted) setState(() { _contact = contact; _editing = false; _saving = false; });
     } catch (e, st) {
       debugPrint('MyContactSheet save error: $e\n$st');
       if (mounted) setState(() { _saveError = e.toString(); _saving = false; });
+    }
+  }
+
+  Future<void> _confirmDelete() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Delete account?'),
+        content: const Text('This will permanently delete your contact card and settings from the server.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    setState(() => _deleting = true);
+    try {
+      await deleteAccount(widget.emulator);
+      settingsState.reset();
+      if (mounted) Navigator.of(context).pop(true);
+    } catch (e) {
+      debugPrint('deleteAccount error: $e');
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Delete failed: $e')));
+    } finally {
+      if (mounted) setState(() => _deleting = false);
     }
   }
 
@@ -188,6 +225,21 @@ class _MyContactSheetState extends State<MyContactSheet> {
                     ),
                   ),
                 ),
+                const Divider(),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Text('Default visibility', style: Theme.of(context).textTheme.titleSmall),
+                    const SizedBox(width: 6),
+                    const VisibilityHelpButton(),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                VisibilityPicker(
+                  value: _strictness,
+                  onChanged: (v) => setState(() => _strictness = v),
+                ),
+                const SizedBox(height: 12),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
@@ -264,6 +316,18 @@ class _MyContactSheetState extends State<MyContactSheet> {
                     CryptoShieldButton(statement: _rawStatement, labeler: widget.labeler!),
                     ExportKeysButton(targetToken: signInState.identityToken!, emulator: widget.emulator),
                   ],
+                ),
+              ],
+              if (signInState.hasDelegate) ...[
+                const SizedBox(height: 8),
+                const Divider(),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: _deleting
+                      ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))
+                      : const Icon(Icons.delete_forever, color: Colors.red),
+                  title: const Text('Delete my data', style: TextStyle(color: Colors.red)),
+                  onTap: _deleting ? null : _confirmDelete,
                 ),
               ],
             ],

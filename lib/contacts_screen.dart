@@ -199,7 +199,7 @@ class ContactsScreenState extends State<ContactsScreen> {
         context: context,
         isScrollControlled: true,
         builder: (_) => MyContactSheet(emulator: widget.emulator, monikers: contact.monikers, labeler: _labeler!),
-      );
+      ).then((deleted) { if (deleted == true && mounted) _load(); });
       return;
     }
     final result = _results?[contact.token];
