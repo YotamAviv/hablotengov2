@@ -119,7 +119,21 @@ class HabloIdentityKey {
     final identityPubKeyJson = await (await _keyPair.publicKey).json;
     final delegateToken = getToken(_delegatePubKeyJson!);
     final streamId = '${delegateToken}_$token';
-    Map<String, dynamic> authHook() => {'identity': identityPubKeyJson, 'demo': true};
+
+    // Demo auth works in the emulator; production requires a real signed session.
+    final Map<String, dynamic> authParams;
+    if (kEmulator) {
+      authParams = {'identity': identityPubKeyJson, 'demo': true};
+    } else {
+      final sessionTime = DateTime.now().toUtc().toIso8601String();
+      final sessionSignature = await _keyPair.sign('hablotengo.com-$token-$sessionTime');
+      authParams = {
+        'identity': identityPubKeyJson,
+        'sessionTime': sessionTime,
+        'sessionSignature': sessionSignature,
+      };
+    }
+    Map<String, dynamic> authHook() => authParams;
 
     final source = CloudFunctionsSource<HabloStatement>(
       baseUrl: habloExportUrl(kEmulator),

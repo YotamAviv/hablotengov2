@@ -73,26 +73,19 @@ Reads the key files above. Pushes Hablo delegate keys to oneofus and writes cont
 ### 1. Create nerdster demo data
 
 ```
-cd ~/src/github/nerdster14
+cd ~/src/github/nerdster
 bin/createSimpsonsDemoData_prod.sh
 ```
 
 Writes `../simpsonsPublicKeys.json`, `../simpsonsPrivateKeys.json`, `web/common/data/demoData.js`.
 
-### 2. Temporarily disable the demo write guard and deploy
+### 2. Deploy hablotengo functions
 
-In `functions/write_auth.js`, comment out the guard block:
-```js
-// if (isDemo && process.env.FUNCTIONS_EMULATOR !== 'true') {
-//   res.status(403).send('Demo users cannot write signed statements in production');
-//   return null;
-// }
-```
-
-Then deploy all functions (each Gen 2 function bundles its own copy of `simpsons_keys.json`):
+`createSimpsonsContactData_prod.sh` needs the deployed functions to recognize the new
+identity keys. Deploy first so the export endpoint accepts them:
 ```
 cd ~/src/github/hablotengo
-firebase deploy --only functions
+firebase deploy --only functions --project=hablotengo
 ```
 
 ### 3. Create Hablo contact data
@@ -102,17 +95,12 @@ cd ~/src/github/hablotengo
 bin/createSimpsonsContactData_prod.sh
 ```
 
-This also generates the key files (`lib/dev/simpsons_public_keys.dart`,
-`lib/dev/simpsons_private_keys.dart`, `functions/simpsons_keys.json`) internally.
+This generates the key files (`lib/dev/simpsons_public_keys.dart`,
+`lib/dev/simpsons_private_keys.dart`, `functions/simpsons_keys.json`) and writes
+contact data to production. It authenticates using a real Ed25519 session signature
+(not the demo guard), so no guard disable/redeploy is needed.
 
-### 4. Re-enable the demo write guard and redeploy
-
-Restore `functions/write_auth.js` and redeploy:
-```
-firebase deploy --only functions:write
-```
-
-### 5. Deploy hablotengo web app (critical for demo)
+### 4. Deploy hablotengo web app (critical for demo)
 
 ```
 cd ~/src/github/hablotengo
@@ -121,15 +109,19 @@ bin/deploy_web.sh
 
 Required because `simpsons_public_keys.dart` (compiled into the web app) contains the new identities.
 
-### 6. Commit and deploy nerdster and oneofus (less critical)
+### 5. Commit and deploy nerdster, then copy demoData.js to oneofus and deploy
 
-Commit `web/common/data/demoData.js` in nerdster and deploy:
+Commit and deploy nerdster (the home page and updated keys):
 ```
+cd ~/src/github/nerdster
 bin/deploy_web.sh
 ```
 
-Copy `demoData.js` from nerdster, commit, and deploy oneofus:
+**oneofus also hosts `demoData.js`** — used by the verify links on one-of-us.net.
+Copy, commit, and deploy:
 ```
+cd ~/src/github/oneofus
 cp ~/src/github/nerdster/web/common/data/demoData.js web/common/data/
 bin/deploy_web.sh
+firebase deploy --only functions --project=one-of-us-net
 ```
