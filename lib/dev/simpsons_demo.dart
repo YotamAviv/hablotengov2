@@ -16,17 +16,16 @@ import 'package:hablotengo/models/contact_statement.dart';
 import 'package:hablotengo/models/hablo_statement.dart';
 import 'package:hablotengo/dev/widget_runner.dart';
 import 'package:hablotengo/dev/simpsons_private_keys.dart';
-import 'package:oneofus_common/cached_source.dart';
 import 'package:oneofus_common/channel_factory.dart';
-import 'package:oneofus_common/cloud_functions_source.dart';
-import 'package:oneofus_common/cloud_functions_writer.dart';
 import 'package:oneofus_common/crypto/crypto.dart';
 import 'package:oneofus_common/crypto/crypto25519.dart';
 import 'package:oneofus_common/oou_signer.dart';
-import 'package:oneofus_common/oou_verifier.dart';
 import 'package:oneofus_common/trust_statement.dart';
 
 const bool kEmulator = bool.fromEnvironment('EMULATOR', defaultValue: true);
+
+// Auth payload for the current character being written. Set before each getChannel call.
+Map<String, dynamic>? _habloAuth;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -43,6 +42,15 @@ void main() async {
     functionsUrl: oneofusWriteUrl(false),
     emulatorExportUrl: oneofusExportUrl(true),
     emulatorFunctionsUrl: oneofusWriteUrl(true),
+  );
+  channelFactory.register(
+    exportUrl: habloExportUrl(false),
+    functionsUrl: habloFunctionsBaseUrl(false),
+    emulatorExportUrl: habloExportUrl(true),
+    emulatorFunctionsUrl: habloFunctionsBaseUrl(true),
+    writeEndpoint: 'write',
+    writeAuthHook: () => _habloAuth!,
+    readAuthHook: () => _habloAuth!,
   );
   runApp(WidgetRunner(scenario: _run));
 }
@@ -132,19 +140,8 @@ class HabloIdentityKey {
         'sessionSignature': sessionSignature,
       };
     }
-    Map<String, dynamic> authHook() => authParams;
-
-    final source = CloudFunctionsSource<HabloStatement>(
-      baseUrl: habloExportUrl(kEmulator),
-      verifier: OouVerifier(),
-      authHook: authHook,
-    );
-    final writer = CloudFunctionsWriter<HabloStatement>(
-      '${habloFunctionsBaseUrl(kEmulator)}/write',
-      streamId,
-      authHook: authHook,
-    );
-    final channel = CachedSource<HabloStatement>(source, writer);
+    _habloAuth = authParams;
+    final channel = channelFactory.getChannel<HabloStatement>(habloExportUrl(false), streamId);
 
     await channel.fetch({delegateToken: null});
     await channel.push(

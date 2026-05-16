@@ -68,3 +68,4 @@ lib/firebase_options.dart
 
 # Flutter project metadata
 .metadata
+tmp/
