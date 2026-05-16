@@ -4,6 +4,7 @@ import 'package:nerdster_common/sign_in_session.dart';
 import 'package:nerdster_common/ui/sign_in_dialog.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import 'version.dart';
 import 'constants.dart';
 import 'contacts_screen.dart';
 import 'demo_sign_in_service.dart';
@@ -316,7 +317,10 @@ class _SignedInScreenState extends State<_SignedInScreen> with SingleTickerProvi
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.demoMode ? 'HabloTengo Demo' : 'HabloTengo'),
+        title: Tooltip(
+          message: kAppVersion,
+          child: Image.asset('assets/images/hablo.png', height: 32),
+        ),
         actions: [
           ValueListenableBuilder<bool>(
             valueListenable: _isLoading,

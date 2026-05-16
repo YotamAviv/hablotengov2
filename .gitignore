@@ -65,6 +65,7 @@ lib/dev/simpsons_private_keys.dart
 
 # Firebase options (contains API keys; regenerate with: flutterfire configure)
 lib/firebase_options.dart
+lib/version.dart
 
 # Flutter project metadata
 .metadata
