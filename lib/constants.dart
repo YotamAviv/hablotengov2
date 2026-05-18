@@ -1,5 +1,5 @@
 const String kHabloDomain = 'hablotengo.com';
-const String kHabloExportUrl = 'https://us-central1-hablotengo.cloudfunctions.net/export';
+const String kHabloExportUrl = 'https://export.hablotengo.com';
 const String kNerdsterUrl = 'https://nerdster.org/app';
 
 String nerdsterAppUrl(bool emulator) => emulator
@@ -53,4 +53,4 @@ String habloExportContactUrl(bool emulator) => emulator
 
 String habloExportUrl(bool emulator) => emulator
     ? 'http://127.0.0.1:$kHabloFunctionsEmulatorPort/$kHabloEmulatorProject/us-central1/export'
-    : 'https://us-central1-hablotengo.cloudfunctions.net/export';
+    : kHabloExportUrl;

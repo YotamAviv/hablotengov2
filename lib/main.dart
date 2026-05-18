@@ -54,22 +54,20 @@ Future<void> main() async {
   channelFactory = ChannelFactory(fireChoice);
 
   // OneOfUS domain: public trust-graph reads (no auth needed).
-  channelFactory.register(
-    exportUrl: oneofusExportUrl(false),
-    functionsUrl: oneofusWriteUrl(false),
-    emulatorExportUrl: oneofusExportUrl(true),
-    emulatorFunctionsUrl: oneofusWriteUrl(true),
-  );
-
-  channelFactory.register(
-    exportUrl: habloExportUrl(false),
-    functionsUrl: habloFunctionsBaseUrl(false),
-    emulatorExportUrl: habloExportUrl(true),
-    emulatorFunctionsUrl: habloFunctionsBaseUrl(true),
-    writeEndpoint: 'write',
+  channelFactory.register('one-of-us.net');
+  channelFactory.register('hablotengo.com',
     writeAuthHook: () => signInState.authPayload()!,
     readAuthHook: () => signInState.authPayload()!,
   );
+  if (emulator) {
+    channelFactory.registerRedirect('https://export.one-of-us.net', oneofusExportUrl(true));
+    channelFactory.registerRedirect('https://write.one-of-us.net', '${oneofusWriteUrl(true)}/write2');
+    channelFactory.registerRedirect('https://export.hablotengo.com', habloExportUrl(true));
+    channelFactory.registerRedirect('https://write.hablotengo.com', '${habloFunctionsBaseUrl(true)}/write');
+  } else {
+    channelFactory.registerRedirect('https://export.hablotengo.com', '${habloFunctionsBaseUrl(false)}/export');
+    channelFactory.registerRedirect('https://write.hablotengo.com', '${habloFunctionsBaseUrl(false)}/write');
+  }
 
   startKeyStorageCoordinator();
   await tryRestoreKeys();

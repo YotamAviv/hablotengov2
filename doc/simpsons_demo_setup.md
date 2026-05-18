@@ -70,7 +70,7 @@ Reads the key files above. Pushes Hablo delegate keys to oneofus and writes cont
 
 ## On production
 
-### 1. Create nerdster demo data
+### 1. Create nerdster demo data (identities, delegate keys, content data)
 
 ```
 cd ~/src/github/nerdster
@@ -79,16 +79,7 @@ bin/createSimpsonsDemoData_prod.sh
 
 Writes `../simpsonsPublicKeys.json`, `../simpsonsPrivateKeys.json`, `web/common/data/demoData.js`.
 
-### 2. Deploy hablotengo functions
-
-`createSimpsonsContactData_prod.sh` needs the deployed functions to recognize the new
-identity keys. Deploy first so the export endpoint accepts them:
-```
-cd ~/src/github/hablotengo
-firebase deploy --only functions --project=hablotengo
-```
-
-### 3. Create Hablo contact data
+### 2. Create Hablo demo data (delegate keys, contact data)
 
 ```
 cd ~/src/github/hablotengo
@@ -100,28 +91,18 @@ This generates the key files (`lib/dev/simpsons_public_keys.dart`,
 contact data to production. It authenticates using a real Ed25519 session signature
 (not the demo guard), so no guard disable/redeploy is needed.
 
-### 4. Deploy hablotengo web app (critical for demo)
+### 4. Deploy and commit
 
-```
-cd ~/src/github/hablotengo
-bin/deploy_web.sh
-```
-
-Required because `simpsons_public_keys.dart` (compiled into the web app) contains the new identities.
-
-### 5. Commit and deploy nerdster, then copy demoData.js to oneofus and deploy
-
-Commit and deploy nerdster (the home page and updated keys):
-```
-cd ~/src/github/nerdster
-bin/deploy_web.sh
-```
-
-**oneofus also hosts `demoData.js`** — used by the verify links on one-of-us.net.
-Copy, commit, and deploy:
-```
 cd ~/src/github/oneofus
-cp ~/src/github/nerdster/web/common/data/demoData.js web/common/data/
-bin/deploy_web.sh
-firebase deploy --only functions --project=one-of-us-net
+cp ~/src/github/nerdster/web/common/data/demoData.js web/common/data/demoData.js
+
+cd ~/src/github/hablotengo
+firebase deploy --only functions --project=hablotengo
+
+`simpsons_public_keys.dart` is compiled into the Hablo web app.
+
+In each project
 ```
+bin/deploy_web.sh
+```
+

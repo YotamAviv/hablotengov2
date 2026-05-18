@@ -26,12 +26,9 @@ void main() async {
   // OneOfUs emulator — Functions port 5002
   // (no Hablo Firebase needed; trust graph comes from OneOfUs export only)
   channelFactory = ChannelFactory(FireChoice.emulator);
-  channelFactory.register(
-    exportUrl: oneofusExportUrl(false),
-    functionsUrl: oneofusWriteUrl(false),
-    emulatorExportUrl: oneofusExportUrl(true),
-    emulatorFunctionsUrl: oneofusWriteUrl(true),
-  );
+  channelFactory.register('one-of-us.net');
+  channelFactory.registerRedirect('https://export.one-of-us.net', oneofusExportUrl(true));
+  channelFactory.registerRedirect('https://write.one-of-us.net', '${oneofusWriteUrl(true)}/write2');
 
   runApp(WidgetRunner(scenario: runContactsVerification));
 }

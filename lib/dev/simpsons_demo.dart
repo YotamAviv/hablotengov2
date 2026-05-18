@@ -37,21 +37,20 @@ void main() async {
   TrustStatement.init();
   HabloStatement.init();
   channelFactory = ChannelFactory(kEmulator ? FireChoice.emulator : FireChoice.prod);
-  channelFactory.register(
-    exportUrl: oneofusExportUrl(false),
-    functionsUrl: oneofusWriteUrl(false),
-    emulatorExportUrl: oneofusExportUrl(true),
-    emulatorFunctionsUrl: oneofusWriteUrl(true),
-  );
-  channelFactory.register(
-    exportUrl: habloExportUrl(false),
-    functionsUrl: habloFunctionsBaseUrl(false),
-    emulatorExportUrl: habloExportUrl(true),
-    emulatorFunctionsUrl: habloFunctionsBaseUrl(true),
-    writeEndpoint: 'write',
+  channelFactory.register('one-of-us.net');
+  channelFactory.register('hablotengo.com',
     writeAuthHook: () => _habloAuth!,
     readAuthHook: () => _habloAuth!,
   );
+  if (kEmulator) {
+    channelFactory.registerRedirect('https://export.one-of-us.net', oneofusExportUrl(true));
+    channelFactory.registerRedirect('https://write.one-of-us.net', '${oneofusWriteUrl(true)}/write2');
+    channelFactory.registerRedirect('https://export.hablotengo.com', habloExportUrl(true));
+    channelFactory.registerRedirect('https://write.hablotengo.com', '${habloFunctionsBaseUrl(true)}/write');
+  } else {
+    channelFactory.registerRedirect('https://export.hablotengo.com', '${habloFunctionsBaseUrl(false)}/export');
+    channelFactory.registerRedirect('https://write.hablotengo.com', '${habloFunctionsBaseUrl(false)}/write');
+  }
   runApp(WidgetRunner(scenario: _run));
 }
 
