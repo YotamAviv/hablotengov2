@@ -69,6 +69,7 @@ Future<void> _runTest() async {
     ],
   );
   await setMyContact(contact, true);
+  await channelFactory.clearCache(); // flush optimistic write to Firestore before CF reads
 
   // 2. Read back — verify contact.
   var result = await getMyContact(true);
@@ -81,6 +82,7 @@ Future<void> _runTest() async {
 
   // 3. Save a setting.
   await setSettingsField('defaultStrictness', 'strict', true);
+  await channelFactory.clearCache();
 
   // 4. Read back — contact must still be present after settings save.
   result = await getMyContact(true);
@@ -100,6 +102,7 @@ Future<void> _runTest() async {
     ],
   );
   await setMyContact(updated, true);
+  await channelFactory.clearCache();
 
   // 6. Read back — settings must still be present after contact save.
   result = await getMyContact(true);
@@ -122,6 +125,7 @@ Future<void> _runTest() async {
     ),
     true,
   );
+  await channelFactory.clearCache();
 
   // ignore: avoid_print
   print('PASS');
