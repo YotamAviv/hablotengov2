@@ -158,7 +158,7 @@ class ContactsScreenState extends State<ContactsScreen> {
         if (mounted) {
           setState(() => _results = results);
           final selfRaw = results[signInState.identityToken]?.rawStatement;
-          settingsState.applyServerSettings(((selfRaw?['with'] as Map<String, dynamic>?)?['blob'] as Map<String, dynamic>?)?['defaultStrictness'] as String?);
+          settingsState.applyServerSettings(((selfRaw?['with']?['blob'] ?? selfRaw?['set']) as Map<String, dynamic>?)?['defaultStrictness'] as String?);
         }
       }
 

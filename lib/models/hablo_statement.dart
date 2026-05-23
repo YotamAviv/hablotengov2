@@ -6,6 +6,7 @@ import '../constants.dart';
 class HabloStatement extends Statement {
   static void init() {
     Statement.registerFactory('com.hablotengo.contact', _HabloStatementFactory(), HabloStatement, kHabloDomain);
+    Statement.registerFactory('com.hablotengo', _HabloStatementFactory(), HabloStatement, kHabloDomain);
   }
 
   factory HabloStatement(Jsonish jsonish) {
