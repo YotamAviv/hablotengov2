@@ -98,7 +98,7 @@ async function handleGetBatchContacts(req, res) {
         result[targetToken] = { status: 'not_found' };
         return;
       }
-      const set = stmt.set ?? {};
+      const set = stmt.with?.blob ?? {};
       if (isSelf) {
         let delegateStatement = null;
         if (currentDelegateToken) {

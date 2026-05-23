@@ -1,6 +1,6 @@
 import 'package:oneofus_common/jsonish.dart';
 
-const String kHabloStatementType = 'com.hablotengo';
+const String kHabloStatementType = 'com.hablotengo.contact';
 
 /// Contact info entry: a single tech/value pair with optional flags.
 /// Position in the entries list is the display order — no order field needed.
@@ -74,6 +74,6 @@ Json buildFullSetJson({
   'statement': kHabloStatementType,
   'time': DateTime.now().toUtc().toIso8601String(),
   'I': delegatePublicKeyJson,
-  'set': set,
-  'with': {'verifiedIdentity': identityToken},
+  'set': 'contact',
+  'with': {'blob': set, 'verifiedIdentity': identityToken},
 };

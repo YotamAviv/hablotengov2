@@ -499,10 +499,7 @@ class _CloudFunctionsSource<T extends Statement> implements StatementSource<T> {
     if (paramsOverride != null) params.addAll(paramsOverride!);
     if (excludeTypes.isNotEmpty) params['excludeTypes'] = excludeTypes;
     if (authHook != null) {
-      for (final entry in authHook!().entries) {
-        final value = entry.value;
-        params[entry.key] = value is String ? value : jsonEncode(value);
-      }
+      params['auth'] = jsonEncode(authHook!());
     }
     params['spec'] = jsonEncode(spec);
 

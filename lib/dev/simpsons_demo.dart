@@ -133,7 +133,7 @@ class HabloIdentityKey {
     _habloAuth = authParams;
     final channel = channelFactory.getChannel<HabloStatement>(habloExportUrl(false), streamId);
 
-    await channel.fetch({delegateToken: null});
+    channel.seed(delegateToken, []);
     await channel.push(
       buildFullSetJson(
         set: {

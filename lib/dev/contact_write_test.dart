@@ -104,7 +104,7 @@ Future<void> _runTest() async {
       'settings save wiped name: "${readResult.contact?.name}"');
   _assert(readResult.contact?.entries.length == 1,
       'settings save wiped entries: ${readResult.contact?.entries.length}');
-  _assert(readResult.rawStatement?['set']?['defaultStrictness'] == 'strict',
+  _assert(readResult.rawStatement?['with']?['blob']?['defaultStrictness'] == 'strict',
       'settings not saved: ${readResult.rawStatement?['set']}');
 
   // 5. Save updated contact (reload state since setSettingsField changed the chain head).
@@ -127,7 +127,7 @@ Future<void> _runTest() async {
       'contact update: name="${readResult.contact?.name}"');
   _assert(readResult.contact?.entries.length == 2,
       'contact update: entries=${readResult.contact?.entries.length}');
-  _assert(readResult.rawStatement?['set']?['defaultStrictness'] == 'strict',
+  _assert(readResult.rawStatement?['with']?['blob']?['defaultStrictness'] == 'strict',
       'contact save wiped settings: ${readResult.rawStatement?['set']}');
 
   // 7. Restore original demo contact so other tests see clean data.

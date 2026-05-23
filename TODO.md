@@ -1,26 +1,12 @@
 # TODO
-
-Okay. Thanks.
-
-I'm a little unsure of what to do, if anything at all.
-The Nerdster and ONE-OF-US.NET export all signed statements. That's the point. They're signed, public, and can be leveraged by anyone.
-
-Hablo is different. It needs to guard access to folks' private data.
-But it does allow folks to view other folks' contact info when allowed by the targets.
-That link isn't for "power users"; it's to demonstrate as a proof-of-concept that if you can prove who you are (that you posses your identity private key and use it to sign the auth package we require) then you should be able to get the raw signed data can be useful for: 
-- auditing (verify that it's really signed by the target)
-- possibly allowing other services to leverage Hablo data on behalf of non-Hablo users.
-
-Great progress.
 Tweaks:
-- export URL
-Hard to justify the work.
-spec=delegate_identity&identity&
+- export URL upgrade?
+spec=delegate_identity&auth
+leverage export.hablotengo.com, already have it, points to ghs.googlehosted.com
 
 more secure session signature?
 
 - export DNS
-leverage export.hablotengo.com, already have it, points to ghs.googlehosted.com
 
 ## Secure sign-in
 
@@ -38,6 +24,29 @@ Self-contained auth packet:
 - **Revocation.** There is no server-side session to invalidate. A stolen credential is valid until it expires — nothing we can do before then.
 - **Live attacker.** A short window stops replayed credentials, not a live attacker who has compromised the browser (XSS, malicious extension). They can sign fresh requests using the key in memory.
 
+
+## DEFERRED: `distinct` doesn't collapse Hablo contact statements
+
+`statement_fetcher.makedistinct` deduplicates by (statementType, subjectToken) where the subject
+is the value of the verb field. For Hablo, that's the data blob `s['set']` — which changes on every
+write — so every statement is seen as distinct and the full history is returned instead of just the head.
+
+**Proposed fix:** change the statement schema so the subject of `set` is a stable constant (e.g.
+the string `"contact"`), and move the actual data into `with.blob`:
+
+```json
+{ "set": "contact", "with": { "blob": { "name": "...", "entries": [...] }, "verifiedIdentity": "..." } }
+```
+
+`makedistinct` would then correctly keep only the most recent `set`/`"contact"` statement per stream.
+
+**Migration concern:** existing users have statements in the current schema (`set: {name, entries, ...}`).
+A schema change would require either a Firestore migration or backward-compatible reading of both formats.
+Decision deferred until we decide whether to migrate or support both.
+
+**Current state:** the export endpoint returns all statements in the stream (not just the head).
+`ChannelFactory` caches the full history. App still works because it uses the most recent statement,
+but it is wasteful and the right fix is the schema change above.
 
 ## BUG? Do we show statements when fields are hidden?
 

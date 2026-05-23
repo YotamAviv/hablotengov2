@@ -46,8 +46,9 @@ exports.write = onRequest({ cors: true, minInstances: 1 }, async (req, res) => {
   await handleWrite2(req, res);
 });
 
-const { handleExportStatement } = require('./export_statement');
+const { handleExport } = require('./export');
+const { habloExportAuthHook } = require('./read_auth');
 
 exports.export = onRequest({ cors: true, minInstances: 1 }, async (req, res) => {
-  await handleExportStatement(req, res);
+  await handleExport(req, res, { authHook: habloExportAuthHook });
 });

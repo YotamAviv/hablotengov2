@@ -88,7 +88,7 @@ Future<void> setMyContact(ContactData contact, bool emulator,
   }
 
   final currentSet = Map<String, dynamic>.from(
-    (rawStatement?['set'] as Map<String, dynamic>?) ?? {},
+    (rawStatement?['with']?['blob'] as Map<String, dynamic>?) ?? {},
   );
   currentSet['name'] = contact.name;
   if (contact.notes != null) {
@@ -115,7 +115,7 @@ Future<void> setSettingsField(String field, dynamic value, bool emulator) async 
   debugPrint('setSettingsField: $field=$value current rawStatement=${jsonEncode(current?.rawStatement)}');
 
   final currentSet = Map<String, dynamic>.from(
-    (current?.rawStatement?['set'] as Map<String, dynamic>?) ?? {},
+    (current?.rawStatement?['with']?['blob'] as Map<String, dynamic>?) ?? {},
   );
   currentSet[field] = value;
 
