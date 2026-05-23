@@ -23,7 +23,7 @@ class ContactResult {
 
 Map<String, dynamic> _authPayload() {
   if (signInState.isDemo) {
-    return {'identity': signInState.identityJson!, 'demo': true};
+    return {'identity': signInState.identityJson!};
   }
   return {
     'identity': signInState.identityJson!,

@@ -123,19 +123,13 @@ class HabloIdentityKey {
     final delegateToken = getToken(_delegatePubKeyJson!);
     final streamId = '${delegateToken}_$token';
 
-    // Demo auth works in the emulator; production requires a real signed session.
-    final Map<String, dynamic> authParams;
-    if (kEmulator) {
-      authParams = {'identity': identityPubKeyJson, 'demo': true};
-    } else {
-      final sessionTime = DateTime.now().toUtc().toIso8601String();
-      final sessionSignature = await _keyPair.sign('hablotengo.com-$token-$sessionTime');
-      authParams = {
-        'identity': identityPubKeyJson,
-        'sessionTime': sessionTime,
-        'sessionSignature': sessionSignature,
-      };
-    }
+    final sessionTime = DateTime.now().toUtc().toIso8601String();
+    final sessionSignature = await _keyPair.sign('hablotengo.com-$token-$sessionTime');
+    final Map<String, dynamic> authParams = {
+      'identity': identityPubKeyJson,
+      'sessionTime': sessionTime,
+      'sessionSignature': sessionSignature,
+    };
     _habloAuth = authParams;
     final channel = channelFactory.getChannel<HabloStatement>(habloExportUrl(false), streamId);
 

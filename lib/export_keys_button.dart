@@ -16,17 +16,17 @@ class ExportKeysButton extends StatelessWidget {
     final delegateToken = getToken(rawStatement['I'] as Map<String, dynamic>);
     final identityToken = (rawStatement['with'] as Map<String, dynamic>)['verifiedIdentity'] as String;
     final streamKey = '${delegateToken}_$identityToken';
-    final params = <String, String>{
-      'spec': streamKey,
-      'identity': jsonEncode(signInState.identityJson!),
+    final authPacket = <String, dynamic>{
+      'identity': signInState.identityJson!,
+      if (!signInState.isDemo) ...{
+        'sessionTime': signInState.sessionTime!,
+        'sessionSignature': signInState.sessionSignature!,
+      },
     };
-    if (signInState.isDemo) {
-      params['demo'] = 'true';
-    } else {
-      params['sessionTime'] = signInState.sessionTime!;
-      params['sessionSignature'] = signInState.sessionSignature!;
-    }
-    return Uri.parse(habloExportUrl(emulator)).replace(queryParameters: params);
+    return Uri.parse(habloExportUrl(emulator)).replace(queryParameters: {
+      'spec': streamKey,
+      'auth': jsonEncode(authPacket),
+    });
   }
 
   @override

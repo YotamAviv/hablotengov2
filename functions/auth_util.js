@@ -1,58 +1,41 @@
 /**
- * Shared request authentication for Hablo CF endpoints.
+ * Hablo-specific request authentication.
  *
- * Real auth: client sends {identity, sessionTime, sessionSignature}.
- *   - Signature covers "hablotengo.com-{identityToken}-{sessionTime}".
- *   - Session window: 1 week.
- *
- * Demo auth: client sends {identity, demo: true}.
- *   - identity must be a known Simpsons key.
- *   - Writes are rejected in production; allowed in the emulator.
+ * Wraps the shared authenticate() with Hablo's demo (Simpsons) fallback:
+ *   mode 'read'  — Simpsons identities allowed
+ *   mode 'write' — Simpsons identities denied
  */
 
+const { authenticate } = require('./authenticate');
 const { keyToken } = require('./verify_util');
-const { verifySessionSignature, DOMAIN } = require('./hablo_sign_in');
 const { simpsonsName } = require('./demo_sign_in');
 
-const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+const DOMAIN = 'hablotengo.com';
 
 /**
- * Verifies request auth. Returns {identityToken, isDemo} on success,
- * or calls res.status(...).send(...) and returns null on failure.
+ * Returns {identityToken} on success, or sends an error response and returns null.
+ *
+ * authPacket — { identity, sessionTime, sessionSignature }
+ *   POST callers pass req.body directly.
+ *   GET callers parse their auth packet from the query string first, then pass the parsed object.
  */
-function verifyAuth(req, res) {
-  const { identity, sessionTime, sessionSignature, demo } = req.body;
-
+function auth(authPacket, mode, res) {
+  const { identity } = authPacket;
   if (!identity || typeof identity !== 'object') {
     res.status(400).send('Missing identity');
     return null;
   }
-
-  if (demo === true) {
-    const name = simpsonsName(identity);
-    if (!name) {
-      res.status(403).send('Not a recognized demo identity');
+  const result = authenticate(authPacket, DOMAIN);
+  if (result) return result;
+  if (simpsonsName(identity)) {
+    if (mode === 'write') {
+      res.status(403).send('Demo users cannot write');
       return null;
     }
-    return { identityToken: keyToken(identity), isDemo: true };
+    return { identityToken: keyToken(identity) };
   }
-
-  // Real auth
-  if (!sessionTime || !sessionSignature) {
-    res.status(400).send('Missing sessionTime or sessionSignature');
-    return null;
-  }
-  const sessionMs = Date.parse(sessionTime);
-  if (isNaN(sessionMs) || Date.now() - sessionMs > ONE_WEEK_MS) {
-    res.status(401).send('Session expired');
-    return null;
-  }
-  const identityToken = keyToken(identity);
-  if (!verifySessionSignature(identity, DOMAIN, identityToken, sessionTime, sessionSignature)) {
-    res.status(401).send('Invalid session signature');
-    return null;
-  }
-  return { identityToken, isDemo: false };
+  res.status(401).send('Authentication failed');
+  return null;
 }
 
-module.exports = { verifyAuth };
+module.exports = { authenticate: auth };

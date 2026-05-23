@@ -1,17 +1,14 @@
 const admin = require('firebase-admin');
-const { keyToken } = require('./verify_util');
-const { verifySessionSignature, DOMAIN } = require('./hablo_sign_in');
-const { simpsonsName } = require('./demo_sign_in');
+const { authenticate } = require('./auth_util');
 const { TrustPipeline } = require('./trust_pipeline');
 const { oneofusSource, federatedSourceFor } = require('./oneofus_source');
-
-const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
 /**
  * Export the signed statement for a contact's delegate stream.
  *
- * GET ?spec=<streamKey>&identity=<json>&sessionTime=...&sessionSignature=...
+ * GET ?spec=<streamKey>&auth=<url-encoded-json>
  * where streamKey = ${delegateToken}_${targetIdentityToken}
+ * and auth = JSON.stringify({identity, sessionTime, sessionSignature})
  *
  * The client constructs the stream key from the rawStatement it already holds:
  *   delegateToken  = token of rawStatement['I']
@@ -27,30 +24,19 @@ async function handleExportStatement(req, res) {
   res.setHeader('Content-Type', 'application/json');
   res.setHeader('Cache-Control', 'no-cache');
 
-  const { identity: identityParam, sessionTime, sessionSignature, demo, spec: specParam } = req.query;
+  const { auth: authParam, spec: specParam } = req.query;
 
-  if (!identityParam) { res.status(400).send('Missing identity'); return; }
-  let identity;
+  if (!authParam) { res.status(400).send('Missing auth'); return; }
+  let authPacket;
   try {
-    identity = JSON.parse(decodeURIComponent(identityParam));
+    authPacket = JSON.parse(decodeURIComponent(authParam));
   } catch {
-    res.status(400).send('Invalid identity JSON'); return;
+    res.status(400).send('Invalid auth JSON'); return;
   }
 
-  let viewerToken;
-  if (demo === 'true') {
-    const name = simpsonsName(identity);
-    if (!name) { res.status(403).send('Not a demo identity'); return; }
-    viewerToken = keyToken(identity);
-  } else {
-    if (!sessionTime || !sessionSignature) { res.status(400).send('Missing session auth'); return; }
-    const sessionMs = Date.parse(sessionTime);
-    if (isNaN(sessionMs) || Date.now() - sessionMs > ONE_WEEK_MS) { res.status(401).send('Session expired'); return; }
-    viewerToken = keyToken(identity);
-    if (!verifySessionSignature(identity, DOMAIN, viewerToken, sessionTime, sessionSignature)) {
-      res.status(401).send('Invalid session signature'); return;
-    }
-  }
+  const authResult = authenticate(authPacket, 'read', res);
+  if (!authResult) return;
+  const viewerToken = authResult.identityToken;
 
   if (!specParam) { res.status(400).send('Missing spec'); return; }
   const streamKey = decodeURIComponent(specParam);

@@ -26,19 +26,12 @@ leverage export.hablotengo.com, already have it, points to ghs.googlehosted.com
 
 Three parties: **phone** (holds identity Ed25519 private key), **webapp** (browser), **server** (CF + Firestore).
 
-1. Webapp generates a fresh X25519 keypair. QR encodes `{domain, signInUrl, encryptionPk}`.
-2. Phone scans QR. The token of `encryptionPk` serves as the session nonce — random, server-controlled, single-use.
-3. Phone signs `"hablotengo.com-{identityToken}-{sessionNonce}"` with identity private key → `sessionSignature`. Phone also encrypts its delegate private key to `encryptionPk` → `delegateCiphertext`.
-4. Phone POSTs `{session: sessionNonce, identity, sessionNonce, sessionSignature, delegateCiphertext}` to CF.
-5. CF verifies the Ed25519 signature. Writes doc to `sessions/doc/{sessionNonce}`.
-6. Webapp polls that Firestore path, gets the doc, decrypts `delegateCiphertext` with its X25519 private key → delegate keypair.
-7. Subsequent CF calls carry `{identity, sessionNonce, sessionSignature}`. CF re-verifies signature on every call.
-
-### After sign-in: the browser's X25519 key
-
-Once signed in, the phone is out of the picture. The browser holds the X25519 private key in memory — it was never transmitted and never will be. This means the browser can re-sign on every request without user interaction.
-
-If each CF call is signed with the X25519 private key over a request-specific value (e.g. current timestamp), the server can enforce a ~10-second window. A credential captured from server logs or a Referer header is useless almost immediately.
+Self-contained auth packet:
+- identity — identity public key (JWK)
+- browserToken — token of the browser Ed25519 public key
+- sessionSignature — phone's Ed25519 signature over "hablotengo.com-{identityToken}-{browserToken}" (proves the phone bound this browser key to this identity)
+- requestTime — current timestamp
+- requestSignature — browser Ed25519 signature over "hablotengo.com-{identityToken}-{requestTime}" (proves the browser holds the key right now)
 
 ### What we can't promise
 

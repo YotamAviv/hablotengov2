@@ -1,5 +1,5 @@
 const admin = require('firebase-admin');
-const { verifyAuth } = require('./auth_util');
+const { authenticate } = require('./auth_util');
 const { TrustPipeline } = require('./trust_pipeline');
 const { MultiTargetTrustPipeline } = require('./multi_target_trust_pipeline');
 const { oneofusSource, federatedSourceFor } = require('./oneofus_source');
@@ -50,8 +50,8 @@ function _filterEntries(contact, defaultStrictness, distance, pathCount) {
 async function handleGetBatchContacts(req, res) {
   res.setHeader('Content-Type', 'application/json');
 
-  const auth = verifyAuth(req, res);
-  if (!auth) return;
+  const authResult = authenticate(req.body, 'read', res);
+  if (!authResult) return;
 
   const { targetTokens, currentDelegateToken } = req.body;
   if (!Array.isArray(targetTokens) || targetTokens.length === 0) {
@@ -66,7 +66,7 @@ async function handleGetBatchContacts(req, res) {
     // live on foreign domains and fetches from the wrong URL.
     const fedRegistry = new Map();
     const requesterPipeline = new TrustPipeline(oneofusSource, { sourceFor: federatedSourceFor });
-    await requesterPipeline.build(auth.identityToken, { fedRegistry });
+    await requesterPipeline.build(authResult.identityToken, { fedRegistry });
 
     // Pass 2: build target graphs with pre-populated fedRegistry.
     const pipeline = new MultiTargetTrustPipeline(oneofusSource, { pathRequirement: permissivePathRequirement, sourceFor: federatedSourceFor });
@@ -76,16 +76,16 @@ async function handleGetBatchContacts(req, res) {
     const trustedTargets = []; // { targetToken, canonicalToken, graph, isSelf }
 
     for (const targetToken of targetTokens) {
-      if (targetToken === auth.identityToken) {
-        trustedTargets.push({ targetToken, canonicalToken: auth.identityToken, graph: null, isSelf: true });
+      if (targetToken === authResult.identityToken) {
+        trustedTargets.push({ targetToken, canonicalToken: authResult.identityToken, graph: null, isSelf: true });
         continue;
       }
       const graph = graphs.get(targetToken);
-      if (graph && _resolveCanonical(graph.equivalent2canonical, targetToken) === auth.identityToken) {
-        trustedTargets.push({ targetToken, canonicalToken: auth.identityToken, graph: null, isSelf: true });
+      if (graph && _resolveCanonical(graph.equivalent2canonical, targetToken) === authResult.identityToken) {
+        trustedTargets.push({ targetToken, canonicalToken: authResult.identityToken, graph: null, isSelf: true });
         continue;
       }
-      if (graph && graph.distances.has(auth.identityToken)) {
+      if (graph && graph.distances.has(authResult.identityToken)) {
         trustedTargets.push({ targetToken, canonicalToken: targetToken, graph, isSelf: false });
       } else {
         result[targetToken] = { status: 'denied' };
@@ -102,7 +102,7 @@ async function handleGetBatchContacts(req, res) {
       if (isSelf) {
         let delegateStatement = null;
         if (currentDelegateToken) {
-          const streamName = `${currentDelegateToken}_${auth.identityToken}`;
+          const streamName = `${currentDelegateToken}_${authResult.identityToken}`;
           const snap = await db.collection('streams').doc(streamName)
             .collection('statements').orderBy('time', 'desc').limit(1).get();
           if (!snap.empty) delegateStatement = snap.docs[0].data();
@@ -111,13 +111,13 @@ async function handleGetBatchContacts(req, res) {
         return;
       }
       const defaultStrictness = set.defaultStrictness ?? 'standard';
-      const distance = graph.distances.get(auth.identityToken);
-      const pathCount = graph.paths.get(auth.identityToken)?.length ?? 0;
+      const distance = graph.distances.get(authResult.identityToken);
+      const pathCount = graph.paths.get(authResult.identityToken)?.length ?? 0;
       const { contact: filtered, someHidden } = _filterEntries(set, defaultStrictness, distance, pathCount);
       result[targetToken] = { status: 'found', contact: filtered, defaultStrictness, ...(someHidden && { someHidden: true }), ...(!someHidden && { rawStatement: stmt }) };
     }));
 
-    console.log(`[get_batch_contacts] ${auth.identityToken} batch=${targetTokens.length} trusted=${trustedTargets.length}`);
+    console.log(`[get_batch_contacts] ${authResult.identityToken} batch=${targetTokens.length} trusted=${trustedTargets.length}`);
     res.status(200).json(result);
   } catch (e) {
     console.error('[get_batch_contacts] error:', e.message);

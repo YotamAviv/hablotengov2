@@ -20,6 +20,7 @@ import 'package:hablotengo/firebase_options.dart';
 import 'package:hablotengo/models/contact_statement.dart';
 import 'package:hablotengo/models/hablo_statement.dart';
 import 'package:hablotengo/sign_in_state.dart';
+import 'package:oneofus_common/jsonish.dart';
 import 'package:hablotengo/dev/widget_runner.dart';
 import 'package:hablotengo/dev/simpsons_private_keys.dart';
 
@@ -58,7 +59,13 @@ Future<void> _runTest() async {
     ((delegateData['keyPair'] as Map).cast<String, dynamic>()),
   );
 
-  await signInState.signInDemoWithDelegate(identityPubKeyJson, delegateKeyPair);
+  final sessionTime = DateTime.now().toUtc().toIso8601String();
+  final identityToken0 = getToken(identityPubKeyJson);
+  final sessionSignature = await identityKeyPair.sign('hablotengo.com-$identityToken0-$sessionTime');
+  await signInState.restoreKeys(identityPubKeyJson,
+      sessionTime: sessionTime,
+      sessionSignature: sessionSignature,
+      delegateKeyPair: delegateKeyPair);
   final identityToken = signInState.identityToken!;
 
   Future<Map<String, ContactResult>> load() =>
