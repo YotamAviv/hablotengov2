@@ -32,12 +32,6 @@ exports.getBatchContacts = onRequest({ cors: true, minInstances: 1 }, async (req
   await handleGetBatchContacts(req, res);
 });
 
-const { handleGetMyContact } = require('./get_my_contact');
-
-exports.getMyContact = onRequest({ cors: true, minInstances: 1 }, async (req, res) => {
-  await handleGetMyContact(req, res);
-});
-
 const { handleDeleteAccount } = require('./delete_account');
 
 exports.deleteAccount = onRequest({ cors: true }, async (req, res) => {

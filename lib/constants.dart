@@ -34,10 +34,6 @@ String habloGetBatchContactsUrl(bool emulator) => emulator
     ? 'http://127.0.0.1:$kHabloFunctionsEmulatorPort/$kHabloEmulatorProject/us-central1/getBatchContacts'
     : 'https://us-central1-hablotengo.cloudfunctions.net/getBatchContacts';
 
-String habloGetMyContactUrl(bool emulator) => emulator
-    ? 'http://127.0.0.1:$kHabloFunctionsEmulatorPort/$kHabloEmulatorProject/us-central1/getMyContact'
-    : 'https://us-central1-hablotengo.cloudfunctions.net/getMyContact';
-
 
 String habloDeleteAccountUrl(bool emulator) => emulator
     ? 'http://127.0.0.1:$kHabloFunctionsEmulatorPort/$kHabloEmulatorProject/us-central1/deleteAccount'
@@ -49,7 +45,7 @@ String habloFunctionsBaseUrl(bool emulator) => emulator
 
 String habloExportContactUrl(bool emulator) => emulator
     ? 'http://127.0.0.1:$kHabloFunctionsEmulatorPort/$kHabloEmulatorProject/us-central1/exportContact'
-    : 'https://export.hablotengo.com/exportContact';
+    : 'https://hablotengo.com/exportContact';
 
 String habloExportUrl(bool emulator) => emulator
     ? 'http://127.0.0.1:$kHabloFunctionsEmulatorPort/$kHabloEmulatorProject/us-central1/export'

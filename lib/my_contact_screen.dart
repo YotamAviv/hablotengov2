@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:nerdster_common/labeler.dart';
+import 'package:oneofus_common/jsonish.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'contact_service.dart';
@@ -16,7 +17,8 @@ class MyContactSheet extends StatefulWidget {
   final List<String> monikers;
   final Labeler? labeler;
   final ValueNotifier<bool>? isLoading;
-  const MyContactSheet({super.key, required this.emulator, this.monikers = const [], this.labeler, this.isLoading});
+  final ContactResult? preloaded;
+  const MyContactSheet({super.key, required this.emulator, this.monikers = const [], this.labeler, this.isLoading, this.preloaded});
 
   @override
   State<MyContactSheet> createState() => _MyContactSheetState();
@@ -24,7 +26,8 @@ class MyContactSheet extends StatefulWidget {
 
 class _MyContactSheetState extends State<MyContactSheet> {
   ContactData? _contact;
-  dynamic _rawStatement;
+  Json? _rawStatement;
+  Json? _delegateStatement;
   bool _loading = true;
   String? _error;
   bool _editing = false;
@@ -44,7 +47,14 @@ class _MyContactSheetState extends State<MyContactSheet> {
     _nameCtrl = TextEditingController();
     _notesCtrl = TextEditingController();
     _strictness = settingsState.defaultStrictness;
-    _load();
+    if (widget.preloaded != null) {
+      _contact = widget.preloaded!.contact;
+      _rawStatement = widget.preloaded!.rawStatement;
+      _delegateStatement = widget.preloaded!.delegateStatement;
+      _loading = false;
+    } else {
+      _load();
+    }
   }
 
   @override
@@ -56,8 +66,17 @@ class _MyContactSheetState extends State<MyContactSheet> {
 
   Future<void> _load() async {
     try {
-      final result = await getMyContact(widget.emulator);
-      if (mounted) setState(() { _contact = result.contact; _rawStatement = result.rawStatement; _loading = false; });
+      final ownToken = signInState.identityToken!;
+      final results = await getBatchContacts([ownToken], widget.emulator, withDelegateStatement: true);
+      final result = results[ownToken];
+      if (mounted) {
+        setState(() {
+          _contact = result?.contact;
+          _rawStatement = result?.rawStatement;
+          _delegateStatement = result?.delegateStatement;
+          _loading = false;
+        });
+      }
     } catch (e, st) {
       debugPrint('MyContactSheet load error: $e\n$st');
       if (mounted) setState(() { _error = e.toString(); _loading = false; });
@@ -86,7 +105,10 @@ class _MyContactSheetState extends State<MyContactSheet> {
         notes: _notesCtrl.text.trim().isEmpty ? null : _notesCtrl.text.trim(),
         entries: _editEntries.map((e) => e.entry).where((e) => e.value.isNotEmpty).toList(),
       );
-      await setMyContact(contact, widget.emulator, defaultStrictness: _strictness);
+      await setMyContact(contact, widget.emulator,
+          defaultStrictness: _strictness,
+          rawStatement: _rawStatement,
+          delegateStatement: _delegateStatement);
       settingsState.updateDefaultStrictness(_strictness);
       if (mounted) setState(() { _contact = contact; _editing = false; _saving = false; });
     } catch (e, st) {

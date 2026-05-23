@@ -20,14 +20,16 @@ class HabloApp extends StatelessWidget {
   final bool emulator;
   final bool demoMode;
   final String? startupTarget;
+  final GlobalKey<NavigatorState>? navigatorKey;
 
-  const HabloApp({super.key, required this.firestore, required this.emulator, this.demoMode = false, this.startupTarget});
+  const HabloApp({super.key, required this.firestore, required this.emulator, this.demoMode = false, this.startupTarget, this.navigatorKey});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'HabloTengo',
       theme: ThemeData(colorSchemeSeed: Colors.teal),
+      navigatorKey: navigatorKey,
       home: _HabloHome(firestore: firestore, emulator: emulator, demoMode: demoMode, startupTarget: startupTarget),
     );
   }
@@ -103,14 +105,16 @@ class _HabloHomeState extends State<_HabloHome> {
       listenable: signInState,
       builder: (context, _) {
         if (!signInState.hasIdentity) {
-          if (widget.demoMode) return _DemoLanding(
-            selectedCharacter: _selectedCharacter,
-            onCharacterChanged: (v) => setState(() => _selectedCharacter = v),
-            onSignIn: _demoSigningIn ? null : _doDemoSignIn,
-          );
+          if (widget.demoMode) {
+            return _DemoLanding(
+              selectedCharacter: _selectedCharacter,
+              onCharacterChanged: (v) => setState(() => _selectedCharacter = v),
+              onSignIn: _demoSigningIn ? null : _doDemoSignIn,
+            );
+          }
           return const Scaffold(body: SizedBox.shrink());
         }
-        settingsState.load(widget.emulator);
+        settingsState.load();
         return _SignedInScreen(
           onSignOut: () {
             settingsState.reset();
@@ -287,10 +291,11 @@ class _SignedInScreenState extends State<_SignedInScreen> with SingleTickerProvi
 
   Future<void> _checkContactCard() async {
     try {
-      final result = await getMyContact(widget.emulator);
-      if (mounted) setState(() => _hasContactCard = result.contact != null);
+      final identityToken = signInState.identityToken!;
+      final results = await getBatchContacts([identityToken], widget.emulator);
+      if (mounted) { setState(() => _hasContactCard = results[identityToken]?.rawStatement != null); }
     } catch (_) {
-      if (mounted) setState(() => _hasContactCard = true); // on error, don't pulse
+      if (mounted) { setState(() => _hasContactCard = true); } // on error, don't pulse
     }
   }
 

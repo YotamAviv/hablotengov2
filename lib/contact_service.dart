@@ -3,7 +3,6 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:oneofus_common/channel_factory.dart';
 import 'package:oneofus_common/jsonish.dart';
-import 'package:oneofus_common/statement_source.dart';
 
 import 'constants.dart';
 import 'models/contact_statement.dart';
@@ -18,13 +17,8 @@ class ContactResult {
   final bool someHidden;
   final String defaultStrictness;
   final Json? rawStatement;
-  const ContactResult({required this.status, this.contact, this.someHidden = false, this.defaultStrictness = 'standard', this.rawStatement});
-}
-
-class MyContactResult {
-  final ContactData? contact;
-  final Json? rawStatement;
-  const MyContactResult({this.contact, this.rawStatement});
+  final Json? delegateStatement;
+  const ContactResult({required this.status, this.contact, this.someHidden = false, this.defaultStrictness = 'standard', this.rawStatement, this.delegateStatement});
 }
 
 Map<String, dynamic> _authPayload() {
@@ -38,52 +32,20 @@ Map<String, dynamic> _authPayload() {
   };
 }
 
-Future<StatementChannel<HabloStatement>> _channel() async {
-  final delegateToken = getToken(signInState.delegatePublicKeyJson!);
-  final streamId = '${delegateToken}_${signInState.identityToken!}';
-  debugPrint('contact_service: writing to stream=$streamId');
-  final channel = channelFactory.getChannel<HabloStatement>(kHabloExportUrl, streamId);
-  await channel.fetch({delegateToken: null});
-  return channel;
-}
 
-// ── Read operations ──────────────────────────────────────────────────────────
-
-Future<MyContactResult> getMyContact(bool emulator) async {
-  if (signInState.identityJson == null) {
-    throw StateError('getMyContact called without a signed-in identity');
-  }
-  final url = Uri.parse(habloGetMyContactUrl(emulator));
-  debugPrint('getMyContact: $url');
-  final response = await http.post(
-    url,
-    headers: {'Content-Type': 'application/json'},
-    body: jsonEncode(_authPayload()),
-  );
-  if (response.statusCode == 404) {
-    return const MyContactResult();
-  }
-  if (response.statusCode != 200) {
-    throw Exception('getMyContact failed: ${response.statusCode} ${response.body}');
-  }
-  final json = jsonDecode(response.body) as Map<String, dynamic>?;
-  if (json == null) return const MyContactResult();
-  final setMap = json['set'] as Map<String, dynamic>?;
-  return MyContactResult(
-    contact: setMap != null && setMap.isNotEmpty ? ContactData.fromJson(setMap) : null,
-    rawStatement: json,
-  );
-}
-
-
-
-Future<Map<String, ContactResult>> getBatchContacts(List<String> targetTokens, bool emulator) async {
+Future<Map<String, ContactResult>> getBatchContacts(List<String> targetTokens, bool emulator, {bool withDelegateStatement = false}) async {
   final url = Uri.parse(habloGetBatchContactsUrl(emulator));
   debugPrint('getBatchContacts: $url count=${targetTokens.length}');
+  final body = <String, dynamic>{
+    ..._authPayload(),
+    'targetTokens': targetTokens,
+    if (withDelegateStatement && signInState.delegatePublicKeyJson != null)
+      'currentDelegateToken': getToken(signInState.delegatePublicKeyJson!),
+  };
   final response = await http.post(
     url,
     headers: {'Content-Type': 'application/json'},
-    body: jsonEncode({..._authPayload(), 'targetTokens': targetTokens}),
+    body: jsonEncode(body),
   );
   if (response.statusCode != 200) {
     throw Exception('getBatchContacts failed: ${response.statusCode} ${response.body}');
@@ -102,17 +64,31 @@ Future<Map<String, ContactResult>> getBatchContacts(List<String> targetTokens, b
     final someHidden = v['someHidden'] == true;
     final defaultStrictness = v['defaultStrictness'] as String? ?? 'standard';
     final rawStatement = v['rawStatement'] as Json?;
-    return MapEntry(token, ContactResult(status: status, contact: contact, someHidden: someHidden, defaultStrictness: defaultStrictness, rawStatement: rawStatement));
+    final delegateStatement = v['delegateStatement'] as Json?;
+    return MapEntry(token, ContactResult(status: status, contact: contact, someHidden: someHidden, defaultStrictness: defaultStrictness, rawStatement: rawStatement, delegateStatement: delegateStatement));
   });
 }
 
 // ── Write operations ─────────────────────────────────────────────────────────
 
-Future<void> setMyContact(ContactData contact, bool emulator, {String? defaultStrictness}) async {
-  final current = await getMyContact(emulator);
-  debugPrint('setMyContact: current rawStatement=${jsonEncode(current.rawStatement)}');
+Future<void> setMyContact(ContactData contact, bool emulator,
+    {String? defaultStrictness, Json? rawStatement, Json? delegateStatement}) async {
+  final delegatePk = signInState.delegatePublicKeyJson!;
+  final identityToken = signInState.identityToken!;
+  final delegateToken = getToken(delegatePk);
+  final streamId = '${delegateToken}_$identityToken';
+  final channel = channelFactory.getChannel<HabloStatement>(kHabloExportUrl, streamId);
+
+  if (!channel.isCached(delegateToken)) {
+    if (delegateStatement != null) {
+      channel.seed(delegateToken, [HabloStatement(Jsonish(delegateStatement))]);
+    } else {
+      channel.seed(delegateToken, []);
+    }
+  }
+
   final currentSet = Map<String, dynamic>.from(
-    (current.rawStatement?['set'] as Map<String, dynamic>?) ?? {},
+    (rawStatement?['set'] as Map<String, dynamic>?) ?? {},
   );
   currentSet['name'] = contact.name;
   if (contact.notes != null) {
@@ -123,9 +99,6 @@ Future<void> setMyContact(ContactData contact, bool emulator, {String? defaultSt
   currentSet['entries'] = contact.entries.map((e) => e.toJson()).toList();
   if (defaultStrictness != null) currentSet['defaultStrictness'] = defaultStrictness;
 
-  final channel = await _channel();
-  final delegatePk = signInState.delegatePublicKeyJson!;
-  final identityToken = signInState.identityToken!;
   final stmt = buildFullSetJson(set: currentSet, delegatePublicKeyJson: delegatePk, identityToken: identityToken);
   debugPrint('setMyContact: pushing set=${jsonEncode(currentSet)}');
   await channel.push(stmt, signInState.signer!);
@@ -133,16 +106,29 @@ Future<void> setMyContact(ContactData contact, bool emulator, {String? defaultSt
 }
 
 Future<void> setSettingsField(String field, dynamic value, bool emulator) async {
-  final current = await getMyContact(emulator);
-  debugPrint('setSettingsField: $field=$value current rawStatement=${jsonEncode(current.rawStatement)}');
+  final delegatePk = signInState.delegatePublicKeyJson!;
+  final identityToken = signInState.identityToken!;
+  final delegateToken = getToken(delegatePk);
+
+  final loaded = await getBatchContacts([identityToken], emulator, withDelegateStatement: true);
+  final current = loaded[identityToken];
+  debugPrint('setSettingsField: $field=$value current rawStatement=${jsonEncode(current?.rawStatement)}');
+
   final currentSet = Map<String, dynamic>.from(
-    (current.rawStatement?['set'] as Map<String, dynamic>?) ?? {},
+    (current?.rawStatement?['set'] as Map<String, dynamic>?) ?? {},
   );
   currentSet[field] = value;
 
-  final channel = await _channel();
-  final delegatePk = signInState.delegatePublicKeyJson!;
-  final identityToken = signInState.identityToken!;
+  final streamId = '${delegateToken}_$identityToken';
+  final channel = channelFactory.getChannel<HabloStatement>(kHabloExportUrl, streamId);
+  if (!channel.isCached(delegateToken)) {
+    final delegateStatement = current?.delegateStatement;
+    if (delegateStatement != null) {
+      channel.seed(delegateToken, [HabloStatement(Jsonish(delegateStatement))]);
+    } else {
+      channel.seed(delegateToken, []);
+    }
+  }
   final stmt = buildFullSetJson(set: currentSet, delegatePublicKeyJson: delegatePk, identityToken: identityToken);
   debugPrint('setSettingsField: pushing set=${jsonEncode(currentSet)}');
   await channel.push(stmt, signInState.signer!);

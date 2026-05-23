@@ -154,8 +154,12 @@ class ContactsScreenState extends State<ContactsScreen> {
       // Batch-load all contact cards
       if (contacts.isNotEmpty) {
         final tokens = contacts.map((c) => c.token).toList();
-        final results = await getBatchContacts(tokens, widget.emulator);
-        if (mounted) setState(() => _results = results);
+        final results = await getBatchContacts(tokens, widget.emulator, withDelegateStatement: true);
+        if (mounted) {
+          setState(() => _results = results);
+          final selfRaw = results[signInState.identityToken]?.rawStatement;
+          settingsState.applyServerSettings((selfRaw?['set'] as Map<String, dynamic>?)?['defaultStrictness'] as String?);
+        }
       }
 
       // Auto-open contact detail after results are ready
@@ -198,7 +202,7 @@ class ContactsScreenState extends State<ContactsScreen> {
       showModalBottomSheet(
         context: context,
         isScrollControlled: true,
-        builder: (_) => MyContactSheet(emulator: widget.emulator, monikers: contact.monikers, labeler: _labeler!, isLoading: _loadingNotifier),
+        builder: (_) => MyContactSheet(emulator: widget.emulator, monikers: contact.monikers, labeler: _labeler!, isLoading: _loadingNotifier, preloaded: _results?[contact.token]),
       ).then((deleted) { if (deleted == true && mounted) _load(); });
       return;
     }

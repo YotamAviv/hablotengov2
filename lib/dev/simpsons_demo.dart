@@ -47,9 +47,6 @@ void main() async {
     channelFactory.registerRedirect('https://write.one-of-us.net', '${oneofusWriteUrl(true)}/write2');
     channelFactory.registerRedirect('https://export.hablotengo.com', habloExportUrl(true));
     channelFactory.registerRedirect('https://write.hablotengo.com', '${habloFunctionsBaseUrl(true)}/write');
-  } else {
-    channelFactory.registerRedirect('https://export.hablotengo.com', '${habloFunctionsBaseUrl(false)}/export');
-    channelFactory.registerRedirect('https://write.hablotengo.com', '${habloFunctionsBaseUrl(false)}/write');
   }
   runApp(WidgetRunner(scenario: _run));
 }

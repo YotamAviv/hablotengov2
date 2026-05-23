@@ -53,7 +53,7 @@ async function handleGetBatchContacts(req, res) {
   const auth = verifyAuth(req, res);
   if (!auth) return;
 
-  const { targetTokens } = req.body;
+  const { targetTokens, currentDelegateToken } = req.body;
   if (!Array.isArray(targetTokens) || targetTokens.length === 0) {
     res.status(400).send('Missing targetTokens array');
     return;
@@ -100,7 +100,14 @@ async function handleGetBatchContacts(req, res) {
       }
       const set = stmt.set ?? {};
       if (isSelf) {
-        result[targetToken] = { status: 'found', contact: set, rawStatement: stmt };
+        let delegateStatement = null;
+        if (currentDelegateToken) {
+          const streamName = `${currentDelegateToken}_${auth.identityToken}`;
+          const snap = await db.collection('streams').doc(streamName)
+            .collection('statements').orderBy('time', 'desc').limit(1).get();
+          if (!snap.empty) delegateStatement = snap.docs[0].data();
+        }
+        result[targetToken] = { status: 'found', contact: set, rawStatement: stmt, delegateStatement };
         return;
       }
       const defaultStrictness = set.defaultStrictness ?? 'standard';
