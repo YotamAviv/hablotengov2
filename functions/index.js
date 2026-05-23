@@ -48,12 +48,6 @@ exports.write = onRequest({ cors: true, minInstances: 1 }, async (req, res) => {
 
 const { handleExportStatement } = require('./export_statement');
 
-exports.exportContact = onRequest({ cors: true, minInstances: 1 }, async (req, res) => {
-  await handleExportStatement(req, res);
-});
-
-const { handleExportMine } = require('./export_mine');
-
 exports.export = onRequest({ cors: true, minInstances: 1 }, async (req, res) => {
-  await handleExportMine(req, res);
+  await handleExportStatement(req, res);
 });

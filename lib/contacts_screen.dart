@@ -417,7 +417,7 @@ class _ContactDetailSheet extends StatelessWidget {
                 Row(
                   children: [
                     CryptoShieldButton(statement: result!.rawStatement!, labeler: labeler),
-                    ExportKeysButton(targetToken: contact.token, emulator: emulator),
+                    ExportKeysButton(rawStatement: result!.rawStatement!, emulator: emulator),
                   ],
                 ),
               ],

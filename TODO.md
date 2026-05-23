@@ -1,5 +1,51 @@
 # TODO
 
+Okay. Thanks.
+
+I'm a little unsure of what to do, if anything at all.
+The Nerdster and ONE-OF-US.NET export all signed statements. That's the point. They're signed, public, and can be leveraged by anyone.
+
+Hablo is different. It needs to guard access to folks' private data.
+But it does allow folks to view other folks' contact info when allowed by the targets.
+That link isn't for "power users"; it's to demonstrate as a proof-of-concept that if you can prove who you are (that you posses your identity private key and use it to sign the auth package we require) then you should be able to get the raw signed data can be useful for: 
+- auditing (verify that it's really signed by the target)
+- possibly allowing other services to leverage Hablo data on behalf of non-Hablo users.
+
+Great progress.
+Tweaks:
+- export URL
+Hard to justify the work.
+spec=delegate_identity&identity&
+
+more secure session signature?
+
+- export DNS
+leverage export.hablotengo.com, already have it, points to ghs.googlehosted.com
+
+## Secure sign-in
+
+Three parties: **phone** (holds identity Ed25519 private key), **webapp** (browser), **server** (CF + Firestore).
+
+1. Webapp generates a fresh X25519 keypair. QR encodes `{domain, signInUrl, encryptionPk}`.
+2. Phone scans QR. The token of `encryptionPk` serves as the session nonce — random, server-controlled, single-use.
+3. Phone signs `"hablotengo.com-{identityToken}-{sessionNonce}"` with identity private key → `sessionSignature`. Phone also encrypts its delegate private key to `encryptionPk` → `delegateCiphertext`.
+4. Phone POSTs `{session: sessionNonce, identity, sessionNonce, sessionSignature, delegateCiphertext}` to CF.
+5. CF verifies the Ed25519 signature. Writes doc to `sessions/doc/{sessionNonce}`.
+6. Webapp polls that Firestore path, gets the doc, decrypts `delegateCiphertext` with its X25519 private key → delegate keypair.
+7. Subsequent CF calls carry `{identity, sessionNonce, sessionSignature}`. CF re-verifies signature on every call.
+
+### After sign-in: the browser's X25519 key
+
+Once signed in, the phone is out of the picture. The browser holds the X25519 private key in memory — it was never transmitted and never will be. This means the browser can re-sign on every request without user interaction.
+
+If each CF call is signed with the X25519 private key over a request-specific value (e.g. current timestamp), the server can enforce a ~10-second window. A credential captured from server logs or a Referer header is useless almost immediately.
+
+### What we can't promise
+
+- **Revocation.** There is no server-side session to invalidate. A stolen credential is valid until it expires — nothing we can do before then.
+- **Live attacker.** A short window stops replayed credentials, not a live attacker who has compromised the browser (XSS, malicious extension). They can sign fresh requests using the key in memory.
+
+
 ## BUG? Do we show statements when fields are hidden?
 
 ## Demo hidden fields

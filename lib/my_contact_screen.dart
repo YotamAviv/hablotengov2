@@ -340,7 +340,7 @@ class _MyContactSheetState extends State<MyContactSheet> {
                 Row(
                   children: [
                     CryptoShieldButton(statement: _rawStatement, labeler: widget.labeler!),
-                    ExportKeysButton(targetToken: signInState.identityToken!, emulator: widget.emulator),
+                    ExportKeysButton(rawStatement: _rawStatement!, emulator: widget.emulator),
                   ],
                 ),
               ],
