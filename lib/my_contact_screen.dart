@@ -12,13 +12,18 @@ import 'settings_state.dart';
 import 'sign_in_state.dart';
 import 'visibility_picker.dart';
 
+/// Rep-invariant: data comes from the initial load (preloaded by the contacts screen).
+/// Saves apply optimistically — local state updates immediately without re-fetching.
+/// No reload occurs unless the user explicitly triggers one at the contacts-screen level,
+/// which re-opens this sheet with fresh preloaded data.
 class MyContactSheet extends StatefulWidget {
   final bool emulator;
   final List<String> monikers;
   final Labeler? labeler;
   final ValueNotifier<bool>? isLoading;
-  final ContactResult? preloaded;
-  const MyContactSheet({super.key, required this.emulator, this.monikers = const [], this.labeler, this.isLoading, this.preloaded});
+  final ContactResult preloaded;
+  final void Function(ContactData)? onContactSaved;
+  const MyContactSheet({super.key, required this.emulator, required this.preloaded, this.monikers = const [], this.labeler, this.isLoading, this.onContactSaved});
 
   @override
   State<MyContactSheet> createState() => _MyContactSheetState();
@@ -27,9 +32,6 @@ class MyContactSheet extends StatefulWidget {
 class _MyContactSheetState extends State<MyContactSheet> {
   ContactData? _contact;
   Json? _rawStatement;
-  Json? _delegateStatement;
-  bool _loading = true;
-  String? _error;
   bool _editing = false;
 
   late TextEditingController _nameCtrl;
@@ -47,14 +49,8 @@ class _MyContactSheetState extends State<MyContactSheet> {
     _nameCtrl = TextEditingController();
     _notesCtrl = TextEditingController();
     _strictness = settingsState.defaultStrictness;
-    if (widget.preloaded != null) {
-      _contact = widget.preloaded!.contact;
-      _rawStatement = widget.preloaded!.rawStatement;
-      _delegateStatement = widget.preloaded!.delegateStatement;
-      _loading = false;
-    } else {
-      _load();
-    }
+    _contact = widget.preloaded.contact;
+    _rawStatement = widget.preloaded.rawStatement;
   }
 
   @override
@@ -62,25 +58,6 @@ class _MyContactSheetState extends State<MyContactSheet> {
     _nameCtrl.dispose();
     _notesCtrl.dispose();
     super.dispose();
-  }
-
-  Future<void> _load() async {
-    try {
-      final ownToken = signInState.identityToken!;
-      final results = await getBatchContacts([ownToken], widget.emulator, withDelegateStatement: true);
-      final result = results[ownToken];
-      if (mounted) {
-        setState(() {
-          _contact = result?.contact;
-          _rawStatement = result?.rawStatement;
-          _delegateStatement = result?.delegateStatement;
-          _loading = false;
-        });
-      }
-    } catch (e, st) {
-      debugPrint('MyContactSheet load error: $e\n$st');
-      if (mounted) setState(() { _error = e.toString(); _loading = false; });
-    }
   }
 
   void _startEdit() {
@@ -104,12 +81,11 @@ class _MyContactSheetState extends State<MyContactSheet> {
         name: _nameCtrl.text.trim(),
         notes: _notesCtrl.text.trim().isEmpty ? null : _notesCtrl.text.trim(),
         entries: _editEntries.map((e) => e.entry).where((e) => e.value.isNotEmpty).toList(),
+        defaultStrictness: _strictness,
       );
-      await setMyContact(contact, widget.emulator,
-          defaultStrictness: _strictness,
-          rawStatement: _rawStatement,
-          delegateStatement: _delegateStatement);
+      await setMyContact(contact);
       settingsState.updateDefaultStrictness(_strictness);
+      widget.onContactSaved?.call(contact);
       if (mounted) setState(() { _contact = contact; _editing = false; _saving = false; });
     } catch (e, st) {
       debugPrint('MyContactSheet save error: $e\n$st');
@@ -292,19 +268,17 @@ class _MyContactSheetState extends State<MyContactSheet> {
             Row(
               children: [
                 Expanded(
-                  child: _loading
-                      ? const SizedBox.shrink()
-                      : Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(_contact?.name ?? '', style: titleStyle),
-                            if (widget.monikers.isNotEmpty)
-                              Text(widget.monikers.join(', '),
-                                  style: const TextStyle(fontSize: 13, color: Colors.grey)),
-                          ],
-                        ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(_contact?.name ?? '', style: titleStyle),
+                      if (widget.monikers.isNotEmpty)
+                        Text(widget.monikers.join(', '),
+                            style: const TextStyle(fontSize: 13, color: Colors.grey)),
+                    ],
+                  ),
                 ),
-                if (!_loading && _error == null && signInState.hasDelegate)
+                if (signInState.hasDelegate)
                   IconButton(
                     icon: const Icon(Icons.edit_outlined),
                     tooltip: 'Edit',
@@ -314,14 +288,7 @@ class _MyContactSheetState extends State<MyContactSheet> {
                   ),
               ],
             ),
-            if (_loading)
-              const Center(child: Padding(
-                padding: EdgeInsets.all(24),
-                child: CircularProgressIndicator(),
-              ))
-            else if (_error != null)
-              Text('Error: $_error', style: const TextStyle(color: Colors.red))
-            else if (_contact == null)
+            if (_contact == null)
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 16),
                 child: Text('No contact card yet.', style: TextStyle(color: Colors.red)),

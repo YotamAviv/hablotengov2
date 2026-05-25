@@ -33,13 +33,13 @@ Map<String, dynamic> _authPayload() {
 }
 
 
-Future<Map<String, ContactResult>> getBatchContacts(List<String> targetTokens, bool emulator, {bool withDelegateStatement = false}) async {
+Future<Map<String, ContactResult>> getBatchContacts(List<String> targetTokens, bool emulator) async {
   final url = Uri.parse(habloGetBatchContactsUrl(emulator));
   debugPrint('getBatchContacts: $url count=${targetTokens.length}');
   final body = <String, dynamic>{
     ..._authPayload(),
     'targetTokens': targetTokens,
-    if (withDelegateStatement && signInState.delegatePublicKeyJson != null)
+    if (signInState.delegatePublicKeyJson != null)
       'currentDelegateToken': getToken(signInState.delegatePublicKeyJson!),
   };
   final response = await http.post(
@@ -51,7 +51,7 @@ Future<Map<String, ContactResult>> getBatchContacts(List<String> targetTokens, b
     throw Exception('getBatchContacts failed: ${response.statusCode} ${response.body}');
   }
   final json = jsonDecode(response.body) as Map<String, dynamic>;
-  return json.map((token, value) {
+  final results = json.map((token, value) {
     final v = value as Map<String, dynamic>;
     final status = switch (v['status'] as String) {
       'found'     => ContactStatus.found,
@@ -67,73 +67,56 @@ Future<Map<String, ContactResult>> getBatchContacts(List<String> targetTokens, b
     final delegateStatement = v['delegateStatement'] as Json?;
     return MapEntry(token, ContactResult(status: status, contact: contact, someHidden: someHidden, defaultStrictness: defaultStrictness, rawStatement: rawStatement, delegateStatement: delegateStatement));
   });
+  if (signInState.delegatePublicKeyJson != null) {
+    final selfToken = signInState.identityToken;
+    if (selfToken != null && results.containsKey(selfToken)) {
+      final delegatePk = signInState.delegatePublicKeyJson!;
+      final identityToken = signInState.identityToken!;
+      final delegateToken = getToken(delegatePk);
+      final streamId = '${delegateToken}_$identityToken';
+      final channel = channelFactory.getChannel<HabloStatement>(kHabloExportUrl, streamId);
+      if (channel.isCached(delegateToken)) await channel.clear();
+      final delegateStatement = results[selfToken]!.delegateStatement;
+      channel.seed(delegateToken,
+          delegateStatement != null ? [HabloStatement(Jsonish(delegateStatement))] : []);
+    }
+  }
+  return results;
 }
 
 // ── Write operations ─────────────────────────────────────────────────────────
 
-Future<void> setMyContact(ContactData contact, bool emulator,
-    {String? defaultStrictness, Json? rawStatement, Json? delegateStatement}) async {
+// This project uses StatementChannel differently from the others (Nerdster, Oneofus) who's usage is more common (they read and write using these).
+// Hablo is much more Cloud Functions based and never uses a StatementChannel to read. 
+// But it does use a single StatementChannel to write using the signed in user's delegate key.
+// For this reason, after we use the Cloud Functions to fetch all the data (instead of reading
+// using StatementChannels), we prime that single StatementChannel.
+// Rep-invariant: 
+// - the write StatementChannel is always cached and ready. contacts_screen primes it as part of its one getBatchContacts call.
+// - the app runs entirely optimistically and never has to load unless the user explicitly triggers a refresh.
+// - On refresh we clear (and await) that StatementChannel, fetch everything again, and seed that StatementChannel.
+
+Future<void> setMyContact(ContactData contact) async {
   final delegatePk = signInState.delegatePublicKeyJson!;
   final identityToken = signInState.identityToken!;
   final delegateToken = getToken(delegatePk);
   final streamId = '${delegateToken}_$identityToken';
   final channel = channelFactory.getChannel<HabloStatement>(kHabloExportUrl, streamId);
+  assert(channel.isCached(delegateToken), 'write channel must be primed before setMyContact');
 
-  if (!channel.isCached(delegateToken)) {
-    if (delegateStatement != null) {
-      channel.seed(delegateToken, [HabloStatement(Jsonish(delegateStatement))]);
-    } else {
-      channel.seed(delegateToken, []);
-    }
-  }
+  final set = <String, dynamic>{
+    'name': contact.name,
+    if (contact.notes != null) 'notes': contact.notes,
+    'entries': contact.entries.map((e) => e.toJson()).toList(),
+    'defaultStrictness': contact.defaultStrictness,
+  };
 
-  final currentSet = Map<String, dynamic>.from(
-    ((rawStatement?['with']?['blob'] ?? rawStatement?['set']) as Map<String, dynamic>?) ?? {},
-  );
-  currentSet['name'] = contact.name;
-  if (contact.notes != null) {
-    currentSet['notes'] = contact.notes;
-  } else {
-    currentSet.remove('notes');
-  }
-  currentSet['entries'] = contact.entries.map((e) => e.toJson()).toList();
-  if (defaultStrictness != null) currentSet['defaultStrictness'] = defaultStrictness;
-
-  final stmt = buildFullSetJson(set: currentSet, delegatePublicKeyJson: delegatePk, identityToken: identityToken);
-  debugPrint('setMyContact: pushing set=${jsonEncode(currentSet)}');
+  final stmt = buildFullSetJson(set: set, delegatePublicKeyJson: delegatePk, identityToken: identityToken);
+  debugPrint('setMyContact: pushing set=${jsonEncode(set)}');
   await channel.push(stmt, signInState.signer!);
   debugPrint('setMyContact: done');
 }
 
-Future<void> setSettingsField(String field, dynamic value, bool emulator) async {
-  final delegatePk = signInState.delegatePublicKeyJson!;
-  final identityToken = signInState.identityToken!;
-  final delegateToken = getToken(delegatePk);
-
-  final loaded = await getBatchContacts([identityToken], emulator, withDelegateStatement: true);
-  final current = loaded[identityToken];
-  debugPrint('setSettingsField: $field=$value current rawStatement=${jsonEncode(current?.rawStatement)}');
-
-  final currentSet = Map<String, dynamic>.from(
-    ((current?.rawStatement?['with']?['blob'] ?? current?.rawStatement?['set']) as Map<String, dynamic>?) ?? {},
-  );
-  currentSet[field] = value;
-
-  final streamId = '${delegateToken}_$identityToken';
-  final channel = channelFactory.getChannel<HabloStatement>(kHabloExportUrl, streamId);
-  if (!channel.isCached(delegateToken)) {
-    final delegateStatement = current?.delegateStatement;
-    if (delegateStatement != null) {
-      channel.seed(delegateToken, [HabloStatement(Jsonish(delegateStatement))]);
-    } else {
-      channel.seed(delegateToken, []);
-    }
-  }
-  final stmt = buildFullSetJson(set: currentSet, delegatePublicKeyJson: delegatePk, identityToken: identityToken);
-  debugPrint('setSettingsField: pushing set=${jsonEncode(currentSet)}');
-  await channel.push(stmt, signInState.signer!);
-  debugPrint('setSettingsField: done');
-}
 
 Future<void> deleteAccount(bool emulator) async {
   final url = Uri.parse(habloDeleteAccountUrl(emulator));

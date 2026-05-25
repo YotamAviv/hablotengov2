@@ -1,12 +1,15 @@
 # TODO
-Tweaks:
-- export URL upgrade?
-spec=delegate_identity&auth
-leverage export.hablotengo.com, already have it, points to ghs.googlehosted.com
 
-more secure session signature?
+## Make `emulator` a top-level global (like `channelFactory`, `signInState`)
 
-- export DNS
+Determined once in `main.dart` from `Uri.base.host == 'localhost'`, never changes.
+Removing it from every widget constructor and function signature is mechanical but spans many files.
+
+## Move Dart initial OOU graph search to find my network to CF JavaScript.
+Should be way faster.
+Nerdster does it in Dart because:
+- it shows the trust statements
+- history... I developed it, debugged it, tested it, and so Dart.
 
 ## Secure sign-in
 

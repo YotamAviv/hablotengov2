@@ -1,4 +1,4 @@
-// Integration test: setMyContact and setSettingsField preserve each other's data.
+// Integration test: setMyContact saves and restores correctly.
 //
 // Prerequisites:
 //   - Hablo emulator running from golden export: bin/start_emulator.sh
@@ -69,10 +69,10 @@ Future<void> _runTest() async {
   final identityToken = signInState.identityToken!;
 
   Future<Map<String, ContactResult>> load() =>
-      getBatchContacts([identityToken], true, withDelegateStatement: true);
+      getBatchContacts([identityToken], true);
 
   // 1. Save contact info.
-  var loaded = await load();
+  await load();
   final contact = ContactData(
     name: 'Homer Simpson',
     notes: 'Test notes xyz',
@@ -80,9 +80,7 @@ Future<void> _runTest() async {
       const ContactEntry(tech: 'email', value: 'homer@test.com', preferred: true),
     ],
   );
-  await setMyContact(contact, true,
-      rawStatement: loaded[identityToken]?.rawStatement,
-      delegateStatement: loaded[identityToken]?.delegateStatement);
+  await setMyContact(contact);
   await channelFactory.clearCache(); // flush optimistic write to Firestore before CF reads
 
   // 2. Read back — verify contact.
@@ -94,21 +92,8 @@ Future<void> _runTest() async {
   _assert(readResult.contact?.entries.length == 1,
       'save contact: entries=${readResult.contact?.entries.length}');
 
-  // 3. Save a setting.
-  await setSettingsField('defaultStrictness', 'strict', true);
-  await channelFactory.clearCache();
-
-  // 4. Read back — contact must still be present after settings save.
-  readResult = (await load())[identityToken]!;
-  _assert(readResult.contact?.name == 'Homer Simpson',
-      'settings save wiped name: "${readResult.contact?.name}"');
-  _assert(readResult.contact?.entries.length == 1,
-      'settings save wiped entries: ${readResult.contact?.entries.length}');
-  _assert(readResult.rawStatement?['with']?['blob']?['defaultStrictness'] == 'strict',
-      'settings not saved: ${readResult.rawStatement?['set']}');
-
-  // 5. Save updated contact (reload state since setSettingsField changed the chain head).
-  loaded = await load();
+  // 3. Save updated contact.
+  await load();
   final updated = ContactData(
     name: 'Homer J. Simpson',
     entries: [
@@ -116,35 +101,26 @@ Future<void> _runTest() async {
       const ContactEntry(tech: 'phone', value: '+1-555-HOMER'),
     ],
   );
-  await setMyContact(updated, true,
-      rawStatement: loaded[identityToken]?.rawStatement,
-      delegateStatement: loaded[identityToken]?.delegateStatement);
+  await setMyContact(updated);
   await channelFactory.clearCache();
 
-  // 6. Read back — settings must still be present after contact save.
+  // 4. Read back — verify update.
   readResult = (await load())[identityToken]!;
   _assert(readResult.contact?.name == 'Homer J. Simpson',
       'contact update: name="${readResult.contact?.name}"');
   _assert(readResult.contact?.entries.length == 2,
       'contact update: entries=${readResult.contact?.entries.length}');
-  _assert(readResult.rawStatement?['with']?['blob']?['defaultStrictness'] == 'strict',
-      'contact save wiped settings: ${readResult.rawStatement?['set']}');
 
-  // 7. Restore original demo contact so other tests see clean data.
-  loaded = await load();
-  await setMyContact(
-    const ContactData(
-      name: 'Homer Simpson',
-      notes: 'Never call me',
-      entries: [
-        ContactEntry(tech: 'phone', value: '+1-555-HOMER', preferred: true),
-        ContactEntry(tech: 'email', value: 'homer@springfield-nuclear.gov'),
-      ],
-    ),
-    true,
-    rawStatement: loaded[identityToken]?.rawStatement,
-    delegateStatement: loaded[identityToken]?.delegateStatement,
-  );
+  // 5. Restore original demo contact so other tests see clean data.
+  await load();
+  await setMyContact(const ContactData(
+    name: 'Homer Simpson',
+    notes: 'Never call me',
+    entries: [
+      ContactEntry(tech: 'phone', value: '+1-555-HOMER', preferred: true),
+      ContactEntry(tech: 'email', value: 'homer@springfield-nuclear.gov'),
+    ],
+  ));
   await channelFactory.clearCache();
 
   // ignore: avoid_print

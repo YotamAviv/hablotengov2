@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-import 'contact_service.dart' show setSettingsField;
 
 const FlutterSecureStorage _storage = FlutterSecureStorage();
 const String _kShowEmptyCards  = 'hablo_pref_show_empty_cards';
@@ -72,14 +71,5 @@ class SettingsState extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> setDefaultStrictness(String value, bool emulator) async {
-    defaultStrictness = value;
-    notifyListeners();
-    try {
-      await setSettingsField('defaultStrictness', value, emulator);
-    } catch (e) {
-      debugPrint('SettingsState.setDefaultStrictness error: $e');
-    }
-  }
 
 }

@@ -9,7 +9,6 @@ import 'constants.dart';
 import 'contacts_screen.dart';
 import 'demo_sign_in_service.dart';
 import 'key_store.dart';
-import 'contact_service.dart';
 import 'my_contact_screen.dart';
 import 'settings_screen.dart';
 import 'settings_state.dart';
@@ -278,7 +277,6 @@ class _SignedInScreenState extends State<_SignedInScreen> with SingleTickerProvi
     _pulseController = AnimationController(vsync: this, duration: const Duration(seconds: 2))
       ..repeat(reverse: true);
     _pulseAnimation = CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut);
-    _checkContactCard();
   }
 
   @override
@@ -289,25 +287,14 @@ class _SignedInScreenState extends State<_SignedInScreen> with SingleTickerProvi
     super.dispose();
   }
 
-  Future<void> _checkContactCard() async {
-    try {
-      final identityToken = signInState.identityToken!;
-      final results = await getBatchContacts([identityToken], widget.emulator);
-      if (mounted) { setState(() => _hasContactCard = results[identityToken]?.rawStatement != null); }
-    } catch (_) {
-      if (mounted) { setState(() => _hasContactCard = true); } // on error, don't pulse
-    }
-  }
-
   void _openMyCard(BuildContext context) {
+    final preloaded = _contactsKey.currentState?.myContactResult;
+    if (preloaded == null) return;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder: (_) => MyContactSheet(emulator: widget.emulator, monikers: _contactsKey.currentState?.myMonikers ?? []),
-    ).then((_) {
-      _contactsKey.currentState?.reload();
-      _checkContactCard();
-    });
+      builder: (_) => MyContactSheet(emulator: widget.emulator, monikers: _contactsKey.currentState?.myMonikers ?? [], preloaded: preloaded, onContactSaved: (contact) => _contactsKey.currentState?.updateMyContact(contact)),
+    );
   }
 
   void _openSettings(BuildContext context) {
@@ -366,7 +353,7 @@ class _SignedInScreenState extends State<_SignedInScreen> with SingleTickerProvi
           TextButton(onPressed: widget.onSignOut, child: const Text('Sign out')),
         ],
       ),
-      body: ContactsScreen(key: _contactsKey, emulator: widget.emulator, startupTarget: widget.startupTarget, isLoading: _isLoading, isDelegateError: _isDelegateError),
+      body: ContactsScreen(key: _contactsKey, emulator: widget.emulator, startupTarget: widget.startupTarget, isLoading: _isLoading, isDelegateError: _isDelegateError, onContactCardStatus: (hasCard) => setState(() => _hasContactCard = hasCard)),
     );
   }
 }

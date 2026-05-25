@@ -49,8 +49,9 @@ class ContactData {
   final String name;
   final String? notes;
   final List<ContactEntry> entries;
+  final String defaultStrictness;
 
-  const ContactData({required this.name, this.notes, this.entries = const []});
+  const ContactData({required this.name, this.notes, this.entries = const [], this.defaultStrictness = 'standard'});
 
   factory ContactData.fromJson(Json j) {
     final rawEntries = (j['entries'] as List? ?? []);
@@ -59,6 +60,7 @@ class ContactData {
       name: j['name'] ?? '',
       notes: j['notes'] as String?,
       entries: entries,
+      defaultStrictness: j['defaultStrictness'] as String? ?? 'standard',
     );
   }
 }
