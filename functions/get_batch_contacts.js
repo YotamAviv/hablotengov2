@@ -87,10 +87,12 @@ async function handleGetBatchContacts(req, res) {
     const db = admin.firestore();
     const fedRegistry = new Map();
 
+    // Shared OOU statement cache — populated by Pass 1, reused by Pass 2 and resolveStatement.
+    const oouCache = new Map();
+
     // Pass 1: build requester's trust graph. orderedKeys is the contact list.
     const requesterPipeline = new TrustPipeline(oneofusSource, { sourceFor: federatedSourceFor });
-    const requesterGraph = await requesterPipeline.build(authResult.identityToken, { fedRegistry });
-    const oouCache = requesterPipeline.oouCache;
+    const requesterGraph = await requesterPipeline.build(authResult.identityToken, { fedRegistry, oouCache });
 
     // Canonical tokens in trust order, excluding old/replaced keys and self.
     const { orderedKeys, equivalent2canonical, monikers, pubKeys } = requesterGraph;
@@ -99,12 +101,11 @@ async function handleGetBatchContacts(req, res) {
     );
 
     // Pass 2: check which targets trust the requester (permissive BFS from each target).
-    // Pre-populate cache from Pass 1 to avoid re-fetching already-seen OOU statements.
     const pipeline = new MultiTargetTrustPipeline(oneofusSource, {
       pathRequirement: permissivePathRequirement,
       sourceFor: federatedSourceFor,
     });
-    const graphs = await pipeline.buildAll(canonicalTargets, { fedRegistry, initialCache: oouCache });
+    const graphs = await pipeline.buildAll(canonicalTargets, { fedRegistry, oouCache });
 
     // Build unique display labels (uniqueness suffix for duplicate base names).
     const labels = _buildLabels(orderedKeys, equivalent2canonical, monikers);

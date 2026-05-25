@@ -2,7 +2,7 @@
  * MultiTargetTrustPipeline
  *
  * Builds trust graphs for multiple target tokens simultaneously,
- * sharing a single statement cache and batching export fetches per BFS layer.
+ * sharing a single statement oouCache and batching export fetches per BFS layer.
  *
  * Source interface: same as TrustPipeline — { fetch(fetchMap) => Promise<{[token]: Statement[]}> }
  *
@@ -26,8 +26,8 @@ class MultiTargetTrustPipeline {
    * @param {string[]} targets - list of identity tokens to build graphs for
    * @returns {Promise<Map<string, object>>} map of target token → TrustGraph
    */
-  async buildAll(targets, { fedRegistry = new Map(), initialCache = new Map() } = {}) {
-    const cache = new Map(initialCache); // token → Statement[], pre-populated from Pass 1
+  async buildAll(targets, { fedRegistry = new Map(), oouCache } = {}) {
+    if (!oouCache) throw new Error('MultiTargetTrustPipeline.buildAll: oouCache is required');
 
     // Per-target state
     const states = new Map();
@@ -42,22 +42,22 @@ class MultiTargetTrustPipeline {
     }
 
     for (let depth = 0; depth < this.maxDegrees; depth++) {
-      // Collect all tokens needed across all active frontiers, minus cached ones
+      // Collect all tokens needed across all active frontiers, minus oouCached ones
       const needed = new Set();
       for (const state of states.values()) {
         for (const tok of state.frontier) {
-          if (!cache.has(tok) && !state.graph.equivalent2canonical.has(tok)) {
+          if (!oouCache.has(tok) && !state.graph.equivalent2canonical.has(tok)) {
             needed.add(tok);
           }
         }
       }
 
-      // When all frontier tokens are already cached we skip fetching but still
+      // When all frontier tokens are already oouCached we skip fetching but still
       // need to advance the graphs, so only break when there is no frontier at all.
       const hasFrontier = [...states.values()].some(s => s.frontier.size > 0);
       if (!hasFrontier) break;
 
-      // Fetch uncached tokens, grouped by endpoint when sourceFor is provided
+      // Fetch unoouCached tokens, grouped by endpoint when sourceFor is provided
       if (needed.size > 0) {
         if (this.sourceFor) {
           const byUrl = new Map();
@@ -69,16 +69,16 @@ class MultiTargetTrustPipeline {
           for (const [url, keys] of byUrl) {
             const src = url ? this.sourceFor(url) : this.source;
             const fetched = await src.fetch(Object.fromEntries(keys.map(k => [k, null])));
-            for (const [tok, stmts] of Object.entries(fetched)) cache.set(tok, stmts);
+            for (const [tok, stmts] of Object.entries(fetched)) oouCache.set(tok, stmts);
           }
         } else {
           const fetchMap = Object.fromEntries([...needed].map(k => [k, null]));
           const fetched = await this.source.fetch(fetchMap);
-          for (const [tok, stmts] of Object.entries(fetched)) cache.set(tok, stmts);
+          for (const [tok, stmts] of Object.entries(fetched)) oouCache.set(tok, stmts);
         }
-        // Ensure every requested token has a cache entry
+        // Ensure every requested token has a oouCache entry
         for (const tok of needed) {
-          if (!cache.has(tok)) cache.set(tok, []);
+          if (!oouCache.has(tok)) oouCache.set(tok, []);
         }
       }
 
@@ -87,11 +87,11 @@ class MultiTargetTrustPipeline {
       for (const state of states.values()) {
         if (state.frontier.size === 0) continue;
 
-        // Mark frontier as visited and pull from cache into byIssuer
+        // Mark frontier as visited and pull from oouCache into byIssuer
         for (const tok of state.frontier) {
           state.visited.add(tok);
-          if (cache.has(tok)) {
-            state.byIssuer.set(tok, cache.get(tok));
+          if (oouCache.has(tok)) {
+            state.byIssuer.set(tok, oouCache.get(tok));
           }
         }
 

@@ -25,7 +25,7 @@ describe('Trust Algorithm (JS vs Dart golden)', () => {
     test(`${name}'s PoV matches Dart`, async () => {
       const source = makeFixtureSource();
       const pipeline = new TrustPipeline(source, { pathRequirement: defaultPathRequirement });
-      const graph = await pipeline.build(expected.token);
+      const graph = await pipeline.build(expected.token, { oouCache: new Map() });
 
       assert.deepStrictEqual(
         graph.orderedKeys,

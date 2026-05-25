@@ -45,7 +45,7 @@ const sideshowToken = keyToken(SIMPSONS_KEYS['sideshow']);
 
 async function singleGraph(token) {
   const pipeline = new TrustPipeline(oneofusSource);
-  return pipeline.build(token);
+  return pipeline.build(token, { oouCache: new Map() });
 }
 
 function distanceMap(graph) {
@@ -56,7 +56,7 @@ describe('MultiTargetTrustPipeline — matches single-target results', () => {
   test('Lisa and Homer graphs match single-target', async () => {
     const targets = [lisaToken, homerToken];
     const multi = new MultiTargetTrustPipeline(oneofusSource);
-    const graphs = await multi.buildAll(targets);
+    const graphs = await multi.buildAll(targets, { oouCache: new Map() });
 
     const [lisaSingle, homerSingle] = await Promise.all([
       singleGraph(lisaToken),
@@ -78,7 +78,7 @@ describe('MultiTargetTrustPipeline — matches single-target results', () => {
   test('All four Simpsons graphs match single-target', async () => {
     const targets = [lisaToken, homerToken, margeToken, bartToken];
     const multi = new MultiTargetTrustPipeline(oneofusSource);
-    const graphs = await multi.buildAll(targets);
+    const graphs = await multi.buildAll(targets, { oouCache: new Map() });
 
     const singles = await Promise.all(targets.map(singleGraph));
 
@@ -93,7 +93,7 @@ describe('MultiTargetTrustPipeline — matches single-target results', () => {
 
   test('Sideshow graph matches single-target', async () => {
     const multi = new MultiTargetTrustPipeline(oneofusSource);
-    const graphs = await multi.buildAll([sideshowToken]);
+    const graphs = await multi.buildAll([sideshowToken], { oouCache: new Map() });
     const single = await singleGraph(sideshowToken);
 
     assert.deepStrictEqual(
@@ -123,11 +123,11 @@ describe('MultiTargetTrustPipeline — matches single-target results', () => {
     };
 
     const multi = new MultiTargetTrustPipeline(countingSource);
-    await multi.buildAll(targets);
+    await multi.buildAll(targets, { oouCache: new Map() });
 
     for (const t of targets) {
       const pipeline = new TrustPipeline(countingSingleSource);
-      await pipeline.build(t);
+      await pipeline.build(t, { oouCache: new Map() });
     }
 
     assert.ok(

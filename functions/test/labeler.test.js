@@ -104,7 +104,7 @@ describe('reduceTrustGraph — moniker collection', () => {
     };
 
     const pipeline = new TrustPipeline(source);
-    const graph = await pipeline.build(aliceToken);
+    const graph = await pipeline.build(aliceToken, { oouCache: new Map() });
 
     assert.ok(graph.orderedKeys.includes(bobToken), 'Bob should be in orderedKeys');
     const bobMonikers = graph.monikers.get(bobToken);
@@ -141,7 +141,7 @@ describe('reduceTrustGraph — moniker collection', () => {
     };
 
     const pipeline = new TrustPipeline(source);
-    const graph = await pipeline.build(aliceToken);
+    const graph = await pipeline.build(aliceToken, { oouCache: new Map() });
 
     const bobMonikers = graph.monikers.get(bobToken);
     assert.strictEqual(bobMonikers[0], 'Bob-from-Alice', 'Closest issuer moniker should be first');

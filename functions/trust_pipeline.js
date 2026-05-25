@@ -18,10 +18,9 @@ class TrustPipeline {
     this.sourceFor = sourceFor || null; // (url: string) => source — optional
   }
 
-  async build(povToken, { fedRegistry = new Map() } = {}) {
+  async build(povToken, { fedRegistry = new Map(), oouCache } = {}) {
+    if (!oouCache) throw new Error('TrustPipeline.build: oouCache is required');
     const visited = new Set();
-    const byIssuer = new Map();
-    this.oouCache = byIssuer; // exposed after build for cache sharing
     let frontier = new Set([povToken]);
     let graph = { pov: povToken, distances: new Map([[povToken, 0]]), equivalent2canonical: new Map() };
 
@@ -52,10 +51,10 @@ class TrustPipeline {
 
       for (const k of keysToFetch) visited.add(k);
       for (const [token, statements] of Object.entries(newStatementsMap)) {
-        byIssuer.set(token, statements);
+        oouCache.set(token, statements);
       }
 
-      graph = await reduceTrustGraph(povToken, byIssuer, {
+      graph = await reduceTrustGraph(povToken, oouCache, {
         pathRequirement: this.pathRequirement,
         maxDegrees: this.maxDegrees,
         fedRegistry,

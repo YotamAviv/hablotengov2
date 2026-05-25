@@ -17,11 +17,14 @@ PASSED_TESTS=()
 # Prerequisites:
 #   Firebase emulators: ./bin/start_emulator.sh (hablotengo) — started from a golden export
 #                       oneofusv22/bin/start_emulator.sh (one-of-us-net)
+#                       karennet/bin/start_emulator.sh (karennet, port 5004)
 echo "Checking prerequisites..."
 curl -s --max-time 3 http://localhost:8082/ > /dev/null \
     || { echo "ERROR: Hablo Firebase emulator not responding on port 8082."; exit 1; }
 curl -s --max-time 3 http://localhost:5002/ > /dev/null \
     || { echo "ERROR: OneOfUs emulator not responding on port 5002."; exit 1; }
+curl -s --max-time 3 http://localhost:5004/ > /dev/null \
+    || { echo "ERROR: Karennet emulator not responding on port 5004."; exit 1; }
 [ -f lib/dev/simpsons_private_keys.dart ] \
     || { echo "ERROR: lib/dev/simpsons_private_keys.dart missing. Run: python3 bin/gen_simpsons_private_keys_dart.py"; exit 1; }
 [ -f ../simpsonsHabloKeys.json ] \
@@ -67,6 +70,24 @@ if (cd functions && npm test); then
     PASSED_TESTS+=("Cloud Function tests")
 else
     FAILED_TESTS+=("Cloud Function tests")
+fi
+echo ""
+
+# 5. Trust pipeline tests (require OOU + karennet emulators).
+echo "=== Running Trust Pipeline Tests ==="
+if (cd functions && node --test test/trust_pipeline.test.js); then
+    PASSED_TESTS+=("trust_pipeline tests")
+else
+    FAILED_TESTS+=("trust_pipeline tests")
+fi
+echo ""
+
+# 6. Multi-target trust pipeline tests (require OOU emulator).
+echo "=== Running Multi-Target Trust Pipeline Tests ==="
+if (cd functions && node --test test/multi_target_trust.test.js); then
+    PASSED_TESTS+=("multi_target_trust tests")
+else
+    FAILED_TESTS+=("multi_target_trust tests")
 fi
 echo ""
 
