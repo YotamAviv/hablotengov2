@@ -42,13 +42,13 @@ const { makeWrite2Handler } = require('./write2');
 const { auth: writeAuth } = require('./write_auth');
 const handleWrite2 = makeWrite2Handler(writeAuth);
 
-exports.write = onRequest({ cors: true, minInstances: 1 }, async (req, res) => {
+exports.write = onRequest({ cors: true }, async (req, res) => {
   await handleWrite2(req, res);
 });
 
 const { handleExport } = require('./export');
 const { habloExportAuthHook } = require('./read_auth');
 
-exports.export = onRequest({ cors: true, minInstances: 1 }, async (req, res) => {
+exports.export = onRequest({ cors: true }, async (req, res) => {
   await handleExport(req, res, { authHook: habloExportAuthHook });
 });

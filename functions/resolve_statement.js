@@ -19,23 +19,36 @@ const kSinceAlways = '<since always>';
  *
  * Returns the latest signed snapshot statement, or null if no stream exists.
  */
-async function resolveStatement(db, identityToken) {
+async function resolveStatement(db, identityToken, { oouCache } = {}) {
   // 1. Fetch OOU statements for this identity and its predecessors.
-  const oouData = await oneofusSource.fetchWithIds({ [identityToken]: null });
-  const myStatements = oouData[identityToken] || [];
+  // Use oouCache (from the BFS) when available to avoid redundant round trips.
+  // Fall back to fetchWithIds only when timestamp-based revocation resolution is needed.
+  let myStatements;
+  if (oouCache && oouCache.has(identityToken)) {
+    myStatements = oouCache.get(identityToken) || [];
+  } else {
+    const oouData = await oneofusSource.fetchWithIds({ [identityToken]: null });
+    myStatements = oouData[identityToken] || [];
+  }
 
   const predecessorTokens = [];
   for (const stmt of myStatements) {
     if (stmt.replace) predecessorTokens.push(await getToken(stmt.replace));
   }
 
-  let predData = {};
+  const predByToken = {};
   if (predecessorTokens.length > 0) {
-    predData = await oneofusSource.fetchWithIds(
-      Object.fromEntries(predecessorTokens.map(t => [t, null]))
-    );
+    const cachedPreds = oouCache ? predecessorTokens.filter(t => oouCache.has(t)) : [];
+    const uncachedPreds = predecessorTokens.filter(t => !oouCache || !oouCache.has(t));
+    for (const t of cachedPreds) predByToken[t] = oouCache.get(t) || [];
+    if (uncachedPreds.length > 0) {
+      const fetched = await oneofusSource.fetchWithIds(
+        Object.fromEntries(uncachedPreds.map(t => [t, null]))
+      );
+      Object.assign(predByToken, fetched);
+    }
   }
-  const predStatements = Object.values(predData).flat();
+  const predStatements = Object.values(predByToken).flat();
 
   // Build statementId → time map for resolving revokeAt tokens to timestamps.
   const stmtTimeMap = new Map();
@@ -73,7 +86,7 @@ async function resolveStatement(db, identityToken) {
   }
   if (myDelegates.length > 0) delegatesByIdentity.set(identityToken, myDelegates);
 
-  for (const [predToken, stmts] of Object.entries(predData)) {
+  for (const [predToken, stmts] of Object.entries(predByToken)) {
     const predDelegates = [];
     for (const stmt of stmts) {
       if (stmt.delegate) predDelegates.push(await getToken(stmt.delegate));

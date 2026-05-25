@@ -21,6 +21,7 @@ class TrustPipeline {
   async build(povToken, { fedRegistry = new Map() } = {}) {
     const visited = new Set();
     const byIssuer = new Map();
+    this.oouCache = byIssuer; // exposed after build for cache sharing
     let frontier = new Set([povToken]);
     let graph = { pov: povToken, distances: new Map([[povToken, 0]]), equivalent2canonical: new Map() };
 

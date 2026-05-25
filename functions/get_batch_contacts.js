@@ -33,19 +33,47 @@ function _filterEntries(contact, defaultStrictness, distance, pathCount) {
   return { contact: { ...contact, entries }, someHidden: entries.length < all.length };
 }
 
+function _buildLabels(orderedKeys, equivalent2canonical, monikers) {
+  const usedLabels = new Set();
+  const labels = new Map(); // canonicalToken → unique display label
+
+  for (const token of orderedKeys) {
+    if (equivalent2canonical.has(token)) continue; // skip old/replaced keys
+    const rawMonikers = monikers.get(token) || [];
+    const baseName = rawMonikers[0] ?? null;
+    if (!baseName) continue;
+
+    let label = baseName;
+    if (usedLabels.has(label)) {
+      let i = 2;
+      while (usedLabels.has(`${baseName} (${i})`)) i++;
+      label = `${baseName} (${i})`;
+    }
+    usedLabels.add(label);
+    labels.set(token, label);
+  }
+  return labels;
+}
+
 /**
- * POST { identity, sessionTime?, sessionSignature?, demo?, targetTokens: string[] }
+ * POST { identity, sessionTime?, sessionSignature?, demo?, currentDelegateToken? }
  *
- * Returns a map from targetToken → result:
- *   { status: 'denied' }
- *     — requester is not in the target's ONE-OF-US trust graph
- *   { status: 'not_found' }
- *     — target has no Hablo stream (no delegate statements or no contact written yet)
- *   { status: 'found', contact, defaultStrictness, rawStatement? [, someHidden: true] }
- *     — contact is stmt.set with entries filtered by visibility level and trust distance;
- *       rawStatement (the full signed statement) is included only when no entries are hidden;
- *       someHidden: true when at least one entry was filtered out
- *   { status: 'found', contact, rawStatement }   (self — no filtering applied)
+ * Builds the requester's full trust graph server-side and returns contacts + contact cards
+ * in a single response. No targetTokens needed — the trust graph determines the list.
+ *
+ * Response:
+ *   {
+ *     selfToken: string,
+ *     contacts: [
+ *       {
+ *         token, label, monikers, keyPayload,
+ *         status: 'found' | 'not_found' | 'denied',
+ *         contact?, defaultStrictness?, someHidden?,
+ *         rawStatement?,        // only when !someHidden
+ *         delegateStatement?,   // only for self
+ *       }
+ *     ]
+ *   }
  */
 async function handleGetBatchContacts(req, res) {
   res.setHeader('Content-Type', 'application/json');
@@ -53,53 +81,55 @@ async function handleGetBatchContacts(req, res) {
   const authResult = authenticate(req.body, 'read', res);
   if (!authResult) return;
 
-  const { targetTokens, currentDelegateToken } = req.body;
-  if (!Array.isArray(targetTokens) || targetTokens.length === 0) {
-    res.status(400).send('Missing targetTokens array');
-    return;
-  }
+  const { currentDelegateToken } = req.body;
 
   try {
     const db = admin.firestore();
-    // Pass 1: build requester's graph to populate fedRegistry with foreign endpoints.
-    // Without this, the target-centric BFS (pass 2) doesn't know which targets
-    // live on foreign domains and fetches from the wrong URL.
     const fedRegistry = new Map();
+
+    // Pass 1: build requester's trust graph. orderedKeys is the contact list.
     const requesterPipeline = new TrustPipeline(oneofusSource, { sourceFor: federatedSourceFor });
-    await requesterPipeline.build(authResult.identityToken, { fedRegistry });
+    const requesterGraph = await requesterPipeline.build(authResult.identityToken, { fedRegistry });
+    const oouCache = requesterPipeline.oouCache;
 
-    // Pass 2: build target graphs with pre-populated fedRegistry.
-    const pipeline = new MultiTargetTrustPipeline(oneofusSource, { pathRequirement: permissivePathRequirement, sourceFor: federatedSourceFor });
-    const graphs = await pipeline.buildAll(targetTokens, { fedRegistry });
+    // Canonical tokens in trust order, excluding old/replaced keys and self.
+    const { orderedKeys, equivalent2canonical, monikers, pubKeys } = requesterGraph;
+    const canonicalTargets = orderedKeys.filter(t =>
+      t !== authResult.identityToken && !equivalent2canonical.has(t)
+    );
 
-    const result = {};
-    const trustedTargets = []; // { targetToken, canonicalToken, graph, isSelf }
+    // Pass 2: check which targets trust the requester (permissive BFS from each target).
+    // Pre-populate cache from Pass 1 to avoid re-fetching already-seen OOU statements.
+    const pipeline = new MultiTargetTrustPipeline(oneofusSource, {
+      pathRequirement: permissivePathRequirement,
+      sourceFor: federatedSourceFor,
+    });
+    const graphs = await pipeline.buildAll(canonicalTargets, { fedRegistry, initialCache: oouCache });
 
-    for (const targetToken of targetTokens) {
-      if (targetToken === authResult.identityToken) {
-        trustedTargets.push({ targetToken, canonicalToken: authResult.identityToken, graph: null, isSelf: true });
-        continue;
-      }
-      const graph = graphs.get(targetToken);
-      if (graph && _resolveCanonical(graph.equivalent2canonical, targetToken) === authResult.identityToken) {
-        trustedTargets.push({ targetToken, canonicalToken: authResult.identityToken, graph: null, isSelf: true });
-        continue;
-      }
-      if (graph && graph.distances.has(authResult.identityToken)) {
-        trustedTargets.push({ targetToken, canonicalToken: targetToken, graph, isSelf: false });
+    // Build unique display labels (uniqueness suffix for duplicate base names).
+    const labels = _buildLabels(orderedKeys, equivalent2canonical, monikers);
+
+    // Determine trust status for each canonical target.
+    const trustedTargets = [];
+    const deniedTokens = new Set();
+
+    for (const token of canonicalTargets) {
+      const graph = graphs.get(token);
+      if (graph && (_resolveCanonical(graph.equivalent2canonical, token) === authResult.identityToken
+          || graph.distances.has(authResult.identityToken))) {
+        trustedTargets.push({ token, graph });
       } else {
-        result[targetToken] = { status: 'denied' };
+        deniedTokens.add(token);
       }
     }
 
-    await Promise.all(trustedTargets.map(async ({ targetToken, canonicalToken, graph, isSelf }) => {
-      const stmt = await resolveStatement(db, canonicalToken);
-      if (!stmt) {
-        result[targetToken] = { status: 'not_found' };
-        return;
-      }
-      const set = stmt.with?.blob ?? stmt.set ?? {};
-      if (isSelf) {
+    // Fetch Hablo contact data for trusted targets + self, passing oouCache to avoid re-fetching.
+    const contactEntries = await Promise.all([
+      // Self entry
+      (async () => {
+        const stmt = await resolveStatement(db, authResult.identityToken, { oouCache });
+        const set = stmt ? (stmt.with?.blob ?? stmt.set ?? {}) : null;
+
         let delegateStatement = null;
         if (currentDelegateToken) {
           const streamName = `${currentDelegateToken}_${authResult.identityToken}`;
@@ -107,22 +137,75 @@ async function handleGetBatchContacts(req, res) {
             .collection('statements').orderBy('time', 'desc').limit(1).get();
           if (!snap.empty) delegateStatement = snap.docs[0].data();
         }
-        result[targetToken] = { status: 'found', contact: set, rawStatement: stmt, delegateStatement };
-        return;
-      }
-      const defaultStrictness = set.defaultStrictness ?? 'standard';
-      const distance = graph.distances.get(authResult.identityToken);
-      const pathCount = graph.paths.get(authResult.identityToken)?.length ?? 0;
-      const { contact: filtered, someHidden } = _filterEntries(set, defaultStrictness, distance, pathCount);
-      result[targetToken] = { status: 'found', contact: filtered, defaultStrictness, ...(someHidden && { someHidden: true }), ...(!someHidden && { rawStatement: stmt }) };
-    }));
 
-    console.log(`[get_batch_contacts] ${authResult.identityToken} batch=${targetTokens.length} trusted=${trustedTargets.length}`);
-    res.status(200).json(result);
+        const selfPubKey = req.body.identity;
+        const selfEndpoint = fedRegistry.get(authResult.identityToken);
+        const keyPayload = { key: selfPubKey, url: selfEndpoint ?? 'https://export.one-of-us.net' };
+
+        return {
+          token: authResult.identityToken,
+          label: labels.get(authResult.identityToken) ?? null,
+          monikers: monikers.get(authResult.identityToken) ?? [],
+          keyPayload,
+          status: set ? 'found' : 'not_found',
+          ...(set && { contact: set, rawStatement: stmt }),
+          ...(delegateStatement && { delegateStatement }),
+        };
+      })(),
+
+      // Trusted contacts
+      ...trustedTargets.map(async ({ token, graph }) => {
+        const stmt = await resolveStatement(db, token, { oouCache });
+        const pubKey = pubKeys.get(token);
+        const endpoint = fedRegistry.get(token);
+        const keyPayload = pubKey
+          ? { key: pubKey, url: endpoint ?? 'https://export.one-of-us.net' }
+          : null;
+
+        if (!stmt) {
+          return { token, label: labels.get(token) ?? null, monikers: monikers.get(token) ?? [], keyPayload, status: 'not_found' };
+        }
+        const set = stmt.with?.blob ?? stmt.set ?? {};
+        const defaultStrictness = set.defaultStrictness ?? 'standard';
+        const distance = graph.distances.get(authResult.identityToken);
+        const pathCount = graph.paths.get(authResult.identityToken)?.length ?? 0;
+        const { contact: filtered, someHidden } = _filterEntries(set, defaultStrictness, distance, pathCount);
+        return {
+          token,
+          label: labels.get(token) ?? null,
+          monikers: monikers.get(token) ?? [],
+          keyPayload,
+          status: 'found',
+          contact: filtered,
+          defaultStrictness,
+          ...(someHidden && { someHidden: true }),
+          ...(!someHidden && { rawStatement: stmt }),
+        };
+      }),
+
+      // Denied contacts (still included so client can show them as denied)
+      ...[...deniedTokens].map(token => {
+        const pubKey = pubKeys.get(token);
+        const endpoint = fedRegistry.get(token);
+        const keyPayload = pubKey
+          ? { key: pubKey, url: endpoint ?? 'https://export.one-of-us.net' }
+          : null;
+        return Promise.resolve({
+          token,
+          label: labels.get(token) ?? null,
+          monikers: monikers.get(token) ?? [],
+          keyPayload,
+          status: 'denied',
+        });
+      }),
+    ]);
+
+    console.log(`[get_batch_contacts] ${authResult.identityToken} contacts=${contactEntries.length}`);
+    res.status(200).json({ selfToken: authResult.identityToken, contacts: contactEntries });
   } catch (e) {
-    console.error('[get_batch_contacts] error:', e.message);
+    console.error('[get_batch_contacts] error:', e.message, e.stack);
     res.status(500).send(e.message);
   }
 }
 
-module.exports = { handleGetBatchContacts, _meetsStrictness, _filterEntries };
+module.exports = { handleGetBatchContacts, _meetsStrictness, _filterEntries, _buildLabels };

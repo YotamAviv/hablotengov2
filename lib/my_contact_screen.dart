@@ -21,7 +21,7 @@ class MyContactSheet extends StatefulWidget {
   final List<String> monikers;
   final Labeler? labeler;
   final ValueNotifier<bool>? isLoading;
-  final ContactResult preloaded;
+  final TrustContact preloaded;
   final void Function(ContactData)? onContactSaved;
   const MyContactSheet({super.key, required this.emulator, required this.preloaded, this.monikers = const [], this.labeler, this.isLoading, this.onContactSaved});
 

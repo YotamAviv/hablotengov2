@@ -38,11 +38,12 @@ const homerJwk = SIMPSONS_KEYS['homer'];
 describe('getBatchContacts — seeded demo data', () => {
   test('Lisa: name, email, phone', async () => {
     const lisaToken = keyToken(lisaJwk);
-    const res = await post('getBatchContacts', { identity: lisaJwk, demo: true, targetTokens: [lisaToken] });
+    const res = await post('getBatchContacts', { identity: lisaJwk, demo: true });
     const body = await res.text();
     assert.strictEqual(res.status, 200, `getBatchContacts failed: ${body}`);
     const data = JSON.parse(body);
-    const contact = data[lisaToken]?.contact;
+    const self = data.contacts?.find(c => c.token === lisaToken);
+    const contact = self?.contact;
     assert.strictEqual(contact?.name, 'Lisa Simpson', `Expected "Lisa Simpson", got: ${contact?.name}`);
     const email = contact?.entries?.find(e => e.tech === 'email');
     assert.ok(email, `Expected email entry, got: ${JSON.stringify(contact?.entries)}`);
@@ -52,11 +53,12 @@ describe('getBatchContacts — seeded demo data', () => {
 
   test('Homer: name, notes, phone, email', async () => {
     const homerToken = keyToken(homerJwk);
-    const res = await post('getBatchContacts', { identity: homerJwk, demo: true, targetTokens: [homerToken] });
+    const res = await post('getBatchContacts', { identity: homerJwk, demo: true });
     const body = await res.text();
     assert.strictEqual(res.status, 200, `getBatchContacts failed: ${body}`);
     const data = JSON.parse(body);
-    const contact = data[homerToken]?.contact;
+    const self = data.contacts?.find(c => c.token === homerToken);
+    const contact = self?.contact;
     assert.strictEqual(contact?.name, 'Homer Simpson', `Expected "Homer Simpson", got: ${contact?.name}`);
     assert.strictEqual(contact?.notes, 'Never call me', `Expected notes "Never call me", got: ${contact?.notes}`);
     const phone = contact?.entries?.find(e => e.tech === 'phone');

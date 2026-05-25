@@ -68,8 +68,7 @@ Future<void> _runTest() async {
       delegateKeyPair: delegateKeyPair);
   final identityToken = signInState.identityToken!;
 
-  Future<Map<String, ContactResult>> load() =>
-      getBatchContacts([identityToken], true);
+  Future<ContactsData> load() => getBatchContacts(true);
 
   // 1. Save contact info.
   await load();
@@ -84,7 +83,7 @@ Future<void> _runTest() async {
   await channelFactory.clearCache(); // flush optimistic write to Firestore before CF reads
 
   // 2. Read back — verify contact.
-  var readResult = (await load())[identityToken]!;
+  var readResult = (await load()).byToken[identityToken]!;
   _assert(readResult.contact?.name == 'Homer Simpson',
       'save contact: name="${readResult.contact?.name}"');
   _assert(readResult.contact?.notes == 'Test notes xyz',
@@ -105,7 +104,7 @@ Future<void> _runTest() async {
   await channelFactory.clearCache();
 
   // 4. Read back — verify update.
-  readResult = (await load())[identityToken]!;
+  readResult = (await load()).byToken[identityToken]!;
   _assert(readResult.contact?.name == 'Homer J. Simpson',
       'contact update: name="${readResult.contact?.name}"');
   _assert(readResult.contact?.entries.length == 2,

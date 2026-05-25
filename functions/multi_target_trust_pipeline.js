@@ -26,8 +26,8 @@ class MultiTargetTrustPipeline {
    * @param {string[]} targets - list of identity tokens to build graphs for
    * @returns {Promise<Map<string, object>>} map of target token → TrustGraph
    */
-  async buildAll(targets, { fedRegistry = new Map() } = {}) {
-    const cache = new Map(); // token → Statement[]
+  async buildAll(targets, { fedRegistry = new Map(), initialCache = new Map() } = {}) {
+    const cache = new Map(initialCache); // token → Statement[], pre-populated from Pass 1
 
     // Per-target state
     const states = new Map();
@@ -52,30 +52,34 @@ class MultiTargetTrustPipeline {
         }
       }
 
-      if (needed.size === 0) break;
+      // When all frontier tokens are already cached we skip fetching but still
+      // need to advance the graphs, so only break when there is no frontier at all.
+      const hasFrontier = [...states.values()].some(s => s.frontier.size > 0);
+      if (!hasFrontier) break;
 
-      // Fetch, grouped by endpoint when sourceFor is provided
-      if (this.sourceFor) {
-        const byUrl = new Map();
-        for (const tok of needed) {
-          const url = fedRegistry.get(tok) ?? null;
-          if (!byUrl.has(url)) byUrl.set(url, []);
-          byUrl.get(url).push(tok);
-        }
-        for (const [url, keys] of byUrl) {
-          const src = url ? this.sourceFor(url) : this.source;
-          const fetched = await src.fetch(Object.fromEntries(keys.map(k => [k, null])));
+      // Fetch uncached tokens, grouped by endpoint when sourceFor is provided
+      if (needed.size > 0) {
+        if (this.sourceFor) {
+          const byUrl = new Map();
+          for (const tok of needed) {
+            const url = fedRegistry.get(tok) ?? null;
+            if (!byUrl.has(url)) byUrl.set(url, []);
+            byUrl.get(url).push(tok);
+          }
+          for (const [url, keys] of byUrl) {
+            const src = url ? this.sourceFor(url) : this.source;
+            const fetched = await src.fetch(Object.fromEntries(keys.map(k => [k, null])));
+            for (const [tok, stmts] of Object.entries(fetched)) cache.set(tok, stmts);
+          }
+        } else {
+          const fetchMap = Object.fromEntries([...needed].map(k => [k, null]));
+          const fetched = await this.source.fetch(fetchMap);
           for (const [tok, stmts] of Object.entries(fetched)) cache.set(tok, stmts);
         }
-      } else {
-        const fetchMap = Object.fromEntries([...needed].map(k => [k, null]));
-        const fetched = await this.source.fetch(fetchMap);
-        for (const [tok, stmts] of Object.entries(fetched)) cache.set(tok, stmts);
-      }
-
-      // Ensure every requested token has a cache entry
-      for (const tok of needed) {
-        if (!cache.has(tok)) cache.set(tok, []);
+        // Ensure every requested token has a cache entry
+        for (const tok of needed) {
+          if (!cache.has(tok)) cache.set(tok, []);
+        }
       }
 
       // Advance each graph

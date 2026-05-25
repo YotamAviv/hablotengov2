@@ -46,9 +46,11 @@ async function parseStatements(statements) {
     return {
       iToken,
       subjectToken,
+      subjectPubKey: vs?.subject ?? null,
       verb: vs?.verb ?? null,
       revokeAt: s.with?.revokeAt ?? null,
       endpoint: s.with?.endpoint?.url ?? null,
+      moniker: s.with?.moniker ?? null,
       raw: s,
     };
   }));
@@ -126,6 +128,18 @@ async function reduceTrustGraph(pov, byIssuer, { pathRequirement, maxDegrees = k
   const trustedBy = new Map();
   const graphForPathfinding = new Map();
   const visited = new Set([pov]);
+  const monikers = new Map(); // canonicalToken → string[] (in BFS order, first = best)
+  const pubKeys = new Map(); // token → pubKeyJson
+
+  // Collect pubKeys from self-signed statements (delegate statements signed by identity key).
+  for (const [token, stmts] of parsed) {
+    for (const s of stmts) {
+      if (s.iToken === token && !pubKeys.has(token)) {
+        pubKeys.set(token, s.raw.I);
+        break;
+      }
+    }
+  }
 
   function resolveCanonical(token) {
     let cur = token;
@@ -252,6 +266,16 @@ async function reduceTrustGraph(pov, byIssuer, { pathRequirement, maxDegrees = k
 
         const foundPaths = _findNodeDisjointPaths(pov, effectiveSubject, graphForPathfinding, searchLimit);
         if (foundPaths.length >= requiredPaths) {
+          // Collect moniker (BFS order ensures first seen = from closest issuer).
+          if (s.moniker) {
+            if (!monikers.has(effectiveSubject)) monikers.set(effectiveSubject, []);
+            const list = monikers.get(effectiveSubject);
+            if (!list.includes(s.moniker)) list.push(s.moniker);
+          }
+          // Collect pubKey: use subject directly when it's the canonical token.
+          if (s.subjectPubKey && s.subjectToken === effectiveSubject && !pubKeys.has(effectiveSubject)) {
+            pubKeys.set(effectiveSubject, s.subjectPubKey);
+          }
           paths.set(effectiveSubject, foundPaths);
           if (!visited.has(effectiveSubject)) {
             visited.add(effectiveSubject);
@@ -291,6 +315,8 @@ async function reduceTrustGraph(pov, byIssuer, { pathRequirement, maxDegrees = k
     blocked,
     paths,
     notifications: [...uniqueNotifications.values()],
+    monikers,
+    pubKeys,
   };
 }
 
