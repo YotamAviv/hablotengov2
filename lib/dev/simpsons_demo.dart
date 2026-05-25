@@ -47,9 +47,6 @@ void main() async {
     channelFactory.registerRedirect('https://write.one-of-us.net', '${oneofusWriteUrl(true)}/write2');
     channelFactory.registerRedirect('https://export.hablotengo.com', habloExportUrl(true));
     channelFactory.registerRedirect('https://write.hablotengo.com', '${habloFunctionsBaseUrl(true)}/write');
-  } else {
-    channelFactory.registerRedirect('https://export.hablotengo.com', '${habloFunctionsBaseUrl(false)}/export');
-    channelFactory.registerRedirect('https://write.hablotengo.com', '${habloFunctionsBaseUrl(false)}/write');
   }
   runApp(WidgetRunner(scenario: _run));
 }
@@ -126,23 +123,17 @@ class HabloIdentityKey {
     final delegateToken = getToken(_delegatePubKeyJson!);
     final streamId = '${delegateToken}_$token';
 
-    // Demo auth works in the emulator; production requires a real signed session.
-    final Map<String, dynamic> authParams;
-    if (kEmulator) {
-      authParams = {'identity': identityPubKeyJson, 'demo': true};
-    } else {
-      final sessionTime = DateTime.now().toUtc().toIso8601String();
-      final sessionSignature = await _keyPair.sign('hablotengo.com-$token-$sessionTime');
-      authParams = {
-        'identity': identityPubKeyJson,
-        'sessionTime': sessionTime,
-        'sessionSignature': sessionSignature,
-      };
-    }
+    final sessionTime = DateTime.now().toUtc().toIso8601String();
+    final sessionSignature = await _keyPair.sign('hablotengo.com-$token-$sessionTime');
+    final Map<String, dynamic> authParams = {
+      'identity': identityPubKeyJson,
+      'sessionTime': sessionTime,
+      'sessionSignature': sessionSignature,
+    };
     _habloAuth = authParams;
     final channel = channelFactory.getChannel<HabloStatement>(habloExportUrl(false), streamId);
 
-    await channel.fetch({delegateToken: null});
+    channel.seed(delegateToken, []);
     await channel.push(
       buildFullSetJson(
         set: {

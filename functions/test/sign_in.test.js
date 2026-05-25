@@ -2,7 +2,8 @@ const { test, describe } = require('node:test');
 const assert = require('node:assert');
 const crypto = require('crypto');
 const { keyToken } = require('../verify_util');
-const { verifySessionSignature, DOMAIN, MAX_SESSION_AGE_MS } = require('../hablo_sign_in');
+const { verifySessionSignature, SESSION_WINDOW_MS } = require('../authenticate');
+const { DOMAIN, MAX_SESSION_AGE_MS } = require('../hablo_sign_in');
 
 function makeKey() {
   const { privateKey, publicKey } = crypto.generateKeyPairSync('ed25519');

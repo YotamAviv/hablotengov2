@@ -1,10 +1,13 @@
-// issuerToken (= delegate token from statement.I) is embedded in streamName
-// by the client: streamName = "${delegateToken}_${identityToken}".
-// We use streamName directly as the Firestore document name under streams/.
-function streamRef(db, issuerToken, streamName) {
-  return db.collection('streams').doc(streamName);
+// Hablo streams: streams/{compoundKey}/statements
+// compoundKey = "${delegateToken}_${identityToken}"
+//
+// The shared callers place the compound key in different argument slots:
+//   write2.js:         streamRef(db, delegateToken, compoundKey)    → compoundKey is doc2
+//   statement_fetcher: statementsRef(db, compoundKey, 'statements') → compoundKey is col1
+function streamRef(db, _delegateToken, compoundKey) {
+  return db.collection('streams').doc(compoundKey);
 }
-function statementsRef(db, issuerToken, streamName) {
-  return streamRef(db, issuerToken, streamName).collection('statements');
+function statementsRef(db, compoundKey, _streamName) {
+  return db.collection('streams').doc(compoundKey).collection('statements');
 }
 module.exports = { streamRef, statementsRef };

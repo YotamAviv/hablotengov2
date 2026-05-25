@@ -32,12 +32,6 @@ exports.getBatchContacts = onRequest({ cors: true, minInstances: 1 }, async (req
   await handleGetBatchContacts(req, res);
 });
 
-const { handleGetMyContact } = require('./get_my_contact');
-
-exports.getMyContact = onRequest({ cors: true, minInstances: 1 }, async (req, res) => {
-  await handleGetMyContact(req, res);
-});
-
 const { handleDeleteAccount } = require('./delete_account');
 
 exports.deleteAccount = onRequest({ cors: true }, async (req, res) => {
@@ -52,14 +46,9 @@ exports.write = onRequest({ cors: true, minInstances: 1 }, async (req, res) => {
   await handleWrite2(req, res);
 });
 
-const { handleExportStatement } = require('./export_statement');
-
-exports.exportContact = onRequest({ cors: true, minInstances: 1 }, async (req, res) => {
-  await handleExportStatement(req, res);
-});
-
-const { handleExportMine } = require('./export_mine');
+const { handleExport } = require('./export');
+const { habloExportAuthHook } = require('./read_auth');
 
 exports.export = onRequest({ cors: true, minInstances: 1 }, async (req, res) => {
-  await handleExportMine(req, res);
+  await handleExport(req, res, { authHook: habloExportAuthHook });
 });

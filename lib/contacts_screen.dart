@@ -12,6 +12,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import 'constants.dart';
 import 'contact_service.dart';
+import 'models/contact_statement.dart' show ContactData;
 import 'crypto_shield_button.dart';
 import 'export_keys_button.dart';
 import 'my_contact_screen.dart' show ContactEntryViewRow, MyContactSheet;
@@ -37,7 +38,15 @@ class ContactsScreen extends StatefulWidget {
   final String? startupTarget;
   final ValueNotifier<bool>? isLoading;
   final ValueNotifier<bool>? isDelegateError;
-  const ContactsScreen({super.key, required this.emulator, this.startupTarget, this.isLoading, this.isDelegateError});
+  final void Function(bool hasCard)? onContactCardStatus;
+  const ContactsScreen({
+    super.key,
+    required this.emulator,
+    this.startupTarget,
+    this.isLoading,
+    this.isDelegateError,
+    this.onContactCardStatus,
+  });
 
   @override
   State<ContactsScreen> createState() => ContactsScreenState();
@@ -72,6 +81,25 @@ class ContactsScreenState extends State<ContactsScreen> {
 
   void reload() => _load();
 
+  ContactResult? get myContactResult => _results?[signInState.identityToken];
+
+  void updateMyContact(ContactData contact) {
+    final selfToken = signInState.identityToken;
+    if (selfToken == null || _results == null) return;
+    final existing = _results![selfToken];
+    if (existing == null) return;
+    setState(() {
+      _results![selfToken] = ContactResult(
+        status: existing.status,
+        contact: contact,
+        someHidden: existing.someHidden,
+        defaultStrictness: contact.defaultStrictness,
+        rawStatement: existing.rawStatement,
+        delegateStatement: existing.delegateStatement,
+      );
+    });
+  }
+
   List<String> get myMonikers {
     final me = _contacts?.firstWhere(
       (c) => c.token == signInState.identityToken,
@@ -94,14 +122,22 @@ class ContactsScreenState extends State<ContactsScreen> {
 
       debugPrint('ContactsScreen: pov=${graph.pov.value}');
       debugPrint('ContactsScreen: trusted tokens=${graph.orderedKeys.length}');
-      debugPrint('ContactsScreen: orderedKeys=${graph.orderedKeys.map((k) => k.value.substring(0, 8)).join(', ')}');
+      debugPrint(
+        'ContactsScreen: orderedKeys=${graph.orderedKeys.map((k) => k.value.substring(0, 8)).join(', ')}',
+      );
       final povGroup = graph.getEquivalenceGroup(graph.pov);
-      debugPrint('ContactsScreen: pov equivalenceGroup=${povGroup.map((k) => k.value.substring(0, 8)).join(', ')}');
-      debugPrint('ContactsScreen: equivalent2canonical=${graph.equivalent2canonical.entries.map((e) => '${e.key.value.substring(0, 8)}→${e.value.value.substring(0, 8)}').join(', ')}');
+      debugPrint(
+        'ContactsScreen: pov equivalenceGroup=${povGroup.map((k) => k.value.substring(0, 8)).join(', ')}',
+      );
+      debugPrint(
+        'ContactsScreen: equivalent2canonical=${graph.equivalent2canonical.entries.map((e) => '${e.key.value.substring(0, 8)}→${e.value.value.substring(0, 8)}').join(', ')}',
+      );
       for (final key in graph.orderedKeys) {
         final canonical = graph.resolveIdentity(key);
         if (canonical != key) {
-          debugPrint('ContactsScreen: resolveIdentity ${key.value.substring(0, 8)} → ${canonical.value.substring(0, 8)}');
+          debugPrint(
+            'ContactsScreen: resolveIdentity ${key.value.substring(0, 8)} → ${canonical.value.substring(0, 8)}',
+          );
         }
       }
 
@@ -122,9 +158,11 @@ class ContactsScreenState extends State<ContactsScreen> {
         );
         if (!isAssociated) {
           if (mounted) {
-            setState(() => _delegateError =
-                'Delegate key not associated with identity.\n\n'
-                'Address this on your identity app (ONE-OF-US.NET) and refresh.');
+            setState(
+              () => _delegateError =
+                  'Delegate key not associated with identity.\n\n'
+                  'Address this on your identity app (ONE-OF-US.NET) and refresh.',
+            );
             _delegateErrorNotifier.value = true;
           }
           return;
@@ -155,7 +193,15 @@ class ContactsScreenState extends State<ContactsScreen> {
       if (contacts.isNotEmpty) {
         final tokens = contacts.map((c) => c.token).toList();
         final results = await getBatchContacts(tokens, widget.emulator);
-        if (mounted) setState(() => _results = results);
+        if (mounted) {
+          setState(() => _results = results);
+          settingsState.applyServerSettings(
+            results[signInState.identityToken]?.contact?.defaultStrictness,
+          );
+          widget.onContactCardStatus?.call(
+            results[signInState.identityToken]?.rawStatement != null,
+          );
+        }
       }
 
       // Auto-open contact detail after results are ready
@@ -189,17 +235,27 @@ class ContactsScreenState extends State<ContactsScreen> {
     if (card == null) return false;
     if (card.name.toLowerCase().contains(query)) return true;
     if (card.notes != null && card.notes!.toLowerCase().contains(query)) return true;
-    return card.entries.any((e) =>
-        e.tech.toLowerCase().contains(query) || e.value.toLowerCase().contains(query));
+    return card.entries.any(
+      (e) => e.tech.toLowerCase().contains(query) || e.value.toLowerCase().contains(query),
+    );
   }
 
   void _showContactDetail(BuildContext context, _ContactEntry contact) {
     if (contact.token == signInState.identityToken) {
+      final preloaded = _results?[contact.token];
+      if (preloaded == null) return;
       showModalBottomSheet(
         context: context,
         isScrollControlled: true,
-        builder: (_) => MyContactSheet(emulator: widget.emulator, monikers: contact.monikers, labeler: _labeler!, isLoading: _loadingNotifier),
-      ).then((deleted) { if (deleted == true && mounted) _load(); });
+        builder: (_) => MyContactSheet(
+          emulator: widget.emulator,
+          monikers: contact.monikers,
+          labeler: _labeler!,
+          isLoading: _loadingNotifier,
+          preloaded: preloaded,
+          onContactSaved: updateMyContact,
+        ),
+      );
       return;
     }
     final result = _results?[contact.token];
@@ -226,7 +282,11 @@ class ContactsScreenState extends State<ContactsScreen> {
             children: [
               const Icon(Icons.error_outline, size: 64, color: Colors.red),
               const SizedBox(height: 16),
-              Text(_delegateError!, textAlign: TextAlign.center, style: const TextStyle(fontSize: 15)),
+              Text(
+                _delegateError!,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 15),
+              ),
             ],
           ),
         ),
@@ -257,9 +317,11 @@ class ContactsScreenState extends State<ContactsScreen> {
 
         visibleContacts.sort((a, b) {
           final aName = _results?[a.token]?.status == ContactStatus.found
-              ? _results![a.token]!.contact!.name : a.name;
+              ? _results![a.token]!.contact!.name
+              : a.name;
           final bName = _results?[b.token]?.status == ContactStatus.found
-              ? _results![b.token]!.contact!.name : b.name;
+              ? _results![b.token]!.contact!.name
+              : b.name;
           final aKey = _sortKey(aName);
           final bKey = _sortKey(bName);
           for (int i = 0; i < aKey.length && i < bKey.length; i++) {
@@ -300,9 +362,7 @@ class ContactsScreenState extends State<ContactsScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _ContactNameWidget(contact: contact, result: result),
-                  ],
+                  children: [_ContactNameWidget(contact: contact, result: result)],
                 ),
               ),
             ),
@@ -324,22 +384,24 @@ class _ContactNameWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (result == null) {
-      return Text(contact.name,
-          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black38));
+      return Text(
+        contact.name,
+        style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black38),
+      );
     }
     return switch (result!.status) {
       ContactStatus.found => Text(
-          result!.contact!.name,
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
+        result!.contact!.name,
+        style: const TextStyle(fontWeight: FontWeight.bold),
+      ),
       ContactStatus.denied => Text(
-          contact.name,
-          style: const TextStyle(color: Color(0xFFE91E8C), fontStyle: FontStyle.italic),
-        ),
+        contact.name,
+        style: const TextStyle(color: Color(0xFFE91E8C), fontStyle: FontStyle.italic),
+      ),
       ContactStatus.notFound => Text(
-          contact.name,
-          style: const TextStyle(color: Color(0xFF4CAF50), fontStyle: FontStyle.italic),
-        ),
+        contact.name,
+        style: const TextStyle(color: Color(0xFF4CAF50), fontStyle: FontStyle.italic),
+      ),
     };
   }
 }
@@ -349,25 +411,34 @@ class _ContactDetailSheet extends StatelessWidget {
   final ContactResult? result;
   final bool emulator;
   final Labeler labeler;
-  const _ContactDetailSheet({required this.contact, required this.result, required this.emulator, required this.labeler});
+  const _ContactDetailSheet({
+    required this.contact,
+    required this.result,
+    required this.emulator,
+    required this.labeler,
+  });
 
   Uri _nerdsterUri({
     required String povPayload,
     required String targetPayload,
     required String identityPathsReq,
   }) {
-    return Uri.parse(nerdsterAppUrl(emulator)).replace(queryParameters: {
-      if (emulator) 'fire': 'emulator',
-      'pov': povPayload,
-      'target': targetPayload,
-      'fcontext': '<identity>',
-      'identityPathsReq': identityPathsReq,
-    });
+    return Uri.parse(nerdsterAppUrl(emulator)).replace(
+      queryParameters: {
+        if (emulator) 'fire': 'emulator',
+        'pov': povPayload,
+        'target': targetPayload,
+        'fcontext': '<identity>',
+        'identityPathsReq': identityPathsReq,
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final String myPayload = jsonEncode(FedKey(signInState.identityJson!, kNativeEndpoint).toPayload());
+    final String myPayload = jsonEncode(
+      FedKey(signInState.identityJson!, kNativeEndpoint).toPayload(),
+    );
     final String contactPayload = jsonEncode(FedKey.find(IdentityKey(contact.token))!.toPayload());
 
     return SafeArea(
@@ -378,14 +449,15 @@ class _ContactDetailSheet extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              result?.status == ContactStatus.found
-                  ? result!.contact!.name
-                  : contact.name,
+              result?.status == ContactStatus.found ? result!.contact!.name : contact.name,
               style: Theme.of(context).textTheme.titleLarge,
             ),
             if (contact.monikers.isNotEmpty) ...[
               const SizedBox(height: 4),
-              Text(contact.monikers.join(', '), style: const TextStyle(fontSize: 13, color: Colors.grey)),
+              Text(
+                contact.monikers.join(', '),
+                style: const TextStyle(fontSize: 13, color: Colors.grey),
+              ),
             ],
             const SizedBox(height: 12),
             if (result == null)
@@ -399,8 +471,7 @@ class _ContactDetailSheet extends StatelessWidget {
                 SelectableText(result!.contact!.notes!),
                 const SizedBox(height: 8),
               ],
-              for (final entry in result!.contact!.entries)
-                ContactEntryViewRow(entry: entry),
+              for (final entry in result!.contact!.entries) ContactEntryViewRow(entry: entry),
               if (result!.someHidden) ...[
                 const SizedBox(height: 8),
                 const Text(
@@ -413,7 +484,7 @@ class _ContactDetailSheet extends StatelessWidget {
                 Row(
                   children: [
                     CryptoShieldButton(statement: result!.rawStatement!, labeler: labeler),
-                    ExportKeysButton(targetToken: contact.token, emulator: emulator),
+                    ExportKeysButton(rawStatement: result!.rawStatement!, emulator: emulator),
                   ],
                 ),
               ],
@@ -457,4 +528,3 @@ class _ContactDetailSheet extends StatelessWidget {
     );
   }
 }
-

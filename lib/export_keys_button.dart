@@ -1,28 +1,32 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:oneofus_common/jsonish.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'constants.dart';
 import 'sign_in_state.dart';
 
 class ExportKeysButton extends StatelessWidget {
-  final String targetToken;
+  final Json rawStatement;
   final bool emulator;
-  const ExportKeysButton({super.key, required this.targetToken, required this.emulator});
+  const ExportKeysButton({super.key, required this.rawStatement, required this.emulator});
 
   Uri _buildUrl() {
-    final params = <String, String>{
-      'targetToken': targetToken,
-      'identity': jsonEncode(signInState.identityJson!),
+    final delegateToken = getToken(rawStatement['I'] as Map<String, dynamic>);
+    final identityToken = (rawStatement['with'] as Map<String, dynamic>)['verifiedIdentity'] as String;
+    final streamKey = '${delegateToken}_$identityToken';
+    final authPacket = <String, dynamic>{
+      'identity': signInState.identityJson!,
+      if (!signInState.isDemo) ...{
+        'sessionTime': signInState.sessionTime!,
+        'sessionSignature': signInState.sessionSignature!,
+      },
     };
-    if (signInState.isDemo) {
-      params['demo'] = 'true';
-    } else {
-      params['sessionTime'] = signInState.sessionTime!;
-      params['sessionSignature'] = signInState.sessionSignature!;
-    }
-    return Uri.parse(habloExportContactUrl(emulator)).replace(queryParameters: params);
+    return Uri.parse(habloExportUrl(emulator)).replace(queryParameters: {
+      'spec': streamKey,
+      'auth': jsonEncode(authPacket),
+    });
   }
 
   @override
@@ -62,9 +66,9 @@ class ExportKeysButton extends StatelessWidget {
                         width: dialogW,
                         child: InkWell(
                           onTap: () => launchUrl(uri, mode: LaunchMode.externalApplication),
-                          child: Text(
+                          child: const Text(
                             'Private signed statements',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 13,
                               color: Colors.blue,
                               decoration: TextDecoration.underline,

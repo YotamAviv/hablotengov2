@@ -21,14 +21,7 @@ Changing an *existing* Cloud Run domain mapping is instant (no DNS record
 change). Adding a *new* domain would require DNS propagation — this plan avoids
 that.
 
-### Steps — two-phase due to service worker caching
-
-Flutter web builds include a service worker that intercepts all requests and
-serves from its own cache. `Ctrl-Shift-R` bypasses the HTTP cache but not the
-service worker. Chrome only activates a new service worker after all tabs
-running the old version are closed — users who leave a tab open can hold the
-old bundle for days or weeks. The `Cache-Control: no-cache` on `index.html` is
-largely irrelevant here.
+### Steps — two-phase due to browser caching
 
 `exportContact` is low-traffic and non-critical (sharing your public key card),
 so a broken period for stale clients is acceptable. Still, deploy the code

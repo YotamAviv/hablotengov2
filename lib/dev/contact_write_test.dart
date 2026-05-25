@@ -1,4 +1,4 @@
-// Integration test: setMyContact and setSettingsField preserve each other's data.
+// Integration test: setMyContact saves and restores correctly.
 //
 // Prerequisites:
 //   - Hablo emulator running from golden export: bin/start_emulator.sh
@@ -20,6 +20,7 @@ import 'package:hablotengo/firebase_options.dart';
 import 'package:hablotengo/models/contact_statement.dart';
 import 'package:hablotengo/models/hablo_statement.dart';
 import 'package:hablotengo/sign_in_state.dart';
+import 'package:oneofus_common/jsonish.dart';
 import 'package:hablotengo/dev/widget_runner.dart';
 import 'package:hablotengo/dev/simpsons_private_keys.dart';
 
@@ -58,9 +59,20 @@ Future<void> _runTest() async {
     ((delegateData['keyPair'] as Map).cast<String, dynamic>()),
   );
 
-  await signInState.signInDemoWithDelegate(identityPubKeyJson, delegateKeyPair);
+  final sessionTime = DateTime.now().toUtc().toIso8601String();
+  final identityToken0 = getToken(identityPubKeyJson);
+  final sessionSignature = await identityKeyPair.sign('hablotengo.com-$identityToken0-$sessionTime');
+  await signInState.restoreKeys(identityPubKeyJson,
+      sessionTime: sessionTime,
+      sessionSignature: sessionSignature,
+      delegateKeyPair: delegateKeyPair);
+  final identityToken = signInState.identityToken!;
+
+  Future<Map<String, ContactResult>> load() =>
+      getBatchContacts([identityToken], true);
 
   // 1. Save contact info.
+  await load();
   final contact = ContactData(
     name: 'Homer Simpson',
     notes: 'Test notes xyz',
@@ -68,32 +80,20 @@ Future<void> _runTest() async {
       const ContactEntry(tech: 'email', value: 'homer@test.com', preferred: true),
     ],
   );
-  await setMyContact(contact, true);
+  await setMyContact(contact);
   await channelFactory.clearCache(); // flush optimistic write to Firestore before CF reads
 
   // 2. Read back — verify contact.
-  var result = await getMyContact(true);
-  _assert(result.contact?.name == 'Homer Simpson',
-      'save contact: name="${result.contact?.name}"');
-  _assert(result.contact?.notes == 'Test notes xyz',
-      'save contact: notes="${result.contact?.notes}"');
-  _assert(result.contact?.entries.length == 1,
-      'save contact: entries=${result.contact?.entries.length}');
+  var readResult = (await load())[identityToken]!;
+  _assert(readResult.contact?.name == 'Homer Simpson',
+      'save contact: name="${readResult.contact?.name}"');
+  _assert(readResult.contact?.notes == 'Test notes xyz',
+      'save contact: notes="${readResult.contact?.notes}"');
+  _assert(readResult.contact?.entries.length == 1,
+      'save contact: entries=${readResult.contact?.entries.length}');
 
-  // 3. Save a setting.
-  await setSettingsField('defaultStrictness', 'strict', true);
-  await channelFactory.clearCache();
-
-  // 4. Read back — contact must still be present after settings save.
-  result = await getMyContact(true);
-  _assert(result.contact?.name == 'Homer Simpson',
-      'settings save wiped name: "${result.contact?.name}"');
-  _assert(result.contact?.entries.length == 1,
-      'settings save wiped entries: ${result.contact?.entries.length}');
-  _assert(result.rawStatement?['set']?['defaultStrictness'] == 'strict',
-      'settings not saved: ${result.rawStatement?['set']}');
-
-  // 5. Save updated contact.
+  // 3. Save updated contact.
+  await load();
   final updated = ContactData(
     name: 'Homer J. Simpson',
     entries: [
@@ -101,30 +101,26 @@ Future<void> _runTest() async {
       const ContactEntry(tech: 'phone', value: '+1-555-HOMER'),
     ],
   );
-  await setMyContact(updated, true);
+  await setMyContact(updated);
   await channelFactory.clearCache();
 
-  // 6. Read back — settings must still be present after contact save.
-  result = await getMyContact(true);
-  _assert(result.contact?.name == 'Homer J. Simpson',
-      'contact update: name="${result.contact?.name}"');
-  _assert(result.contact?.entries.length == 2,
-      'contact update: entries=${result.contact?.entries.length}');
-  _assert(result.rawStatement?['set']?['defaultStrictness'] == 'strict',
-      'contact save wiped settings: ${result.rawStatement?['set']}');
+  // 4. Read back — verify update.
+  readResult = (await load())[identityToken]!;
+  _assert(readResult.contact?.name == 'Homer J. Simpson',
+      'contact update: name="${readResult.contact?.name}"');
+  _assert(readResult.contact?.entries.length == 2,
+      'contact update: entries=${readResult.contact?.entries.length}');
 
-  // 7. Restore original demo contact so other tests see clean data.
-  await setMyContact(
-    const ContactData(
-      name: 'Homer Simpson',
-      notes: 'Never call me',
-      entries: [
-        ContactEntry(tech: 'phone', value: '+1-555-HOMER', preferred: true),
-        ContactEntry(tech: 'email', value: 'homer@springfield-nuclear.gov'),
-      ],
-    ),
-    true,
-  );
+  // 5. Restore original demo contact so other tests see clean data.
+  await load();
+  await setMyContact(const ContactData(
+    name: 'Homer Simpson',
+    notes: 'Never call me',
+    entries: [
+      ContactEntry(tech: 'phone', value: '+1-555-HOMER', preferred: true),
+      ContactEntry(tech: 'email', value: 'homer@springfield-nuclear.gov'),
+    ],
+  ));
   await channelFactory.clearCache();
 
   // ignore: avoid_print

@@ -68,8 +68,8 @@ class SignInState with ChangeNotifier {
     _signer = await OouSigner.make(keyPair);
   }
 
-  void restoreKeys(Json identityJson,
-      {String? sessionTime, String? sessionSignature, OouKeyPair? delegateKeyPair}) {
+  Future<void> restoreKeys(Json identityJson,
+      {String? sessionTime, String? sessionSignature, OouKeyPair? delegateKeyPair}) async {
     _identityJson = identityJson;
     _sessionTime = sessionTime;
     _sessionSignature = sessionSignature;
@@ -79,10 +79,9 @@ class SignInState with ChangeNotifier {
     _signer = null;
     debugPrint('SignInState.restoreKeys: identityToken=${getToken(identityJson)} hasSession=${sessionTime != null}');
     if (delegateKeyPair != null) {
-      _setDelegate(delegateKeyPair).then((_) => notifyListeners());
-    } else {
-      notifyListeners();
+      await _setDelegate(delegateKeyPair);
     }
+    notifyListeners();
   }
 
   void restoreDemoKeys(Json identityJson) {

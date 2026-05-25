@@ -9,6 +9,7 @@ import 'package:oneofus_common/ui/json_display.dart';
 
 import 'app.dart';
 import 'constants.dart';
+import 'error_dialog.dart';
 import 'models/hablo_statement.dart';
 import 'sign_in_state.dart';
 import 'firebase_options.dart'; // gitignored; regenerate with: flutterfire configure
@@ -25,6 +26,8 @@ void _signOutIfSessionExpiringSoon() {
     signInState.signOut();
   }
 }
+
+final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -59,20 +62,26 @@ Future<void> main() async {
     writeAuthHook: () => signInState.authPayload()!,
     readAuthHook: () => signInState.authPayload()!,
   );
+  // write.hablotengo.com doesn't resolve; always redirect to the actual CF URL.
+  channelFactory.registerRedirect('https://write.hablotengo.com', '${habloFunctionsBaseUrl(emulator)}/write');
   if (emulator) {
     channelFactory.registerRedirect('https://export.one-of-us.net', oneofusExportUrl(true));
     channelFactory.registerRedirect('https://write.one-of-us.net', '${oneofusWriteUrl(true)}/write2');
     channelFactory.registerRedirect('https://export.hablotengo.com', habloExportUrl(true));
-    channelFactory.registerRedirect('https://write.hablotengo.com', '${habloFunctionsBaseUrl(true)}/write');
-  } else {
-    channelFactory.registerRedirect('https://export.hablotengo.com', '${habloFunctionsBaseUrl(false)}/export');
-    channelFactory.registerRedirect('https://write.hablotengo.com', '${habloFunctionsBaseUrl(false)}/write');
   }
+
+  channelFactory.onWriteError = (e, stack) async {
+    debugPrint('main: write error: $e\n$stack');
+    final context = _navigatorKey.currentContext;
+    if (context != null) {
+      ErrorDialog.show(context, 'Save failed', e, stack);
+    }
+  };
 
   startKeyStorageCoordinator();
   await tryRestoreKeys();
   if (!demoMode && signInState.isDemo) signInState.signOut();
   _signOutIfSessionExpiringSoon();
 
-  runApp(HabloApp(firestore: firestore, emulator: emulator, demoMode: demoMode, startupTarget: startupTarget));
+  runApp(HabloApp(firestore: firestore, emulator: emulator, demoMode: demoMode, startupTarget: startupTarget, navigatorKey: _navigatorKey));
 }

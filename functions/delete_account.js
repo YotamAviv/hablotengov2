@@ -1,5 +1,5 @@
 const admin = require('firebase-admin');
-const { verifyAuth } = require('./auth_util');
+const { authenticate } = require('./auth_util');
 const { MultiTargetTrustPipeline } = require('./multi_target_trust_pipeline');
 const { oneofusSource, federatedSourceFor } = require('./oneofus_source');
 const { permissivePathRequirement } = require('./trust_logic');
@@ -36,31 +36,26 @@ async function _deleteStreamsForIdentity(db, identityToken) {
 async function handleDeleteAccount(req, res) {
   res.setHeader('Content-Type', 'application/json');
 
-  const auth = verifyAuth(req, res);
-  if (!auth) return;
-
-  if (auth.isDemo && process.env.FUNCTIONS_EMULATOR !== 'true') {
-    res.status(403).send('Demo users cannot delete their account');
-    return;
-  }
+  const authResult = authenticate(req.body, 'write', res);
+  if (!authResult) return;
 
   try {
     const db = admin.firestore();
 
     const pipeline = new MultiTargetTrustPipeline(oneofusSource, { pathRequirement: permissivePathRequirement, sourceFor: federatedSourceFor });
-    const graphs = await pipeline.buildAll([auth.identityToken]);
-    const graph = graphs.get(auth.identityToken);
+    const graphs = await pipeline.buildAll([authResult.identityToken]);
+    const graph = graphs.get(authResult.identityToken);
 
     const myOldKeys = graph
       ? [...graph.equivalent2canonical.keys()].filter(
-          k => _resolveCanonical(graph.equivalent2canonical, k) === auth.identityToken
+          k => _resolveCanonical(graph.equivalent2canonical, k) === authResult.identityToken
         )
       : [];
     const allOldTokens = myOldKeys;
 
-    await Promise.all([auth.identityToken, ...allOldTokens].map(tok => _deleteStreamsForIdentity(db, tok)));
+    await Promise.all([authResult.identityToken, ...allOldTokens].map(tok => _deleteStreamsForIdentity(db, tok)));
 
-    console.log(`[delete_account] deleted account for ${auth.identityToken} oldKeys=${allOldTokens.length}`);
+    console.log(`[delete_account] deleted account for ${authResult.identityToken} oldKeys=${allOldTokens.length}`);
     res.status(200).json({});
   } catch (e) {
     console.error('[delete_account] error:', e.message);

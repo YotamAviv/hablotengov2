@@ -8,28 +8,12 @@
  * without signature verification.
  */
 
-const crypto = require('crypto');
 const admin = require('firebase-admin');
 const { keyToken } = require('./verify_util');
+const { verifySessionSignature } = require('./authenticate');
 
 const DOMAIN = 'hablotengo.com';
-const MAX_SESSION_AGE_MS = 5 * 60 * 1000; // 5 minutes
-
-/**
- * Verifies the session signature.
- * Session string: '<domain>-<identityKeyToken>-<sessionTime>'
- */
-function verifySessionSignature(identityPublicKeyJwk, domain, identityKeyToken, sessionTime, sessionSignature) {
-  try {
-    const sessionString = `${domain}-${identityKeyToken}-${sessionTime}`;
-    const publicKey = crypto.createPublicKey({ key: identityPublicKeyJwk, format: 'jwk' });
-    const sigBytes = Buffer.from(sessionSignature, 'hex');
-    return crypto.verify(null, Buffer.from(sessionString), publicKey, sigBytes);
-  } catch (e) {
-    console.error('[sign_in] verifySessionSignature error:', e.message);
-    return false;
-  }
-}
+const MAX_SESSION_AGE_MS = 5 * 60 * 1000; // 5 minutes for sign-in (tighter than session window)
 
 async function handleSignIn(req, res) {
   const body = req.body;

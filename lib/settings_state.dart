@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-import 'contact_service.dart' show getMyContact, setSettingsField;
 
 const FlutterSecureStorage _storage = FlutterSecureStorage();
 const String _kShowEmptyCards  = 'hablo_pref_show_empty_cards';
@@ -16,19 +15,16 @@ class SettingsState extends ChangeNotifier {
   bool showCrypto = false;
   String defaultStrictness = 'standard'; // 'permissive', 'standard', 'strict'
 
-  Future<void> load(bool emulator) async {
-    // Preferences are local — read from secure storage.
+  Future<void> load() async {
     showEmptyCards  = (await _storage.read(key: _kShowEmptyCards))  == '1';
     showHiddenCards = (await _storage.read(key: _kShowHiddenCards)) == '1';
     showCrypto      = (await _storage.read(key: _kShowCrypto))      == '1';
+    notifyListeners();
+  }
 
-    // defaultStrictness is a signed setting — fetch from server via getMyContact.
-    try {
-      final result = await getMyContact(emulator);
-      defaultStrictness = result.rawStatement?['set']?['defaultStrictness'] as String? ?? 'standard';
-    } catch (e) {
-      debugPrint('SettingsState.load error: $e');
-    }
+  // Called by the contacts screen after its batch load, which already has self's rawStatement.
+  void applyServerSettings(String? defaultStrictness) {
+    this.defaultStrictness = defaultStrictness ?? 'standard';
     notifyListeners();
   }
 
@@ -75,14 +71,5 @@ class SettingsState extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> setDefaultStrictness(String value, bool emulator) async {
-    defaultStrictness = value;
-    notifyListeners();
-    try {
-      await setSettingsField('defaultStrictness', value, emulator);
-    } catch (e) {
-      debugPrint('SettingsState.setDefaultStrictness error: $e');
-    }
-  }
 
 }
