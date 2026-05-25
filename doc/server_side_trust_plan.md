@@ -55,7 +55,8 @@ Client becomes a pure renderer: no `TrustPipeline`, no `TrustGraph`, no `Labeler
   "contacts": [
     {
       "token":    "<canonical identity token>",
-      "monikers": ["<all OOU labels, first is the primary display name>"],
+      "label":    "<unique display name — monikers[0] with suffix if needed, e.g. 'Bob (2)'>",
+      "monikers": ["<all raw OOU monikers, used for search>"],
       "contact":  { "name": "...", "entries": [...], ... },
       "status":   "found | not_found | denied",
       "defaultStrictness": "standard",
@@ -71,14 +72,14 @@ Ordered by trust distance (POV first, then breadth-first order from `orderedKeys
 
 ### The labeling gap
 
-`monikers` requires a JS `Labeler`. This is the main missing piece. `monikers[0]` serves as the primary display name.
+`label` and `monikers` require a JS `Labeler`. This is the main missing piece. `label` is the unique display name (may differ from `monikers[0]` when two identities share the same name).
 
 The Dart `Labeler` reads OOU trust statement data accumulated during the BFS:
 - Collects all monikers proposed for each canonical identity across all issuers
 - Picks the best moniker as the first one encountered during the BFS walk (closest issuer comes first naturally)
 - Applies uniqueness suffixes when two identities share the same name ("Bob", "Bob (2)")
 
-The JS Labeler must replicate this logic exactly — BFS order ensures `monikers[0]` is from the closest issuer, but uniqueness suffixes still need to be applied across all identities.
+The JS Labeler must replicate this logic exactly. BFS order ensures the first-seen moniker is from the closest issuer; uniqueness suffixes ("Bob (2)") are applied globally across all identities to produce `label`.
 
 **Options for addressing the gap:**
 
@@ -97,7 +98,7 @@ Recommendation: implement JS Labeler (Option A). The structure of the data is al
 
 - `TrustPipeline` / `TrustGraph` / `Labeler` imports in `contacts_screen.dart`
 - `DelegateResolver` usage in `contacts_screen.dart`
-- The `_ContactEntry` type can be simplified (server returns `monikers`; no
+- The `_ContactEntry` type can be simplified (server returns `label` and `monikers`; no
   equivalent-key handling needed — each entry is one canonical identity)
 - `getBatchContacts` in `contact_service.dart` takes a plain identity token (no token list)
 
