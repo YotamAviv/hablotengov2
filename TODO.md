@@ -1,5 +1,56 @@
 # TODO
 
+## Make `emulator` a top-level global (like `channelFactory`, `signInState`)
+
+Determined once in `main.dart` from `Uri.base.host == 'localhost'`, never changes.
+Removing it from every widget constructor and function signature is mechanical but spans many files.
+
+## Move Dart initial OOU graph search to find my network to CF JavaScript.
+Should be way faster.
+Nerdster does it in Dart because:
+- it shows the trust statements
+- history... I developed it, debugged it, tested it, and so Dart.
+
+## Secure sign-in
+
+Three parties: **phone** (holds identity Ed25519 private key), **webapp** (browser), **server** (CF + Firestore).
+
+Self-contained auth packet:
+- identity — identity public key (JWK)
+- browserToken — token of the browser Ed25519 public key
+- sessionSignature — phone's Ed25519 signature over "hablotengo.com-{identityToken}-{browserToken}" (proves the phone bound this browser key to this identity)
+- requestTime — current timestamp
+- requestSignature — browser Ed25519 signature over "hablotengo.com-{identityToken}-{requestTime}" (proves the browser holds the key right now)
+
+### What we can't promise
+
+- **Revocation.** There is no server-side session to invalidate. A stolen credential is valid until it expires — nothing we can do before then.
+- **Live attacker.** A short window stops replayed credentials, not a live attacker who has compromised the browser (XSS, malicious extension). They can sign fresh requests using the key in memory.
+
+
+## DEFERRED: `distinct` doesn't collapse Hablo contact statements
+
+`statement_fetcher.makedistinct` deduplicates by (statementType, subjectToken) where the subject
+is the value of the verb field. For Hablo, that's the data blob `s['set']` — which changes on every
+write — so every statement is seen as distinct and the full history is returned instead of just the head.
+
+**Proposed fix:** change the statement schema so the subject of `set` is a stable constant (e.g.
+the string `"contact"`), and move the actual data into `with.blob`:
+
+```json
+{ "set": "contact", "with": { "blob": { "name": "...", "entries": [...] }, "verifiedIdentity": "..." } }
+```
+
+`makedistinct` would then correctly keep only the most recent `set`/`"contact"` statement per stream.
+
+**Migration concern:** existing users have statements in the current schema (`set: {name, entries, ...}`).
+A schema change would require either a Firestore migration or backward-compatible reading of both formats.
+Decision deferred until we decide whether to migrate or support both.
+
+**Current state:** the export endpoint returns all statements in the stream (not just the head).
+`ChannelFactory` caches the full history. App still works because it uses the most recent statement,
+but it is wasteful and the right fix is the schema change above.
+
 ## BUG? Do we show statements when fields are hidden?
 
 ## Demo hidden fields
