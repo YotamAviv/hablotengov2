@@ -6,5 +6,5 @@ cd "$(dirname "$SCRIPT_DIR")"
 
 # Fixed port so Nerdster can link here (nerdsterAppUrl emulator → localhost:8765,
 # hablotengo links to itself at localhost:8770).
-echo "Open: http://localhost:8770/?fire=emulator"
+echo "http://localhost:8770/?fire=emulator"
 flutter run -d chrome --web-port=8770

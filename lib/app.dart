@@ -67,11 +67,8 @@ class _HabloHomeState extends State<_HabloHome> {
   void _onSignInChanged() {
     if (!signInState.hasIdentity) {
       _maybeShowDialog();
-    } else if (_dialogShowing && mounted) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (_dialogShowing && mounted) Navigator.of(context).pop();
-      });
     }
+    // No auto-close: user sees key arrival animation and closes manually.
   }
 
   void _maybeShowDialog() {
@@ -79,8 +76,11 @@ class _HabloHomeState extends State<_HabloHome> {
     _dialogShowing = true;
     showDialog(
       context: context,
-      barrierDismissible: false,
-      builder: (_) => Dialog(child: SignInDialog(config: _buildSignInConfig())),
+      barrierDismissible: true,
+      builder: (_) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: SignInDialog(config: _buildSignInConfig()),
+      ),
     ).then((_) {
       _dialogShowing = false;
       if (!signInState.hasIdentity && mounted) _maybeShowDialog();
