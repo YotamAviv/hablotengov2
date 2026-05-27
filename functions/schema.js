@@ -10,4 +10,5 @@ function streamRef(db, _delegateToken, compoundKey) {
 function statementsRef(db, compoundKey, _streamName) {
   return db.collection('streams').doc(compoundKey).collection('statements');
 }
-module.exports = { streamRef, statementsRef };
+const statementPrefix = 'com.hablotengo';
+module.exports = { streamRef, statementsRef, statementPrefix };
