@@ -1,10 +1,5 @@
 # TODO
 
-## Make `emulator` a top-level global (like `channelFactory`, `signInState`)
-
-Determined once in `main.dart` from `Uri.base.host == 'localhost'`, never changes.
-Removing it from every widget constructor and function signature is mechanical but spans many files.
-
 ## Secure sign-in
 
 Three parties: **phone** (holds identity Ed25519 private key), **webapp** (browser), **server** (CF + Firestore).

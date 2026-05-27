@@ -19,14 +19,12 @@ List<String> _sortKey(String name) {
 }
 
 class ContactsScreen extends StatefulWidget {
-  final bool emulator;
   final String? startupTarget;
   final ValueNotifier<bool>? isLoading;
   final ValueNotifier<bool>? isDelegateError;
   final void Function(bool hasCard)? onContactCardStatus;
   const ContactsScreen({
     super.key,
-    required this.emulator,
     this.startupTarget,
     this.isLoading,
     this.isDelegateError,
@@ -88,7 +86,7 @@ class ContactsScreenState extends State<ContactsScreen> {
     _loadingNotifier.value = true;
     _delegateErrorNotifier.value = false;
     try {
-      final data = await getBatchContacts(widget.emulator);
+      final data = await getBatchContacts();
 
       if (mounted) {
         setState(() {
@@ -144,7 +142,6 @@ class ContactsScreenState extends State<ContactsScreen> {
         context: context,
         isScrollControlled: true,
         builder: (_) => MyContactSheet(
-          emulator: widget.emulator,
           monikers: contact.monikers,
           isLoading: _loadingNotifier,
           preloaded: contact,
@@ -156,10 +153,7 @@ class ContactsScreenState extends State<ContactsScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder: (_) => _ContactDetailSheet(
-        contact: contact,
-        emulator: widget.emulator,
-      ),
+      builder: (_) => _ContactDetailSheet(contact: contact),
     );
   }
 
@@ -273,15 +267,14 @@ class _ContactNameWidget extends StatelessWidget {
 
 class _ContactDetailSheet extends StatelessWidget {
   final TrustContact contact;
-  final bool emulator;
-  const _ContactDetailSheet({required this.contact, required this.emulator});
+  const _ContactDetailSheet({required this.contact});
 
   Uri _nerdsterUri({
     required String povPayload,
     required String targetPayload,
     required String identityPathsReq,
   }) {
-    return Uri.parse(nerdsterAppUrl(emulator)).replace(
+    return Uri.parse(nerdsterAppUrl).replace(
       queryParameters: {
         if (emulator) 'fire': 'emulator',
         'pov': povPayload,
@@ -337,7 +330,7 @@ class _ContactDetailSheet extends StatelessWidget {
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    ExportKeysButton(rawStatement: contact.rawStatement!, emulator: emulator),
+                    ExportKeysButton(rawStatement: contact.rawStatement!),
                   ],
                 ),
               ],

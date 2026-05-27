@@ -9,8 +9,7 @@ import 'sign_in_state.dart';
 
 class ExportKeysButton extends StatelessWidget {
   final Json rawStatement;
-  final bool emulator;
-  const ExportKeysButton({super.key, required this.rawStatement, required this.emulator});
+  const ExportKeysButton({super.key, required this.rawStatement});
 
   Uri _buildUrl() {
     final delegateToken = getToken(rawStatement['I'] as Map<String, dynamic>);
@@ -23,7 +22,7 @@ class ExportKeysButton extends StatelessWidget {
         'sessionSignature': signInState.sessionSignature!,
       },
     };
-    return Uri.parse(habloExportUrl(emulator)).replace(queryParameters: {
+    return Uri.parse(habloExportUrl).replace(queryParameters: {
       'spec': streamKey,
       'auth': jsonEncode(authPacket),
     });

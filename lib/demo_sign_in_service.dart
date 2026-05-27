@@ -10,9 +10,9 @@ List<String> get kSimpsonsKeyNames => kSimpsonsPublicKeys.keys
     .where((k) => !k.contains('-'))
     .toList();
 
-Future<void> demoSignIn(String keyName, bool emulator) async {
+Future<void> demoSignIn(String keyName) async {
   final jwk = (kSimpsonsPublicKeys[keyName]! as Map).cast<String, dynamic>();
-  final url = Uri.parse(habloDemoSignInUrl(emulator));
+  final url = Uri.parse(habloDemoSignInUrl);
   debugPrint('demoSignIn: signing in as $keyName via $url');
 
   final response = await http.post(

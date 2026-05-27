@@ -71,8 +71,8 @@ Map<String, dynamic> _authPayload() {
   };
 }
 
-Future<ContactsData> getBatchContacts(bool emulator) async {
-  final url = Uri.parse(habloGetBatchContactsUrl(emulator));
+Future<ContactsData> getBatchContacts() async {
+  final url = Uri.parse(habloGetBatchContactsUrl);
   debugPrint('getBatchContacts: $url');
   final body = <String, dynamic>{
     ..._authPayload(),
@@ -180,8 +180,8 @@ Future<void> setMyContact(ContactData contact) async {
 }
 
 
-Future<void> deleteAccount(bool emulator) async {
-  final url = Uri.parse(habloDeleteAccountUrl(emulator));
+Future<void> deleteAccount() async {
+  final url = Uri.parse(habloDeleteAccountUrl);
   debugPrint('deleteAccount: $url');
   final response = await http.post(
     url,

@@ -34,13 +34,14 @@ void main() async {
 
   HabloStatement.init();
 
+  emulator = true;
   channelFactory = ChannelFactory(FireChoice.emulator);
   channelFactory.register('hablotengo.com',
     writeAuthHook: () => signInState.authPayload()!,
     readAuthHook: () => signInState.authPayload()!,
   );
-  channelFactory.registerRedirect('https://export.hablotengo.com', habloExportUrl(true));
-  channelFactory.registerRedirect('https://write.hablotengo.com', '${habloFunctionsBaseUrl(true)}/write');
+  channelFactory.registerRedirect('https://export.hablotengo.com', habloExportUrl);
+  channelFactory.registerRedirect('https://write.hablotengo.com', '$habloFunctionsBaseUrl/write');
 
   runApp(WidgetRunner(scenario: _runTest));
 }
@@ -68,7 +69,7 @@ Future<void> _runTest() async {
       delegateKeyPair: delegateKeyPair);
   final identityToken = signInState.identityToken!;
 
-  Future<ContactsData> load() => getBatchContacts(true);
+  Future<ContactsData> load() => getBatchContacts();
 
   // 1. Save contact info.
   await load();

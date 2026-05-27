@@ -16,12 +16,11 @@ import 'sign_in_state.dart';
 
 class HabloApp extends StatelessWidget {
   final FirebaseFirestore firestore;
-  final bool emulator;
   final bool demoMode;
   final String? startupTarget;
   final GlobalKey<NavigatorState>? navigatorKey;
 
-  const HabloApp({super.key, required this.firestore, required this.emulator, this.demoMode = false, this.startupTarget, this.navigatorKey});
+  const HabloApp({super.key, required this.firestore, this.demoMode = false, this.startupTarget, this.navigatorKey});
 
   @override
   Widget build(BuildContext context) {
@@ -29,18 +28,17 @@ class HabloApp extends StatelessWidget {
       title: 'HabloTengo',
       theme: ThemeData(colorSchemeSeed: Colors.teal),
       navigatorKey: navigatorKey,
-      home: _HabloHome(firestore: firestore, emulator: emulator, demoMode: demoMode, startupTarget: startupTarget),
+      home: _HabloHome(firestore: firestore, demoMode: demoMode, startupTarget: startupTarget),
     );
   }
 }
 
 class _HabloHome extends StatefulWidget {
   final FirebaseFirestore firestore;
-  final bool emulator;
   final bool demoMode;
   final String? startupTarget;
 
-  const _HabloHome({required this.firestore, required this.emulator, required this.demoMode, this.startupTarget});
+  const _HabloHome({required this.firestore, required this.demoMode, this.startupTarget});
 
   @override
   State<_HabloHome> createState() => _HabloHomeState();
@@ -90,7 +88,7 @@ class _HabloHomeState extends State<_HabloHome> {
   Future<void> _doDemoSignIn() async {
     setState(() => _demoSigningIn = true);
     try {
-      await demoSignIn(_selectedCharacter, widget.emulator);
+      await demoSignIn(_selectedCharacter);
     } catch (e, st) {
       debugPrint('_doDemoSignIn error: $e\n$st');
     } finally {
@@ -119,7 +117,6 @@ class _HabloHomeState extends State<_HabloHome> {
             settingsState.reset();
             signInState.signOut();
           },
-          emulator: widget.emulator,
           demoMode: widget.demoMode,
           startupTarget: widget.startupTarget,
         );
@@ -130,10 +127,10 @@ class _HabloHomeState extends State<_HabloHome> {
   SignInConfig _buildSignInConfig() {
     return SignInConfig(
       sessionFactory: () async {
-        debugPrint('sessionFactory: creating session domain=$kHabloDomain signInUrl=${habloSignInUrl(widget.emulator)}');
+        debugPrint('sessionFactory: creating session domain=$kHabloDomain signInUrl=$habloSignInUrl');
         final session = await SignInSession.create(
           domain: kHabloDomain,
-          signInUrl: habloSignInUrl(widget.emulator),
+          signInUrl: habloSignInUrl,
         );
         debugPrint('sessionFactory: session created forPhone=${session.forPhone}');
         return session;
@@ -151,7 +148,7 @@ class _HabloHomeState extends State<_HabloHome> {
       delegatePublicKeyJson: () => signInState.delegatePublicKeyJson,
       onSignOut: signInState.signOut,
       onForgetIdentity: signInState.signOut,
-      showPasteInitially: widget.emulator,
+      showPasteInitially: emulator,
       trailingWidget: ValueListenableBuilder<bool>(
         valueListenable: storeKeys,
         builder: (_, value, _) => Row(
@@ -253,11 +250,10 @@ class _DemoLanding extends StatelessWidget {
 
 class _SignedInScreen extends StatefulWidget {
   final VoidCallback onSignOut;
-  final bool emulator;
   final bool demoMode;
   final String? startupTarget;
 
-  const _SignedInScreen({required this.onSignOut, required this.emulator, required this.demoMode, this.startupTarget});
+  const _SignedInScreen({required this.onSignOut, required this.demoMode, this.startupTarget});
 
   @override
   State<_SignedInScreen> createState() => _SignedInScreenState();
@@ -293,7 +289,7 @@ class _SignedInScreenState extends State<_SignedInScreen> with SingleTickerProvi
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder: (_) => MyContactSheet(emulator: widget.emulator, monikers: _contactsKey.currentState?.myMonikers ?? [], preloaded: preloaded, onContactSaved: (contact) => _contactsKey.currentState?.updateMyContact(contact)),
+      builder: (_) => MyContactSheet(monikers: _contactsKey.currentState?.myMonikers ?? [], preloaded: preloaded, onContactSaved: (contact) => _contactsKey.currentState?.updateMyContact(contact)),
     );
   }
 
@@ -353,7 +349,7 @@ class _SignedInScreenState extends State<_SignedInScreen> with SingleTickerProvi
           TextButton(onPressed: widget.onSignOut, child: const Text('Sign out')),
         ],
       ),
-      body: ContactsScreen(key: _contactsKey, emulator: widget.emulator, startupTarget: widget.startupTarget, isLoading: _isLoading, isDelegateError: _isDelegateError, onContactCardStatus: (hasCard) => setState(() => _hasContactCard = hasCard)),
+      body: ContactsScreen(key: _contactsKey, startupTarget: widget.startupTarget, isLoading: _isLoading, isDelegateError: _isDelegateError, onContactCardStatus: (hasCard) => setState(() => _hasContactCard = hasCard)),
     );
   }
 }

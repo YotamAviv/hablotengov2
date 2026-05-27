@@ -17,13 +17,12 @@ import 'visibility_picker.dart';
 /// No reload occurs unless the user explicitly triggers one at the contacts-screen level,
 /// which re-opens this sheet with fresh preloaded data.
 class MyContactSheet extends StatefulWidget {
-  final bool emulator;
   final List<String> monikers;
   final Labeler? labeler;
   final ValueNotifier<bool>? isLoading;
   final TrustContact preloaded;
   final void Function(ContactData)? onContactSaved;
-  const MyContactSheet({super.key, required this.emulator, required this.preloaded, this.monikers = const [], this.labeler, this.isLoading, this.onContactSaved});
+  const MyContactSheet({super.key, required this.preloaded, this.monikers = const [], this.labeler, this.isLoading, this.onContactSaved});
 
   @override
   State<MyContactSheet> createState() => _MyContactSheetState();
@@ -115,7 +114,7 @@ class _MyContactSheetState extends State<MyContactSheet> {
     widget.isLoading?.value = true;
     setState(() => _deleting = true);
     try {
-      await deleteAccount(widget.emulator);
+      await deleteAccount();
       settingsState.reset();
       if (mounted) Navigator.of(context).pop(true);
     } catch (e) {
@@ -308,7 +307,7 @@ class _MyContactSheetState extends State<MyContactSheet> {
                   children: [
                     if (widget.labeler != null)
                       CryptoShieldButton(statement: _rawStatement, labeler: widget.labeler!),
-                    ExportKeysButton(rawStatement: _rawStatement!, emulator: widget.emulator),
+                    ExportKeysButton(rawStatement: _rawStatement!),
                   ],
                 ),
               ],

@@ -35,7 +35,7 @@ Future<void> main() async {
   HabloStatement.init();
 
   final String? fireParam = kIsWeb ? Uri.base.queryParameters['fire'] : null;
-  final bool emulator = kIsWeb && Uri.base.host == 'localhost' && fireParam != 'prod';
+  emulator = kIsWeb && Uri.base.host == 'localhost' && fireParam != 'prod';
   final bool demoMode = kIsWeb && Uri.base.queryParameters['demo'] == 'true';
   final String? startupTarget = kIsWeb ? Uri.base.queryParameters['target'] : null;
   debugPrint('main: Uri.base=${Uri.base} emulator=$emulator demoMode=$demoMode startupTarget=$startupTarget');
@@ -63,11 +63,11 @@ Future<void> main() async {
     readAuthHook: () => signInState.authPayload()!,
   );
   // write.hablotengo.com doesn't resolve; always redirect to the actual CF URL.
-  channelFactory.registerRedirect('https://write.hablotengo.com', '${habloFunctionsBaseUrl(emulator)}/write');
+  channelFactory.registerRedirect('https://write.hablotengo.com', '$habloFunctionsBaseUrl/write');
   if (emulator) {
-    channelFactory.registerRedirect('https://export.one-of-us.net', oneofusExportUrl(true));
-    channelFactory.registerRedirect('https://write.one-of-us.net', '${oneofusWriteUrl(true)}/write2');
-    channelFactory.registerRedirect('https://export.hablotengo.com', habloExportUrl(true));
+    channelFactory.registerRedirect('https://export.one-of-us.net', oneofusExportUrl);
+    channelFactory.registerRedirect('https://write.one-of-us.net', '$oneofusWriteUrl/write2');
+    channelFactory.registerRedirect('https://export.hablotengo.com', habloExportUrl);
   }
 
   channelFactory.onWriteError = (e, stack) async {
@@ -83,5 +83,5 @@ Future<void> main() async {
   if (!demoMode && signInState.isDemo) signInState.signOut();
   _signOutIfSessionExpiringSoon();
 
-  runApp(HabloApp(firestore: firestore, emulator: emulator, demoMode: demoMode, startupTarget: startupTarget, navigatorKey: _navigatorKey));
+  runApp(HabloApp(firestore: firestore, demoMode: demoMode, startupTarget: startupTarget, navigatorKey: _navigatorKey));
 }

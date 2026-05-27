@@ -36,6 +36,7 @@ void main() async {
   }
   TrustStatement.init();
   HabloStatement.init();
+  emulator = kEmulator;
   channelFactory = ChannelFactory(kEmulator ? FireChoice.emulator : FireChoice.prod);
   channelFactory.register('one-of-us.net');
   channelFactory.register('hablotengo.com',
@@ -43,10 +44,10 @@ void main() async {
     readAuthHook: () => _habloAuth!,
   );
   if (kEmulator) {
-    channelFactory.registerRedirect('https://export.one-of-us.net', oneofusExportUrl(true));
-    channelFactory.registerRedirect('https://write.one-of-us.net', '${oneofusWriteUrl(true)}/write2');
-    channelFactory.registerRedirect('https://export.hablotengo.com', habloExportUrl(true));
-    channelFactory.registerRedirect('https://write.hablotengo.com', '${habloFunctionsBaseUrl(true)}/write');
+    channelFactory.registerRedirect('https://export.one-of-us.net', oneofusExportUrl);
+    channelFactory.registerRedirect('https://write.one-of-us.net', '$oneofusWriteUrl/write2');
+    channelFactory.registerRedirect('https://export.hablotengo.com', habloExportUrl);
+    channelFactory.registerRedirect('https://write.hablotengo.com', '$habloFunctionsBaseUrl/write');
   }
   runApp(WidgetRunner(scenario: _run));
 }
@@ -131,7 +132,7 @@ class HabloIdentityKey {
       'sessionSignature': sessionSignature,
     };
     _habloAuth = authParams;
-    final channel = channelFactory.getChannel<HabloStatement>(habloExportUrl(false), streamId);
+    final channel = channelFactory.getChannel<HabloStatement>(kHabloExportUrl, streamId);
 
     channel.seed(delegateToken, []);
     await channel.push(
