@@ -11,6 +11,26 @@ import 'export_keys_button.dart';
 import 'my_contact_screen.dart' show ContactEntryViewRow, MyContactSheet;
 import 'settings_state.dart';
 import 'sign_in_state.dart';
+import 'package:oneofus_common/jsonish.dart';
+import 'package:oneofus_common/ui/json_display.dart';
+
+class _ContactsInterpreter implements Interpreter {
+  final Map<String, String> _labels;
+
+  _ContactsInterpreter(ContactsData data)
+      : _labels = {
+          for (final c in data.contacts)
+            if (c.rawStatement != null && c.label != null)
+              getToken(c.rawStatement!['I'] as Map<String, dynamic>): '${c.label}@hablotengo.com',
+        };
+
+  @override
+  dynamic interpret(dynamic d) {
+    if (d is Map && d['crv'] == 'Ed25519') return _labels[getToken(d)] ?? '<crypto key>';
+    if (d is Map) return {for (final k in (d as Map<String, dynamic>).keys) k: interpret(d[k])};
+    return d;
+  }
+}
 
 List<String> _sortKey(String name) {
   final cleaned = name.replaceAll(RegExp(r'\([^)]*\)'), '').trim();
@@ -93,6 +113,7 @@ class ContactsScreenState extends State<ContactsScreen> {
           _contacts = data.contacts;
           _results = data.byToken;
           _error = null;
+          JsonDisplay.interpreter = _ContactsInterpreter(data);
         });
         settingsState.applyServerSettings(
           data.byToken[data.selfToken]?.contact?.defaultStrictness,

@@ -46,10 +46,11 @@ async function habloExportAuthHook(req, res) {
   if (viewerToken !== targetIdentityToken) {
     try {
       const fedRegistry = new Map();
+      const oouCache = new Map();
       const viewerPipeline = new TrustPipeline(oneofusSource, { sourceFor: federatedSourceFor });
-      await viewerPipeline.build(viewerToken, { fedRegistry });
+      await viewerPipeline.build(viewerToken, { fedRegistry, oouCache });
       const targetPipeline = new TrustPipeline(oneofusSource, { sourceFor: federatedSourceFor });
-      const graph = await targetPipeline.build(targetIdentityToken, { fedRegistry });
+      const graph = await targetPipeline.build(targetIdentityToken, { fedRegistry, oouCache });
       if (!graph.distances.has(viewerToken)) { res.status(403).send('Not trusted'); return null; }
     } catch (e) {
       console.error('[read_auth] trust check error:', e.message);
