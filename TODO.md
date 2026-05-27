@@ -45,6 +45,18 @@ Decision deferred until we decide whether to migrate or support both.
 `ChannelFactory` caches the full history. App still works because it uses the most recent statement,
 but it is wasteful and the right fix is the schema change above.
 
+## BUG: Delegate domain filtering — fetch only hablotengo.com delegates
+
+`DelegateResolver.getDelegatesForIdentity` returns delegates for all domains (nerdster.org,
+hablotengo.com, etc.). Wherever Hablo fetches delegate content, it should filter to
+`hablotengo.com` delegates only — the same fix applied to Nerdster in May 2026:
+
+- Dart: filter `getDelegatesForIdentity(...)` results by `getDomainForDelegate(k) == kHabloDomain`
+  when building both `myDelegateKeys` and `delegateKeysToFetch`.
+- `_collectSources` (or equivalent): use `?.` / null-check instead of `!` when looking up a
+  delegate key in `contentResult.delegateContent`, since not all resolver delegates are fetched.
+- JS (`seed_hablotengo.js` or equivalent): filter `collectDelegateTokens` by `s.with?.domain === 'hablotengo.com'`.
+
 ## BUG? Do we show statements when fields are hidden?
 
 ## Demo hidden fields
