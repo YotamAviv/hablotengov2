@@ -4,7 +4,9 @@ const { TrustPipeline } = require('./trust_pipeline');
 const { MultiTargetTrustPipeline } = require('./multi_target_trust_pipeline');
 const { oneofusSource, federatedSourceFor } = require('./oneofus_source');
 const { permissivePathRequirement, defaultPathRequirement, strictPathRequirement } = require('./trust_logic');
-const { resolveStatement } = require('./resolve_statement');
+const { fetchStatements, fetchDelegateStatements } = require('./statement_fetcher');
+const { delegateStreamKey } = require('./schema');
+const { DelegateResolver } = require('./delegate_resolver');
 
 function _meetsStrictness(level, distance, pathCount) {
   if (level === 'permissive') return true;
@@ -96,6 +98,11 @@ async function handleGetBatchContacts(req, res) {
 
     // Canonical tokens in trust order, excluding old/replaced keys and self.
     const { orderedKeys, equivalent2canonical, monikers, pubKeys } = requesterGraph;
+
+    // Build delegate resolver once, pre-resolving all identities in trust-proximity
+    // order so "first one wins" conflict detection is stable across parallel fetches.
+    const resolver = new DelegateResolver(requesterGraph, oouCache, { maxStatements: 1 });
+    for (const token of orderedKeys) resolver.getDelegatesForIdentity(token);
     const canonicalTargets = orderedKeys.filter(t =>
       t !== authResult.identityToken && !equivalent2canonical.has(t)
     );
@@ -128,15 +135,14 @@ async function handleGetBatchContacts(req, res) {
     const contactEntries = await Promise.all([
       // Self entry
       (async () => {
-        const stmt = await resolveStatement(db, authResult.identityToken, { oouCache });
+        const stmt = (await fetchDelegateStatements(resolver, authResult.identityToken))[0] ?? null;
         const set = stmt ? (stmt.with?.blob ?? stmt.set ?? {}) : null;
 
         let delegateStatement = null;
         if (currentDelegateToken) {
-          const streamName = `${currentDelegateToken}_${authResult.identityToken}`;
-          const snap = await db.collection('streams').doc(streamName)
-            .collection('statements').orderBy('time', 'desc').limit(1).get();
-          if (!snap.empty) delegateStatement = snap.docs[0].data();
+          const streamKey = delegateStreamKey(currentDelegateToken, authResult.identityToken);
+          const statements = await fetchStatements({ [streamKey]: null }, { limit: 1 }, [], db);
+          delegateStatement = statements[0] ?? null;
         }
 
         const selfPubKey = req.body.identity;
@@ -156,7 +162,7 @@ async function handleGetBatchContacts(req, res) {
 
       // Trusted contacts
       ...trustedTargets.map(async ({ token, graph }) => {
-        const stmt = await resolveStatement(db, token, { oouCache });
+        const stmt = (await fetchDelegateStatements(resolver, token))[0] ?? null;
         const pubKey = pubKeys.get(token);
         const endpoint = fedRegistry.get(token);
         const keyPayload = pubKey

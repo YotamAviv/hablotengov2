@@ -165,7 +165,7 @@ class _Character {
 }
 
 const List<_Character> _simpsons = [
-  _Character('homer',
+  _Character('homer2',
       displayName: 'Homer Simpson',
       notes: "Never call me",
       entries: [

@@ -33,7 +33,7 @@ function signSession(privateKey, identityToken, sessionTime) {
 }
 
 const lisaJwk = SIMPSONS_KEYS['lisa'];
-const homerJwk = SIMPSONS_KEYS['homer'];
+const homerJwk = SIMPSONS_KEYS['homer2'];
 
 describe('getBatchContacts — seeded demo data', () => {
   test('Lisa: name, email, phone', async () => {

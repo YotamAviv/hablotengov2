@@ -10,5 +10,12 @@ function streamRef(db, _delegateToken, compoundKey) {
 function statementsRef(db, compoundKey, _streamName) {
   return db.collection('streams').doc(compoundKey).collection('statements');
 }
+function delegateStatementsRef(db, delegateToken, identityToken) {
+  return db.collection('streams').doc(`${delegateToken}_${identityToken}`).collection('statements');
+}
+function delegateStreamKey(delegateToken, identityToken) {
+  return `${delegateToken}_${identityToken}`;
+}
 const statementPrefix = 'com.hablotengo';
-module.exports = { streamRef, statementsRef, statementPrefix };
+const domain = 'hablotengo.com';
+module.exports = { streamRef, statementsRef, delegateStatementsRef, delegateStreamKey, statementPrefix, domain };

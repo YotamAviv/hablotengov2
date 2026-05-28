@@ -14,7 +14,8 @@ CHARACTERS = [
 script_dir = os.path.dirname(os.path.abspath(__file__))
 private_keys_path = os.path.join(script_dir, '..', '..', 'simpsonsPrivateKeys.json')
 hablo_keys_path = os.path.join(script_dir, '..', '..', 'simpsonsHabloKeys.json')
-out_dir = os.path.join(script_dir, '..')
+out_dir = os.path.join(script_dir, '..', 'demo_identities')
+os.makedirs(out_dir, exist_ok=True)
 
 with open(private_keys_path) as f:
     private_keys = json.load(f)
@@ -30,6 +31,9 @@ for key_name in CHARACTERS:
     delegate_key = hablo_keys.get(f'{key_name}-hablo0')
     if delegate_key:
         out['hablotengo.com'] = delegate_key['keyPair']
+    nerdster_key = private_keys.get(f'{key_name}-nerdster0')
+    if nerdster_key:
+        out['nerdster.org'] = nerdster_key['keyPair']
     filename = f'{key_name}-identity.json'
     out_path = os.path.join(out_dir, filename)
     with open(out_path, 'w') as f:

@@ -29,8 +29,8 @@ curl -s --max-time 3 http://localhost:5004/ > /dev/null \
     || { echo "ERROR: lib/dev/simpsons_private_keys.dart missing. Run: python3 bin/gen_simpsons_private_keys_dart.py"; exit 1; }
 [ -f ../simpsonsHabloKeys.json ] \
     || { echo "ERROR: simpsonsHabloKeys.json missing. Run: bin/createSimpsonsContactData.sh"; exit 1; }
-grep -q 'homer-hablo0' lib/dev/simpsons_private_keys.dart \
-    || { echo "ERROR: homer-hablo0 missing from simpsons_private_keys.dart. Run: python3 bin/gen_simpsons_private_keys_dart.py"; exit 1; }
+grep -q 'homer2-hablo0' lib/dev/simpsons_private_keys.dart \
+    || { echo "ERROR: homer2-hablo0 missing from simpsons_private_keys.dart. Run: python3 bin/gen_simpsons_private_keys_dart.py"; exit 1; }
 echo "Prerequisites OK."
 echo ""
 

@@ -47,15 +47,14 @@ void main() async {
 }
 
 Future<void> _runTest() async {
-  // Sign in as Homer (demo) using his existing golden-export hablo delegate.
-  // Using homer-hablo0 writes to the canonical stream, not a new one.
-  final identityData = kSimpsonsPrivateKeys['homer']! as Map;
+  // Sign in as Homer2 (demo) using his hablo delegate.
+  final identityData = kSimpsonsPrivateKeys['homer2']! as Map;
   final identityKeyPair = await crypto.parseKeyPair(
     ((identityData['keyPair'] as Map).cast<String, dynamic>()),
   );
   final identityPubKeyJson = await (await identityKeyPair.publicKey).json;
 
-  final delegateData = kSimpsonsPrivateKeys['homer-hablo0']! as Map;
+  final delegateData = kSimpsonsPrivateKeys['homer2-hablo0']! as Map;
   final delegateKeyPair = await crypto.parseKeyPair(
     ((delegateData['keyPair'] as Map).cast<String, dynamic>()),
   );
