@@ -91,6 +91,15 @@ This generates the key files (`lib/dev/simpsons_public_keys.dart`,
 contact data to production. It authenticates using a real Ed25519 session signature
 (not the demo guard), so no guard disable/redeploy is needed.
 
+### 3. Generate identity files for Android sign-in
+
+```
+cd ~/src/github/hablotengo
+python3 bin/gen_identity_files.py
+```
+
+Writes per-character `../demo_identities/*-identity.json` files containing identity + nerdster/hablo delegate keys, used to sign in via the Android phone emulator.
+
 ### 4. Deploy and commit
 
 cd ~/src/github/oneofus
