@@ -16,20 +16,6 @@ Self-contained auth packet:
 - **Revocation.** There is no server-side session to invalidate. A stolen credential is valid until it expires — nothing we can do before then.
 - **Live attacker.** A short window stops replayed credentials, not a live attacker who has compromised the browser (XSS, malicious extension). They can sign fresh requests using the key in memory.
 
-## BUG: Delegate domain filtering — fetch only hablotengo.com delegates
-
-`DelegateResolver.getDelegatesForIdentity` returns delegates for all domains (nerdster.org,
-hablotengo.com, etc.). Wherever Hablo fetches delegate content, it should filter to
-`hablotengo.com` delegates only — the same fix applied to Nerdster in May 2026:
-
-- Dart: filter `getDelegatesForIdentity(...)` results by `getDomainForDelegate(k) == kHabloDomain`
-  when building both `myDelegateKeys` and `delegateKeysToFetch`.
-- `_collectSources` (or equivalent): use `?.` / null-check instead of `!` when looking up a
-  delegate key in `contentResult.delegateContent`, since not all resolver delegates are fetched.
-- JS (`seed_hablotengo.js` or equivalent): filter `collectDelegateTokens` by `s.with?.domain === 'hablotengo.com'`.
-
-## BUG? Do we show statements when fields are hidden?
-
 ## Demo hidden fields
 
 Find or create a case where there are hidden fields.
@@ -41,10 +27,6 @@ Can't show crypto proofs if fields are hidden.
 Show me:
 - who I trust at permissive / standard / strict / who can see my info at what level.
 - on someone's card, show how much they trust me.
-
-## Simpsons demo data - don't create multiple delegate keys
-
-Sometimes we run the hablo creation more than once. It shouldn't create a delegate key if a delegate statement already exists.
 
 ## MOOT, BUT LEAVE HERE AS A NOTE, DO NOT DELETE: Re-create PROD simpsons data and files
 
