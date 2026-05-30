@@ -19,7 +19,7 @@ And so URL spying on service's HTTP GETs doesn't give attackers too much.
 
 Goals / requirements:
 - prove that this request has been authorized using the identity private key 
-  - for this service (possesor of its signing key)
+  - for this service (possesor of its signing key) — servicePk distinguishes two apps on the same domain; they cannot act as each other
   - for this domain
   - with session expiration time (authorized by identity)
   - with a request expiration time (chosen by the service)
