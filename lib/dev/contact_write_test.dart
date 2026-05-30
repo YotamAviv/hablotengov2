@@ -37,8 +37,8 @@ void main() async {
   emulator = true;
   channelFactory = ChannelFactory(FireChoice.emulator);
   channelFactory.register('hablotengo.com',
-    writeAuthHook: () => signInState.authPayload()!,
-    readAuthHook: () => signInState.authPayload()!,
+    writeAuthHook: () async => signInState.authPayload()!,
+    readAuthHook: () async => signInState.authPayload()!,
   );
   channelFactory.registerRedirect('https://export.hablotengo.com', habloExportUrl);
   channelFactory.registerRedirect('https://write.hablotengo.com', '$habloFunctionsBaseUrl/write');
