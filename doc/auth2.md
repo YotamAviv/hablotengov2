@@ -48,8 +48,9 @@ Three parties:
    The server verifies the signature and checks the age against a 7-day window (`authenticate.js`).
 
 ## Transition (old phone apps, cached webapps)
-When the phone receives the new stuff (session contains "auth2"), it writes back the new stuff. No issues anticipated.
-
+The service will be updated well before the phone app.
+The updated phone app will respond with this new stuff.
+The updated services should be able to deal with old phone apps for a month or two.
 
 ## New stuff
 
@@ -75,17 +76,15 @@ This is used to name the Firestore subcollection where the phone writes the resp
 Phone responds with (POST to `url`, verified by CF, written to Firestore, read by service):
 ```json
 {
-  // from existing auth, for compatibility
   "session": "sessionToken",
   "identity": { /* identity public key JWK */ },
-  "sessionTime": "ISO timestamp",
-  "sessionSignature": "hex Ed25519 sig over '{domain}-{identityToken}-{sessionTime}'",
   "delegateCiphertext": "...",
   "ephemeralPK": { /* phone's ephemeral PKE public key used to encrypt delegate */ }
-  // new for auth2
   "sessionExpiration": "absolute ISO timestamp (now + 1 week)",
   "sessionSignature2": "hex Ed25519 sig over '{domain}-{identityToken}-{serviceKeyToken}-{sessionExpiration}'",
 }
+
+The service checks if the phone sent it sessionSignature or sessionSignature2 to know if the phone app is old or new. Service should continue to work with the old phone app for a month or two.
 ```
 
 ### requestCredential (service to server), self-contained auth packet
@@ -93,16 +92,16 @@ Expires in 10 seconds.
 
 Goal / requirements:
 - prove that this request has been authorized using the identity private key 
-  - for this service domain (possesor of its signing key)
+  - for this service (possesor of its signing key)
   - for this domain
   - with session expiration time (authorized by identity)
-  - at a time
+  - with a request expiration time (chosen by the service)
 
 Service communicates to server on each request:
 - identity key — identity public key (JWK)
 - service key — service's Ed25519 public key (JWK)
-- session expiration time (absolute time)
-- session signature — identity Ed25519 signature over:
+- session expiration time (absolute time) <!-- server must verify this matches what's inside the session signature -->
+- sessionSignature2 — identity Ed25519 signature over:
   - service domain (known by receiver)
   - identity token
   - service key token
@@ -113,7 +112,7 @@ Service communicates to server on each request:
   - identityToken
   - service domain
   - session expiration time (absolute time)
-  - session signature
+  - sessionSignature2
   - requestTime (10 seconds ago < requestTime < now)
   Proves the browser holds the key right now
 
