@@ -48,7 +48,7 @@ Three parties:
    The server verifies the signature and checks the age against a 7-day window (`authenticate.js`).
 
 ## Transition (old phone apps, cached webapps)
-When the phone receives the new stuff, it writes back the new stuff. No issues anticipated.
+When the phone receives the new stuff (session contains "auth2"), it writes back the new stuff. No issues anticipated.
 
 
 ## New stuff
@@ -61,10 +61,32 @@ When the phone receives the new stuff, it writes back the new stuff. No issues a
 Expires in a week.
 
 Service communicates to phone (QR code, keymeid://, ...):
-AI: FILL IN HERE
+```json
+{
+  "domain": "hablotengo.com",
+  "url": "https://signin.hablotengo.com/signin",
+  "servicePk": { /* service Ed25519 public key JWK */ },
+  "encryptionPk": { /* PKE public key JWK, for encrypting the delegate key */ }
+}
+```
+String sessionToken = `getToken(encryptionPk)`.
+This is used to name the Firestore subcollection where the phone writes the response (sessions/doc/{sessionToken}/). That way the service knows exactly where to listen.
 
-Phone responds with:
-AI: FILL IN HERE
+Phone responds with (POST to `url`, verified by CF, written to Firestore, read by service):
+```json
+{
+  // from existing auth, for compatibility
+  "session": "sessionToken",
+  "identity": { /* identity public key JWK */ },
+  "sessionTime": "ISO timestamp",
+  "sessionSignature": "hex Ed25519 sig over '{domain}-{identityToken}-{sessionTime}'",
+  "delegateCiphertext": "...",
+  "ephemeralPK": { /* phone's ephemeral PKE public key used to encrypt delegate */ }
+  // new for auth2
+  "sessionExpiration": "absolute ISO timestamp (now + 1 week)",
+  "sessionSignature2": "hex Ed25519 sig over '{domain}-{identityToken}-{serviceKeyToken}-{sessionExpiration}'",
+}
+```
 
 ### requestCredential (service to server), self-contained auth packet
 Expires in 10 seconds.
