@@ -60,22 +60,18 @@ class ContactsData {
       : byToken = {for (final c in contacts) c.token: c};
 }
 
-Map<String, dynamic> _authPayload() {
+Future<Map<String, dynamic>> _authPayload() async {
   if (signInState.isDemo) {
     return {'identity': signInState.identityJson!};
   }
-  return {
-    'identity': signInState.identityJson!,
-    'sessionTime': signInState.sessionTime!,
-    'sessionSignature': signInState.sessionSignature!,
-  };
+  return await signInState.requestCredential() ?? signInState.authPayload()!;
 }
 
 Future<ContactsData> getBatchContacts() async {
   final url = Uri.parse(habloGetBatchContactsUrl);
   debugPrint('getBatchContacts: $url');
   final body = <String, dynamic>{
-    ..._authPayload(),
+    ...await _authPayload(),
     if (signInState.delegatePublicKeyJson != null)
       'currentDelegateToken': getToken(signInState.delegatePublicKeyJson!),
   };
@@ -186,7 +182,7 @@ Future<void> deleteAccount() async {
   final response = await http.post(
     url,
     headers: {'Content-Type': 'application/json'},
-    body: jsonEncode(_authPayload()),
+    body: jsonEncode(await _authPayload()),
   );
   if (response.statusCode != 200) {
     throw Exception('deleteAccount failed: ${response.statusCode} ${response.body}');

@@ -6,23 +6,20 @@ import 'package:oneofus_common/ui/json_qr_display.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'constants.dart';
+import 'error_dialog.dart';
 import 'sign_in_state.dart';
 
 class ExportKeysButton extends StatelessWidget {
   final Json rawStatement;
   const ExportKeysButton({super.key, required this.rawStatement});
 
-  Uri _buildUrl() {
+  Future<Uri> _buildUrl() async {
     final delegateToken = getToken(rawStatement['I'] as Map<String, dynamic>);
     final identityToken = (rawStatement['with'] as Map<String, dynamic>)['verifiedIdentity'] as String;
     final streamKey = '${delegateToken}_$identityToken';
-    final authPacket = <String, dynamic>{
-      'identity': signInState.identityJson!,
-      if (!signInState.isDemo) ...{
-        'sessionTime': signInState.sessionTime!,
-        'sessionSignature': signInState.sessionSignature!,
-      },
-    };
+    final authPacket = signInState.isDemo
+        ? <String, dynamic>{'identity': signInState.identityJson!}
+        : await signInState.requestCredential() ?? signInState.authPayload()!;
     return Uri.parse(habloExportUrl).replace(queryParameters: {
       'spec': streamKey,
       'auth': jsonEncode(authPacket),
@@ -33,7 +30,6 @@ class ExportKeysButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        final uri = _buildUrl();
         final keyJson = rawStatement['I'] as Map<String, dynamic>;
         showDialog<void>(
           context: context,
@@ -53,7 +49,14 @@ class ExportKeysButton extends StatelessWidget {
                         child: JsonQrDisplay(keyJson, interpret: ValueNotifier(true)),
                       ),
                       InkWell(
-                        onTap: () => launchUrl(uri, mode: LaunchMode.externalApplication),
+                        onTap: () async {
+                          try {
+                            final uri = await _buildUrl();
+                            await launchUrl(uri, mode: LaunchMode.externalApplication);
+                          } catch (e, st) {
+                            if (ctx.mounted) ErrorDialog.show(ctx, 'Export failed', e, st);
+                          }
+                        },
                         child: const Padding(
                           padding: EdgeInsets.all(8),
                           child: Text(

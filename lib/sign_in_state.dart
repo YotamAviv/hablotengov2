@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
+import 'package:hablotengo/constants.dart';
 import 'package:oneofus_common/crypto/crypto.dart';
 import 'package:oneofus_common/crypto/crypto25519.dart';
 import 'package:oneofus_common/jsonish.dart';
@@ -10,6 +11,9 @@ class SignInState with ChangeNotifier {
   Json? _identityJson;
   String? _sessionTime;
   String? _sessionSignature;
+  String? _sessionExpiration;
+  String? _sessionSignature2;
+  OouKeyPair? _serviceKeyPair;
   bool _isDemo = false;
   OouKeyPair? _delegateKeyPair;
   Json? _delegatePublicKeyJson;
@@ -19,26 +23,33 @@ class SignInState with ChangeNotifier {
   bool get hasDelegate => _delegateKeyPair != null;
   bool get isDemo => _isDemo;
   bool get hasSession => _sessionTime != null && _sessionSignature != null;
+  bool get hasAuth2 => _sessionSignature2 != null && _sessionExpiration != null && _serviceKeyPair != null;
 
   Json? get identityJson => _identityJson;
   String? get identityToken => _identityJson != null ? getToken(_identityJson!) : null;
   String? get sessionTime => _sessionTime;
   String? get sessionSignature => _sessionSignature;
+  String? get sessionExpiration => _sessionExpiration;
+  String? get sessionSignature2 => _sessionSignature2;
+  OouKeyPair? get serviceKeyPair => _serviceKeyPair;
   Json? get delegatePublicKeyJson => _delegatePublicKeyJson;
   OouKeyPair? get delegateKeyPair => _delegateKeyPair;
   StatementSigner? get signer => _signer;
 
-  Future<void> onData(Json data, PkeKeyPair pke) async {
+  Future<void> onData(Json data, PkeKeyPair pke, OouKeyPair serviceKeyPair) async {
     try {
       _identityJson = data['identity'] as Json?;
       _sessionTime = data['sessionTime'] as String?;
       _sessionSignature = data['sessionSignature'] as String?;
+      _sessionExpiration = data['sessionExpiration'] as String?;
+      _sessionSignature2 = data['sessionSignature2'] as String?;
+      _serviceKeyPair = serviceKeyPair;
       _isDemo = false;
       _delegateKeyPair = null;
       _delegatePublicKeyJson = null;
       _signer = null;
       await _parseDelegate(data, pke);
-      debugPrint('SignInState.onData: identityToken=$identityToken hasSession=$hasSession hasDelegate=$hasDelegate');
+      debugPrint('SignInState.onData: identityToken=$identityToken hasSession=$hasSession hasDelegate=$hasDelegate auth2=${_sessionSignature2 != null}');
       notifyListeners();
     } catch (e, st) {
       debugPrint('SignInState.onData error: $e\n$st');
@@ -69,15 +80,20 @@ class SignInState with ChangeNotifier {
   }
 
   Future<void> restoreKeys(Json identityJson,
-      {String? sessionTime, String? sessionSignature, OouKeyPair? delegateKeyPair}) async {
+      {String? sessionTime, String? sessionSignature,
+       String? sessionExpiration, String? sessionSignature2, OouKeyPair? serviceKeyPair,
+       OouKeyPair? delegateKeyPair}) async {
     _identityJson = identityJson;
     _sessionTime = sessionTime;
     _sessionSignature = sessionSignature;
+    _sessionExpiration = sessionExpiration;
+    _sessionSignature2 = sessionSignature2;
+    _serviceKeyPair = serviceKeyPair;
     _isDemo = false;
     _delegateKeyPair = null;
     _delegatePublicKeyJson = null;
     _signer = null;
-    debugPrint('SignInState.restoreKeys: identityToken=${getToken(identityJson)} hasSession=${sessionTime != null}');
+    debugPrint('SignInState.restoreKeys: identityToken=${getToken(identityJson)} hasSession=${sessionTime != null} auth2=${sessionSignature2 != null}');
     if (delegateKeyPair != null) {
       await _setDelegate(delegateKeyPair);
     }
@@ -106,8 +122,8 @@ class SignInState with ChangeNotifier {
     notifyListeners();
   }
 
-  /// Returns the auth payload to include in CF request bodies (write) or query
-  /// params (read). Returns null if not signed in.
+  /// Returns the auth payload for CF requests. Returns null if not signed in.
+  /// Auth2 (requestCredential) is used when available; falls back to auth1.
   Map<String, dynamic>? authPayload() {
     if (_identityJson == null) return null;
     if (_isDemo) return {'identity': _identityJson!, 'demo': true};
@@ -118,11 +134,34 @@ class SignInState with ChangeNotifier {
     };
   }
 
+  /// Auth2 requestCredential: identity + service key + session credential + signed request time.
+  /// Returns null if auth2 is not available.
+  Future<Map<String, dynamic>?> requestCredential() async {
+    if (_identityJson == null || !hasAuth2) return null;
+    if (_isDemo) return {'identity': _identityJson!, 'demo': true};
+    final iToken = identityToken!;
+    final requestTime = DateTime.now().toUtc().toIso8601String();
+    final signedString = '$kHabloDomain-$iToken-$_sessionExpiration-$_sessionSignature2-$requestTime';
+    final requestSignature = await _serviceKeyPair!.sign(signedString);
+    final servicePkJson = await (await _serviceKeyPair!.publicKey).json;
+    return {
+      'identity': _identityJson!,
+      'servicePk': servicePkJson,
+      'sessionExpiration': _sessionExpiration!,
+      'sessionSignature2': _sessionSignature2!,
+      'requestTime': requestTime,
+      'requestSignature': requestSignature,
+    };
+  }
+
   void signOut() {
     debugPrint('SignInState.signOut: was identityToken=$identityToken');
     _identityJson = null;
     _sessionTime = null;
     _sessionSignature = null;
+    _sessionExpiration = null;
+    _sessionSignature2 = null;
+    _serviceKeyPair = null;
     _isDemo = false;
     _delegateKeyPair = null;
     _delegatePublicKeyJson = null;
