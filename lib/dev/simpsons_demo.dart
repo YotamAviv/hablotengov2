@@ -43,6 +43,7 @@ void main() async {
     writeAuthHook: () => _habloAuth!,
     readAuthHook: () => _habloAuth!,
   );
+  channelFactory.registerRedirect('https://write.hablotengo.com', '$habloFunctionsBaseUrl/write');
   if (kEmulator) {
     channelFactory.registerRedirect('https://export.one-of-us.net', oneofusExportUrl);
     channelFactory.registerRedirect('https://write.one-of-us.net', '$oneofusWriteUrl/write2');
@@ -57,6 +58,7 @@ Future<void> _run() async {
     final identity = await HabloIdentityKey.load(character.keyName);
     await identity.makeHabloDelegate();
     await identity._writeContact(character);
+    await channelFactory.clearCache(); // flush write to Firestore before moving on
     // ignore: avoid_print
     print('${character.keyName}: done');
   }
