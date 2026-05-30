@@ -11,22 +11,12 @@
 
 const admin = require('firebase-admin');
 const { keyToken } = require('./verify_util');
-const { verifySessionSignature } = require('./authenticate');
-const crypto = require('crypto');
+const { verifySessionSignature, verifyEd25519 } = require('./authenticate');
 
 const DOMAIN = 'hablotengo.com';
 const MAX_SESSION_AGE_MS = 5 * 60 * 1000; // 5 minutes for sign-in (tighter than session window)
 const MAX_SESSION_EXPIRATION_MS = 8 * 24 * 60 * 60 * 1000; // expiration must be within 8 days
 
-function verifyEd25519(publicKeyJwk, message, signatureHex) {
-  try {
-    const publicKey = crypto.createPublicKey({ key: publicKeyJwk, format: 'jwk' });
-    const sigBytes = Buffer.from(signatureHex, 'hex');
-    return crypto.verify(null, Buffer.from(message), publicKey, sigBytes);
-  } catch (e) {
-    return false;
-  }
-}
 
 async function handleSignIn(req, res) {
   const body = req.body;

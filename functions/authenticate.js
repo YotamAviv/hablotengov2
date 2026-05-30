@@ -64,7 +64,7 @@ function authenticate(authPacket, domain) {
     if (isNaN(expirationMs) || Date.now() > expirationMs) return null;
 
     const requestMs = Date.parse(requestTime);
-    if (isNaN(requestMs) || Date.now() - requestMs > REQUEST_WINDOW_MS) return null;
+    if (isNaN(requestMs) || requestMs > Date.now() || Date.now() - requestMs > REQUEST_WINDOW_MS) return null;
 
     const serviceKeyToken = keyToken(servicePk);
     const sessionSigned = `${domain}-${identityToken}-${serviceKeyToken}-${sessionExpiration}`;
@@ -85,4 +85,4 @@ function authenticate(authPacket, domain) {
   return { identityToken };
 }
 
-module.exports = { authenticate, verifySessionSignature, SESSION_WINDOW_MS, REQUEST_WINDOW_MS };
+module.exports = { authenticate, verifySessionSignature, verifyEd25519, SESSION_WINDOW_MS, REQUEST_WINDOW_MS };
