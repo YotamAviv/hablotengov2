@@ -6,6 +6,23 @@ Three parties:
 **service** (Hablo in browser, or Nerdster)
 **server** (CF + Firestore).
 
+## Requirements
+
+- Storing keys works. User uses phone to sign in to Hablo, can use Hablo for a week without needing to sign in again.
+- URL spying on service's HTTP GETs doesn't give attackers too much, (expires in 10 seconds).
+
+### Transition (old phone apps)
+The service (both webapp and CFs) will be updated well before the phone app.
+The updated phone app can respond with auth2 only; the services will be ready.
+The updated (auth2-ready) services should be able to deal with old phone apps for a month or two.
+
+### What we can't promise
+
+- **Revocation.** There is no server-side session to invalidate. A stolen credential is valid until it expires — nothing we can do before then.
+- **Live attacker.** A short window stops replayed credentials, not a live attacker who has compromised the browser (XSS, malicious extension). They can sign fresh requests using the key in memory.
+
+## Current state (call it auth 1)
+
 1) What the service currently communicates to the phone (QR code):
 
    The service generates a PKE key pair. The session token = `getToken(encryptionPk)`.
@@ -47,16 +64,8 @@ Three parties:
    ```
    The server verifies the signature and checks the age against a 7-day window (`authenticate.js`).
 
-## Transition (old phone apps, cached webapps)
-The service will be updated well before the phone app.
-The updated phone app will respond with this new stuff.
-The updated services should be able to deal with old phone apps for a month or two.
 
-## New stuff
-
-### Requirements:
-- store keys works. User uses phone to sign in to Hablo, can use Hablo for a week without needing to sign in again.
-- URL spying on service's gets doesn't give attackers too much, (expires in 10).
+## New stuff (call it auth 2)
 
 ### identitySession (phone to service)
 Expires in a week.
@@ -116,7 +125,3 @@ Service communicates to server on each request:
   - requestTime (10 seconds ago < requestTime < now)
   Proves the browser holds the key right now
 
-### What we can't promise
-
-- **Revocation.** There is no server-side session to invalidate. A stolen credential is valid until it expires — nothing we can do before then.
-- **Live attacker.** A short window stops replayed credentials, not a live attacker who has compromised the browser (XSS, malicious extension). They can sign fresh requests using the key in memory.
