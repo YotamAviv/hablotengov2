@@ -2,9 +2,9 @@
 ## Secure sign-in
 
 Three parties: 
-**phone** (ONE-OF-US.NET identity phone app, holds identity Ed25519 private key)
-**service** (Hablo in browser, or Nerdster)
-**server** (CF + Firestore).
+**phone** (ONE-OF-US.NET identity phone app, holds identity Ed25519 private key) — code in `oneofus/lib/core/sign_in_service.dart`
+**service** (Hablo in browser, or Nerdster) — code in `hablotengo/lib/` and `nerdster/lib/`
+**server** (CF + Firestore) — code in `hablotengo/functions/` and `nerdster/functions/`
 
 ## Requirements
 
@@ -110,6 +110,8 @@ The service checks if the phone sent it sessionSignature or sessionSignature2 to
 ```
 
 ### requestCredential (service to server), self-contained auth packet
+
+Passed in the request body (same as current auth).
 
 Service communicates to server on each request:
 - identity key — identity public key (JWK)
