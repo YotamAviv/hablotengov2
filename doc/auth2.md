@@ -8,8 +8,21 @@ Three parties:
 
 ## Requirements
 
-- Storing keys works. User uses phone to sign in to Hablo, can use Hablo for a week without needing to sign in again.
-- URL spying on service's HTTP GETs doesn't give attackers too much, (expires in 10 seconds).
+### Storing keys still works.
+User uses phone to sign in to Hablo, can use Hablo for a week without needing to sign in again.
+The webapp will need to store more for auth2 than it did for auth1.
+
+### Improved security
+
+Any request credential auth passed over HTTP expires in 10 seconds.
+And so URL spying on service's HTTP GETs doesn't give attackers too much.
+
+Goals / requirements:
+- prove that this request has been authorized using the identity private key 
+  - for this service (possesor of its signing key)
+  - for this domain
+  - with session expiration time (authorized by identity)
+  - with a request expiration time (chosen by the service)
 
 ### Transition (old phone apps)
 The service (both webapp and CFs) will be updated well before the phone app.
@@ -97,14 +110,6 @@ The service checks if the phone sent it sessionSignature or sessionSignature2 to
 ```
 
 ### requestCredential (service to server), self-contained auth packet
-Expires in 10 seconds.
-
-Goal / requirements:
-- prove that this request has been authorized using the identity private key 
-  - for this service (possesor of its signing key)
-  - for this domain
-  - with session expiration time (authorized by identity)
-  - with a request expiration time (chosen by the service)
 
 Service communicates to server on each request:
 - identity key — identity public key (JWK)
