@@ -80,6 +80,15 @@ The updated (auth2-ready) services should be able to deal with old phone apps fo
 
 ## New stuff (call it auth 2)
 
+### Implementation notes
+- `servicePk` is generated in `SignInSession.create()` alongside the PKE key pair, stored in `FlutterSecureStorage`, wiped on sign-out.
+- The phone detects auth2 by presence of `servicePk` in the QR. If absent (old service), falls back to auth1.
+- The service detects auth2 by presence of `sessionSignature2` in the phone response.
+- `authenticate.js` tries auth2 first (`sessionSignature2` present), falls back to auth1.
+- Auth hooks in `ChannelFactory` are async to support per-request signing.
+
+
+
 ### identitySession (phone to service)
 Expires in a week.
 

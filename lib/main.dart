@@ -59,8 +59,8 @@ Future<void> main() async {
   // OneOfUS domain: public trust-graph reads (no auth needed).
   channelFactory.register('one-of-us.net');
   channelFactory.register('hablotengo.com',
-    writeAuthHook: () => signInState.authPayload()!,
-    readAuthHook: () => signInState.authPayload()!,
+    writeAuthHook: () async => await signInState.requestCredential() ?? signInState.authPayload()!,
+    readAuthHook: () async => await signInState.requestCredential() ?? signInState.authPayload()!,
   );
   // write.hablotengo.com doesn't resolve; always redirect to the actual CF URL.
   channelFactory.registerRedirect('https://write.hablotengo.com', '$habloFunctionsBaseUrl/write');

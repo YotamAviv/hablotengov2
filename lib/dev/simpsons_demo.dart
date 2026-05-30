@@ -40,8 +40,8 @@ void main() async {
   channelFactory = ChannelFactory(kEmulator ? FireChoice.emulator : FireChoice.prod);
   channelFactory.register('one-of-us.net');
   channelFactory.register('hablotengo.com',
-    writeAuthHook: () => _habloAuth!,
-    readAuthHook: () => _habloAuth!,
+    writeAuthHook: () async => _habloAuth!,
+    readAuthHook: () async => _habloAuth!,
   );
   channelFactory.registerRedirect('https://write.hablotengo.com', '$habloFunctionsBaseUrl/write');
   if (kEmulator) {

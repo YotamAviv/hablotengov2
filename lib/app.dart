@@ -8,6 +8,7 @@ import 'version.dart';
 import 'constants.dart';
 import 'contacts_screen.dart';
 import 'demo_sign_in_service.dart';
+import 'error_dialog.dart';
 import 'key_store.dart';
 import 'my_contact_screen.dart';
 import 'settings_screen.dart';
@@ -91,6 +92,7 @@ class _HabloHomeState extends State<_HabloHome> {
       await demoSignIn(_selectedCharacter);
     } catch (e, st) {
       debugPrint('_doDemoSignIn error: $e\n$st');
+      if (mounted) ErrorDialog.show(context, 'Demo sign-in failed', e, st);
     } finally {
       if (mounted) setState(() => _demoSigningIn = false);
     }
@@ -135,10 +137,10 @@ class _HabloHomeState extends State<_HabloHome> {
         debugPrint('sessionFactory: session created forPhone=${session.forPhone}');
         return session;
       },
-      onData: (data, pke) async {
+      onData: (data, pke, serviceKeyPair) async {
         debugPrint('onData: received keys=${data.keys.toList()}');
         debugPrint('onData: identity=${data['identity']}');
-        await signInState.onData(data, pke);
+        await signInState.onData(data, pke, serviceKeyPair);
       },
       firestore: widget.firestore,
       stateNotifier: signInState,
