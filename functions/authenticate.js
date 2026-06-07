@@ -23,7 +23,7 @@ const crypto = require('crypto');
 const { keyToken } = require('./verify_util');
 
 const SESSION_WINDOW_MS = 7 * 24 * 60 * 60 * 1000; // 1 week
-const REQUEST_WINDOW_MS = 10 * 1000; // 10 seconds
+const REQUEST_WINDOW_MS = 60 * 1000; // 60 seconds (mobile browsers can be slow to sign)
 
 function verifyEd25519(publicKeyJwk, message, signatureHex) {
   try {
@@ -64,7 +64,7 @@ function authenticate(authPacket, domain) {
     if (isNaN(expirationMs) || Date.now() > expirationMs) return null;
 
     const requestMs = Date.parse(requestTime);
-    if (isNaN(requestMs) || requestMs > Date.now() || Date.now() - requestMs > REQUEST_WINDOW_MS) return null;
+    if (isNaN(requestMs) || Math.abs(Date.now() - requestMs) > REQUEST_WINDOW_MS) return null;
 
     const serviceKeyToken = keyToken(servicePk);
     const sessionSigned = `${domain}-${identityToken}-${serviceKeyToken}-${sessionExpiration}`;
