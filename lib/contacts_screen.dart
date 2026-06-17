@@ -95,6 +95,7 @@ class ContactsScreenState extends State<ContactsScreen> {
       final idx = _contacts?.indexWhere((c) => c.token == selfToken) ?? -1;
       if (idx >= 0) _contacts![idx] = updated;
     });
+    widget.onContactCardStatus?.call(true);
   }
 
   List<String> get myMonikers {
@@ -331,7 +332,7 @@ class _ContactDetailSheet extends StatelessWidget {
             ],
             const SizedBox(height: 12),
             if (contact.status == ContactStatus.denied)
-              const Text('Access denied.', style: TextStyle(color: Colors.grey))
+              const Text('Access denied.', style: TextStyle(color: Colors.red))
             else if (contact.status == ContactStatus.notFound)
               const Text('No contact info.', style: TextStyle(color: Colors.grey))
             else ...[

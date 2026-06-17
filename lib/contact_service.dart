@@ -42,7 +42,7 @@ class TrustContact {
     label: label,
     monikers: monikers,
     keyPayload: keyPayload,
-    status: status,
+    status: ContactStatus.found,
     contact: updated,
     someHidden: someHidden,
     defaultStrictness: updated.defaultStrictness,
