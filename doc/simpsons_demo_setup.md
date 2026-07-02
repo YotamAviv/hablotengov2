@@ -98,19 +98,24 @@ cd ~/src/github/hablotengo
 python3 bin/gen_identity_files.py
 ```
 
-Writes per-character `../demo_identities/*-identity.json` files containing identity + nerdster/hablo delegate keys, used to sign in via the Android phone emulator.
+Writes per-character `demo_identities/*-identity.json` files (in the hablotengo repo,
+git-ignored) containing identity + nerdster/hablo delegate keys, used to sign in via
+the Android phone emulator. Each file carries one `identity` key plus `hablotengo.com`
+and `nerdster.org` delegate keys, so the same identity works in both web apps.
 
 ### 4. Deploy and commit
 
+```
 cd ~/src/github/oneofus
 cp ~/src/github/nerdster/web/common/data/demoData.js web/common/data/demoData.js
 
 cd ~/src/github/hablotengo
 firebase deploy --only functions --project=hablotengo
+```
 
 `simpsons_public_keys.dart` is compiled into the Hablo web app.
 
-In each project
+Then deploy web hosting in each project (nerdster, oneofus, hablotengo):
 ```
 bin/deploy_web.sh
 ```
