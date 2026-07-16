@@ -137,7 +137,10 @@ class _HabloHomeState extends State<_HabloHome> {
         debugPrint('sessionFactory: session created forPhone=${session.forPhone}');
         return session;
       },
-      onData: (data, pke, serviceKeyPair) async {
+      // `method` (SignInMethod) reports which transport the user signed in with. Hablotengo
+      // has no block/clear handoff, so it ignores it; the param is accepted for signature
+      // compatibility with the shared sign-in dialog. See nerdster doc/pass_the_intention.md.
+      onData: (data, pke, serviceKeyPair, method) async {
         debugPrint('onData: received keys=${data.keys.toList()}');
         debugPrint('onData: identity=${data['identity']}');
         await signInState.onData(data, pke, serviceKeyPair);
