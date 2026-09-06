@@ -525,35 +525,57 @@ class _EditEntryRowState extends State<_EditEntryRow> {
           ),
           const SizedBox(width: 6),
           Expanded(
-            child: TextField(
-              controller: _valueCtrl,
-              decoration: const InputDecoration(
-                isDense: true,
-                contentPadding: EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+            // Named after the entry it belongs to. The row's only visible text
+            // is the tech label, which is a drag handle, so without this the
+            // field is an anonymous box and the only way to find it is its width.
+            child: Semantics(
+              // container: true, or this makes no node of its own -- the
+              // TextField's own semantics win and the label is simply lost.
+              container: true,
+              textField: true,
+              label: '${widget.entry.tech} value',
+              child: TextField(
+                controller: _valueCtrl,
+                decoration: const InputDecoration(
+                  isDense: true,
+                  contentPadding: EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+                ),
+                style: const TextStyle(fontSize: 13),
+                onChanged: (_) => _notify(),
               ),
-              style: const TextStyle(fontSize: 13),
-              onChanged: (_) => _notify(),
             ),
           ),
           const SizedBox(width: 6),
-          GestureDetector(
-            onTap: () => _notify(preferred: !widget.entry.preferred),
-            child: Icon(
-              widget.entry.preferred ? Icons.star : Icons.star_border,
-              size: 18,
-              color: widget.entry.preferred ? Colors.amber : Colors.grey,
+          Semantics(
+            button: true,
+            selected: widget.entry.preferred,
+            excludeSemantics: true,
+            label: 'Preferred ${widget.entry.tech}',
+            child: GestureDetector(
+              onTap: () => _notify(preferred: !widget.entry.preferred),
+              child: Icon(
+                widget.entry.preferred ? Icons.star : Icons.star_border,
+                size: 18,
+                color: widget.entry.preferred ? Colors.amber : Colors.grey,
+              ),
             ),
           ),
           const SizedBox(width: 6),
           VisibilityPicker(
             showLabels: false,
+            forField: widget.entry.tech,
             value: widget.entry.visibility,
             onChanged: (v) => _notify(visibility: v),
           ),
           const SizedBox(width: 6),
-          GestureDetector(
-            onTap: widget.onDelete,
-            child: const Icon(Icons.close, size: 16, color: Colors.grey),
+          Semantics(
+            button: true,
+            excludeSemantics: true,
+            label: 'Delete ${widget.entry.tech}',
+            child: GestureDetector(
+              onTap: widget.onDelete,
+              child: const Icon(Icons.close, size: 16, color: Colors.grey),
+            ),
           ),
         ],
       ),

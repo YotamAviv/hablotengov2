@@ -323,12 +323,16 @@ class _SignedInScreenState extends State<_SignedInScreen> with SingleTickerProvi
                     child: SizedBox(width: 20, height: 20,
                         child: CircularProgressIndicator(strokeWidth: 2, color: Colors.teal)),
                   )
-                : IconButton(icon: const Icon(Icons.refresh), onPressed: () => _contactsKey.currentState?.reload()),
+                : IconButton(
+                    tooltip: 'Refresh',
+                    icon: const Icon(Icons.refresh),
+                    onPressed: () => _contactsKey.currentState?.reload()),
           ),
           if (signInState.hasIdentity)
             ValueListenableBuilder<bool>(
               valueListenable: _isDelegateError,
               builder: (_, error, _) => IconButton(
+                tooltip: 'Settings',
                 icon: const Icon(Icons.settings),
                 onPressed: error ? null : () => _openSettings(context),
               ),
@@ -340,6 +344,10 @@ class _SignedInScreenState extends State<_SignedInScreen> with SingleTickerProvi
               builder: (context, _) {
                 final pulse = _hasContactCard == false && !error;
                 return IconButton(
+                  // Named, like Edit already is: an untooltipped IconButton has
+                  // no name in the semantics tree, so the only way to find it is
+                  // "the unnamed icon left of Sign out".
+                  tooltip: 'My card',
                   icon: Icon(
                     Icons.person,
                     color: pulse

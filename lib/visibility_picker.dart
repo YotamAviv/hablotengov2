@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 
 const _kVisOptions = [
   ('permissive', 'Permissive', Colors.green),
-  ('standard',   'Standard',   Colors.orange),
-  ('strict',     'Strict',     Colors.red),
+  ('standard', 'Standard', Colors.orange),
+  ('strict', 'Strict', Colors.red),
 ];
 
 class VisibilityPicker extends StatelessWidget {
@@ -11,11 +11,22 @@ class VisibilityPicker extends StatelessWidget {
   final ValueChanged<String> onChanged;
   final bool showLabels;
 
+  /// Which field this picker governs, e.g. 'phone'.
+  ///
+  /// Only used for the accessibility label. With showLabels:false the segments
+  /// draw nothing at all, so without this they reach the semantics tree as three
+  /// unnamed boxes and the only way to tell strict from permissive is which
+  /// order they sit in. Naming them lets a test or a screen reader say which one
+  /// it means; naming them PER FIELD keeps them distinct when a card has several
+  /// entries, and distinct from the form's own "Default visibility" picker.
+  final String? forField;
+
   const VisibilityPicker({
     super.key,
     required this.value,
     required this.onChanged,
     this.showLabels = true,
+    this.forField,
   });
 
   @override
@@ -28,27 +39,35 @@ class VisibilityPicker extends StatelessWidget {
         final EdgeInsets padding = showLabels
             ? const EdgeInsets.symmetric(horizontal: 14, vertical: 8)
             : const EdgeInsets.symmetric(horizontal: 7, vertical: 6);
-        return GestureDetector(
-          onTap: () => onChanged(selected && !showLabels ? 'default' : rec.$1),
-          child: Container(
-            padding: padding,
-            decoration: BoxDecoration(
-              color: selected ? rec.$3 : surface,
-              border: Border.all(color: selected ? rec.$3 : Colors.grey.shade300),
-              borderRadius: BorderRadius.horizontal(
-                left:  rec.$1 == 'permissive' ? const Radius.circular(20) : Radius.zero,
-                right: rec.$1 == 'strict'     ? const Radius.circular(20) : Radius.zero,
+        return Semantics(
+          button: true,
+          selected: selected,
+          // One node per segment, with the child's own text excluded so a
+          // labelled picker does not produce two nodes saying the same thing.
+          excludeSemantics: true,
+          label: forField == null ? rec.$2 : '${rec.$2} for $forField',
+          child: GestureDetector(
+            onTap: () => onChanged(selected && !showLabels ? 'default' : rec.$1),
+            child: Container(
+              padding: padding,
+              decoration: BoxDecoration(
+                color: selected ? rec.$3 : surface,
+                border: Border.all(color: selected ? rec.$3 : Colors.grey.shade300),
+                borderRadius: BorderRadius.horizontal(
+                  left: rec.$1 == 'permissive' ? const Radius.circular(20) : Radius.zero,
+                  right: rec.$1 == 'strict' ? const Radius.circular(20) : Radius.zero,
+                ),
               ),
+              child: showLabels
+                  ? Text(
+                      rec.$2,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: selected ? Colors.white : Colors.grey.shade500,
+                      ),
+                    )
+                  : const SizedBox.shrink(),
             ),
-            child: showLabels
-                ? Text(
-                    rec.$2,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: selected ? Colors.white : Colors.grey.shade500,
-                    ),
-                  )
-                : const SizedBox.shrink(),
           ),
         );
       }).toList(),
@@ -68,8 +87,10 @@ class VisibilityHelpButton extends StatelessWidget {
       onTap: () => _showHelp(context),
       child: const Padding(
         padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-        child: Text('?',
-            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
+        child: Text(
+          '?',
+          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.blueGrey),
+        ),
       ),
     );
   }
@@ -83,14 +104,10 @@ class VisibilityHelpButton extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _row(ctx, 'permissive', 'Permissive',
-                'Anyone reachable in your network.'),
-            _row(ctx, 'standard', 'Standard',
-                '≤3 hops: 1 path. 4 hops: 2 paths. 5+: 3 paths.'),
-            _row(ctx, 'strict', 'Strict',
-                '≤2 hops: 1 path. 3 hops: 2 paths. 4+: 3 paths.'),
-            _row(ctx, 'default', 'Default',
-                'Uses your default visibility setting.'),
+            _row(ctx, 'permissive', 'Permissive', 'Anyone reachable in your network.'),
+            _row(ctx, 'standard', 'Standard', '≤3 hops: 1 path. 4 hops: 2 paths. 5+: 3 paths.'),
+            _row(ctx, 'strict', 'Strict', '≤2 hops: 1 path. 3 hops: 2 paths. 4+: 3 paths.'),
+            _row(ctx, 'default', 'Default', 'Uses your default visibility setting.'),
             const SizedBox(height: 10),
             const Text(
               'You have one default visibility setting that applies to all fields, '
@@ -99,9 +116,7 @@ class VisibilityHelpButton extends StatelessWidget {
             ),
           ],
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('OK')),
-        ],
+        actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('OK'))],
       ),
     );
   }
@@ -111,11 +126,7 @@ class VisibilityHelpButton extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 5),
       child: Row(
         children: [
-          VisibilityPicker(
-            showLabels: false,
-            value: visValue,
-            onChanged: (_) {},
-          ),
+          VisibilityPicker(showLabels: false, value: visValue, onChanged: (_) {}),
           const SizedBox(width: 10),
           Flexible(
             child: Column(
