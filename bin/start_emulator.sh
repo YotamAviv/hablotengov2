@@ -22,7 +22,7 @@ if [ "$EXPORT" = true ]; then
     mkdir -p exports
     gcloud config set project hablotengo
     gcloud firestore export gs://hablotengo/hablotengo-$NOW
-    gsutil -m cp -r gs://hablotengo/hablotengo-$NOW exports/
+    gcloud storage cp -r gs://hablotengo/hablotengo-$NOW exports/
     IMPORT="exports/hablotengo-$NOW"
 elif [ "$EMPTY" = true ]; then
     IMPORT=""
