@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:nerdster_common/labeler.dart';
@@ -142,11 +144,24 @@ class _MyContactSheetState extends State<MyContactSheet> {
     const padding = EdgeInsets.fromLTRB(16, 16, 16, 24);
 
     if (_editing) {
+      // The on-screen keyboard covers the bottom of the sheet, and a modal bottom sheet
+      // is anchored under it. Without both of these the name field, the Save button, and
+      // whatever the user was typing sit behind the keyboard, unreachable -- the
+      // Expanded/SingleChildScrollView below only scrolls the entries, not the sheet.
+      // Worst inside the 600px demo iframe on hablotengo.com/home.html, where 0.82 of the
+      // viewport barely clears the keyboard to begin with.
+      final double screenHeight = MediaQuery.sizeOf(context).height;
+      final double keyboard = MediaQuery.viewInsetsOf(context).bottom;
+      final double sheetHeight = math.max(
+        0,
+        math.min(screenHeight * 0.82, screenHeight - keyboard - padding.vertical),
+      );
+
       return SafeArea(
         child: Padding(
-          padding: padding,
+          padding: padding.copyWith(bottom: padding.bottom + keyboard),
           child: SizedBox(
-            height: MediaQuery.sizeOf(context).height * 0.82,
+            height: sheetHeight,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
