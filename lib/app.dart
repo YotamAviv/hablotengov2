@@ -151,6 +151,8 @@ class _HabloHomeState extends State<_HabloHome> {
       hasDelegate: () => signInState.hasDelegate,
       identityJson: () => signInState.identityJson,
       delegatePublicKeyJson: () => signInState.delegatePublicKeyJson,
+      appName: 'HabloTengo',
+      readCapability: 'show contacts shared with you',
       onSignOut: signInState.signOut,
       onForgetIdentity: signInState.signOut,
       showPasteInitially: emulator,
