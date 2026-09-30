@@ -156,6 +156,7 @@ class _HabloHomeState extends State<_HabloHome> {
       onSignOut: signInState.signOut,
       onForgetIdentity: signInState.signOut,
       showPasteInitially: emulator,
+      showCrypto: () => settingsState.showCrypto,
       trailingWidget: ValueListenableBuilder<bool>(
         valueListenable: storeKeys,
         builder: (_, value, _) => Row(
