@@ -67,6 +67,12 @@ Future<Map<String, dynamic>> _authPayload() async {
   return await signInState.requestCredential() ?? signInState.authPayload()!;
 }
 
+class SessionExpiredException implements Exception {
+  const SessionExpiredException();
+  @override
+  String toString() => 'Authentication failed. Your session may have expired. Try signing out and signing in again.';
+}
+
 Future<ContactsData> getBatchContacts() async {
   final url = Uri.parse(habloGetBatchContactsUrl);
   debugPrint('getBatchContacts: $url');
@@ -80,6 +86,7 @@ Future<ContactsData> getBatchContacts() async {
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(body),
   );
+  if (response.statusCode == 401) throw const SessionExpiredException();
   if (response.statusCode != 200) {
     throw Exception('getBatchContacts failed: ${response.statusCode} ${response.body}');
   }
